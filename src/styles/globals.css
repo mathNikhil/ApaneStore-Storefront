@@ -1,0 +1,141 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f7f9fc;
+    color: #191c1e;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    display: inline-block;
+    vertical-align: middle;
+    font-size: 24px;
+  }
+
+  .material-symbols-outlined.filled {
+    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  }
+}
+
+@layer components {
+  /* Tonal Layer Cards - Matching your HTML */
+  .tonal-layer {
+    @apply bg-white border border-[#E9EDEF] shadow-[0_4px_4px_rgba(0,0,0,0.02)] rounded-xl;
+  }
+
+  .tonal-layer-1 {
+    @apply bg-white border border-[#E9EDEF] shadow-[0_4px_4px_rgba(0,0,0,0.02)] rounded-xl;
+  }
+
+  /* Button Press Effect */
+  .btn-press:active {
+    transform: scale(0.97);
+  }
+
+  /* WhatsApp-like chat pattern background */
+  .bg-chat-pattern {
+    background-color: #f7f9fc;
+    background-image: radial-gradient(#25d366 0.5px, transparent 0.5px), 
+                      radial-gradient(#25d366 0.5px, #f7f9fc 0.5px);
+    background-size: 20px 20px;
+    background-position: 0 0, 10px 10px;
+    opacity: 0.03;
+  }
+  .hover-lift {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+}
+
+  /* OTP Input - Matching your HTML */
+  .otp-input {
+    @apply w-12 h-14 text-center text-2xl font-semibold border border-[#bbcbb9] rounded-lg 
+           focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 
+           transition-all;
+  }
+
+  /* Hover lift effect */
+  .hover-lift {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-2px);
+  }
+
+  /* Elevation shadows matching M3 */
+  .elevation-1 {
+    box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15), 0px 1px 2px 0px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Animation */
+  .animate-in {
+    animation: animateIn 0.7s ease-out;
+  }
+
+  @keyframes animateIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .slide-in-from-bottom-4 {
+    animation: slideInBottom 0.7s ease-out;
+  }
+
+  @keyframes slideInBottom {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+@layer utilities {
+  .bg-surface {
+    background-color: #f7f9fc;
+  }
+  
+  .text-on-surface {
+    color: #191c1e;
+  }
+  
+  .text-on-surface-variant {
+    color: #3c4a3d;
+  }
+  
+  .bg-surface-container-lowest {
+    background-color: #ffffff;
+  }
+  
+  .border-outline-variant {
+    border-color: #bbcbb9;
+  }
+}
+

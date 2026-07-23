@@ -1,0 +1,31 @@
+const API_BASE_URL = 'http://localhost:5002';
+
+// Fetches a published store's config by subdomain. Public — no auth token,
+// since this is what real shoppers hit.
+export const publicStoreAPI = {
+    getBySubdomain: async (subdomain) => {
+        const response = await fetch(`${API_BASE_URL}/api/public/store/${subdomain}`);
+        return response.json();
+    },
+};
+
+// Store-scoped customer auth — same as the builder's preview, since this IS
+// the same login flow the tenant already tested there.
+export const customerAuthAPI = {
+    sendOTP: async (storeId, phone) => {
+        const response = await fetch(`${API_BASE_URL}/api/store/${storeId}/auth/otp/send`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone }),
+        });
+        return response.json();
+    },
+    verifyOTP: async (storeId, phone, otp) => {
+        const response = await fetch(`${API_BASE_URL}/api/store/${storeId}/auth/otp/verify`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone, otp }),
+        });
+        return response.json();
+    },
+};
