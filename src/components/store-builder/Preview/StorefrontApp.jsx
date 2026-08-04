@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import PreviewHeader from './PreviewHeader';
 import PreviewFooter from './PreviewFooter';
 import PreviewCustomerAuth from './PreviewCustomerAuth';
@@ -16,7 +16,55 @@ import { DeviceFrameContext } from './DeviceFrameContext';
 // customers get, byte for byte.
 const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '', style = {} }) => {
   const [activeTab, setActiveTab] = useState('home');
-  const [customerMobile, setCustomerMobile] = useState(null);
+  // ✅ Real customer session (was just the phone string before, from a fake
+  // login). Persisted per-store in localStorage so a returning customer
+  // within the token's validity doesn't have to re-verify every visit —
+  // scoped by storeId since the same browser might shop at multiple
+  // different stores, each with its own separate customer identity there.
+  const [customer, setCustomer] = useState(null);
+  const [customerToken, setCustomerToken] = useState(null);
+  // Only set while the auth screen was triggered mid-shopping (checkout) —
+  // lets the person dismiss it and keep browsing instead of being stuck.
+  const [checkoutNeedsAuth, setCheckoutNeedsAuth] = useState(false);
+
+  useEffect(() => {
+    if (!storeId) return;
+    try {
+      const raw = localStorage.getItem(`customer_session_${storeId}`);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        setCustomer(saved.customer);
+        setCustomerToken(saved.token);
+      }
+    } catch (e) {
+      console.error('Failed to load saved customer session:', e);
+    }
+  }, [storeId]);
+
+  const handleAuthenticated = (customerData, token) => {
+    setCustomer(customerData);
+    setCustomerToken(token);
+    setCheckoutNeedsAuth(false);
+    try {
+      localStorage.setItem(`customer_session_${storeId}`, JSON.stringify({ customer: customerData, token }));
+    } catch (e) {
+      console.error('Failed to persist customer session:', e);
+    }
+  };
+
+  // ✅ Pulls real, current order status whenever the customer opens the
+  // Orders tab — without this, a status change made in Store Admin would
+  // never actually show up here; the storefront would keep showing
+  // whatever the order looked like the moment it was placed. Also polls
+  // every 30 seconds while the tab stays open, so a customer watching an
+  // active delivery sees status changes without manually refreshing.
+  useEffect(() => {
+    if (activeTab !== 'orders' || !customer) return;
+    refreshOrders();
+    const interval = setInterval(refreshOrders, 30000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, customer]);
 
   // Any modal (product quick-view, etc.) portals into this root, so it stays
   // contained within whatever box this component is rendered inside —
@@ -25,19 +73,7 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
   const [rootNode, setRootNode] = useState(null);
   useEffect(() => { setRootNode(rootRef.current); }, []);
 
-  const {
-    storeData,
-    addToCart,
-    removeFromCart,
-    updateQuantity,
-    getCartItemCount,
-    addAddress,
-    updateAddress,
-    deleteAddress,
-    setDefaultAddress,
-    placeOrder,
-    cancelOrder,
-  } = usePreviewData({
+  const flattenedData = useMemo(() => ({
     brandName: builderData.brand.brandName,
     tagline: builderData.brand.tagline,
     logo: builderData.brand.logo,
@@ -101,7 +137,23 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
     aboutUs: builderData.profile.aboutUs,
     socialLinks: builderData.profile.socialLinks,
     feedbackLinks: builderData.profile.feedbackLinks,
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [builderData]);
+
+  const {
+    storeData,
+    addToCart,
+    removeFromCart,
+    updateQuantity,
+    getCartItemCount,
+    addAddress,
+    updateAddress,
+    deleteAddress,
+    setDefaultAddress,
+    placeOrder,
+    cancelOrder,
+    refreshOrders,
+  } = usePreviewData(flattenedData, storeId, customerToken);
 
   const handleAddToCart = (productId, variationId, sizeId) => {
     const allProducts = storeData.products || [];
@@ -110,31 +162,58 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
   };
 
   const handleLogout = () => {
-    setCustomerMobile(null);
+    setCustomer(null);
+    setCustomerToken(null);
+    try {
+      localStorage.removeItem(`customer_session_${storeId}`);
+    } catch (e) {
+      console.error('Failed to clear customer session:', e);
+    }
     setActiveTab('home');
   };
 
+  const AUTH_REQUIRED_TABS = ['orders', 'profile'];
+
   const renderTab = () => {
+    if (AUTH_REQUIRED_TABS.includes(activeTab) && !customer) {
+      return (
+        <PreviewCustomerAuth
+          brand={storeData.brand}
+          storeId={storeId}
+          onAuthenticated={handleAuthenticated}
+          onCancel={() => setActiveTab('home')}
+        />
+      );
+    }
     switch (activeTab) {
       case 'home':
         return <PreviewHomeTab data={storeData} onAddToCart={handleAddToCart} device={device} />;
       case 'cart':
-        return (
+        return checkoutNeedsAuth ? (
+          <PreviewCustomerAuth
+            brand={storeData.brand}
+            storeId={storeId}
+            onAuthenticated={handleAuthenticated}
+            onCancel={() => setCheckoutNeedsAuth(false)}
+          />
+        ) : (
           <PreviewCartTab
             data={storeData}
             updateQuantity={updateQuantity}
             removeFromCart={removeFromCart}
             placeOrder={placeOrder}
             onGoToProfile={() => setActiveTab('profile')}
+            isAuthenticated={!!customer}
+            onRequireAuth={() => setCheckoutNeedsAuth(true)}
           />
         );
       case 'orders':
-        return <PreviewOrdersTab data={storeData} cancelOrder={cancelOrder} />;
+        return <PreviewOrdersTab data={storeData} cancelOrder={cancelOrder} addToCart={addToCart} onGoToCart={() => setActiveTab('cart')} />;
       case 'profile':
         return (
           <PreviewProfileTab
             data={storeData}
-            customerMobile={customerMobile}
+            customerMobile={customer?.phone}
             addAddress={addAddress}
             updateAddress={updateAddress}
             deleteAddress={deleteAddress}
@@ -150,27 +229,15 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
   return (
     <div ref={rootRef} className={`flex flex-col relative ${className}`} style={style}>
       <DeviceFrameContext.Provider value={rootNode}>
-        {!customerMobile ? (
-          <div className="flex-1 overflow-y-auto">
-            <PreviewCustomerAuth
-              brand={storeData.brand}
-              storeId={storeId}
-              onAuthenticated={(mobile) => setCustomerMobile(mobile)}
-            />
-          </div>
-        ) : (
-          <>
-            <PreviewHeader brand={storeData.brand || {}} cartCount={getCartItemCount()} />
-            <div className="flex-1 overflow-y-auto">
-              {renderTab()}
-            </div>
-            <PreviewFooter
-              activeTab={activeTab}
-              onChange={setActiveTab}
-              brandColors={storeData.brand?.colors || {}}
-            />
-          </>
-        )}
+        <PreviewHeader brand={storeData.brand || {}} cartCount={getCartItemCount()} />
+        <div className="flex-1 overflow-y-auto">
+          {renderTab()}
+        </div>
+        <PreviewFooter
+          activeTab={activeTab}
+          onChange={setActiveTab}
+          brandColors={storeData.brand?.colors || {}}
+        />
       </DeviceFrameContext.Provider>
     </div>
   );

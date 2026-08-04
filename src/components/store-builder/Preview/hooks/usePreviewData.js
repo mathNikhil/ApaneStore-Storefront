@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { customerOrderAPI } from '../../../../services/api';
 
 // Helper function to adapt product for preview
 const adaptProductForPreview = (builderProduct) => {
@@ -58,6 +59,17 @@ const adaptCategoryForPreview = (builderCategory) => {
 
 const generateOrderId = () => `ORD-${Date.now()}`;
 
+const ORDER_STATUS_TEXT = {
+  pending: 'Order Placed',
+  confirmed: 'Confirmed',
+  processing: 'Processing',
+  accepted: 'Accepted',
+  ready_to_deliver: 'Ready to Deliver',
+  out_for_delivery: 'Out for Delivery',
+  delivered: 'Delivered',
+  cancelled: 'Cancelled',
+};
+
 const formatAddressLine = (addr) => {
   if (!addr) return '';
   return [addr.addressLine1, addr.addressLine2, addr.city, addr.state, addr.pincode]
@@ -65,7 +77,7 @@ const formatAddressLine = (addr) => {
     .join(', ');
 };
 
-export const usePreviewData = (builderData) => {
+export const usePreviewData = (builderData, storeId, customerToken) => {
   const [storeData, setStoreData] = useState({
     brand: {
       name: 'Organic Flour Co.',
@@ -73,12 +85,12 @@ export const usePreviewData = (builderData) => {
       logo: null,
       colors: {
         primary: '#25D366',
-        secondary: '#111B21',
-        tertiary: '#008069',
+        secondary: '#E0E3E6',
         background: '#FFFFFF',
         button: '#25D366',
         buttonLabel: '#005523',
-        font: '#191C1E',
+        fontHeader: '#191C1E',
+        fontBody: '#556067',
       },
       fonts: {
         heading: 'Inter',
@@ -209,11 +221,11 @@ export const usePreviewData = (builderData) => {
             ...prev.brand.colors,
             primary: builderData.brandColors?.primary || prev.brand.colors.primary,
             secondary: builderData.brandColors?.secondary || prev.brand.colors.secondary,
-            tertiary: builderData.brandColors?.tertiary || prev.brand.colors.tertiary,
             background: builderData.brandColors?.background || prev.brand.colors.background,
             button: builderData.brandColors?.button || prev.brand.colors.button,
             buttonLabel: builderData.brandColors?.buttonLabel || prev.brand.colors.buttonLabel,
-            font: builderData.brandColors?.font || prev.brand.colors.font,
+            fontHeader: builderData.brandColors?.fontHeader || builderData.brandColors?.font || prev.brand.colors.fontHeader,
+            fontBody: builderData.brandColors?.fontBody || prev.brand.colors.fontBody,
           },
           fonts: {
             heading: builderData.headingFont || prev.brand.fonts.heading,
@@ -476,45 +488,115 @@ export const usePreviewData = (builderData) => {
   // ============================================
   // ORDER FUNCTIONS
   // ============================================
-  // Places a real order built from the current cart, chosen address, and chosen
-  // payment method — replaces the old hardcoded mock orders.
-  const placeOrder = ({ address, paymentMethodId, paymentMethodLabel }) => {
+  // ✅ Places a REAL order — saves to the database via the backend, using
+  // the customer's login token. Replaces the old version which only ever
+  // updated local browser state and vanished on refresh; that's also why
+  // this is now async and returns {success, order, error} instead of the
+  // order object directly, so the checkout screen can show a real success
+  // or failure instead of always assuming success after a fixed delay.
+  const placeOrder = async ({ address, paymentMethodId, paymentMethodLabel }) => {
     const items = storeData.cart.items;
-    if (items.length === 0) return null;
+    if (items.length === 0) return { success: false, error: 'Your cart is empty' };
+    if (!storeId || !customerToken) {
+      return { success: false, error: 'Please log in to place an order' };
+    }
 
     const totals = getCartTotal();
-    const newOrder = {
-      id: generateOrderId(),
-      date: new Date().toISOString().split('T')[0],
-      status: 'pending',
-      statusText: 'Order Placed',
-      items: items.map(item => ({
-        name: item.productName,
-        weight: `${item.size}${item.unit}`,
-        quantity: item.quantity,
-        price: item.price,
-        total: item.price * item.quantity,
-      })),
-      subtotal: parseFloat(totals.subtotal),
-      gst: parseFloat(totals.gst),
-      delivery: parseFloat(totals.delivery),
-      total: parseFloat(totals.total),
-      paymentMethodId,
-      paymentMethodLabel,
-      deliveryAddress: formatAddressLine(address),
-      recipientName: address?.recipientName || '',
-      recipientMobile: address?.recipientMobile || '',
-      estimatedDelivery: storeData.orderConfig.showEstimatedDelivery ? '45-60 mins' : null,
-      canCancel: storeData.orderConfig.enableCancellation,
-    };
-
-    setStoreData(prev => ({
-      ...prev,
-      orders: [newOrder, ...prev.orders],
-      cart: { ...prev.cart, items: [] },
+    const orderItems = items.map(item => ({
+      name: item.productName,
+      weight: `${item.size}${item.unit}`,
+      quantity: item.quantity,
+      price: item.price,
+      total: item.price * item.quantity,
+      productId: item.productId,
+      variationId: item.variationId,
+      sizeId: item.sizeId,
     }));
 
-    return newOrder;
+    try {
+      const result = await customerOrderAPI.create(storeId, customerToken, {
+        items: orderItems,
+        deliveryAddress: address,
+        paymentMethod: paymentMethodId,
+        subtotal: parseFloat(totals.subtotal),
+        deliveryCharge: parseFloat(totals.delivery),
+        taxAmount: parseFloat(totals.gst),
+        totalAmount: parseFloat(totals.total),
+      });
+
+      if (!result.success) {
+        return { success: false, error: result.error || 'Failed to place order' };
+      }
+
+      const saved = result.data;
+      const newOrder = {
+        id: saved.order_id,
+        date: new Date(saved.created_at).toISOString().split('T')[0],
+        status: saved.status,
+        statusText: 'Order Placed',
+        items: orderItems,
+        subtotal: parseFloat(totals.subtotal),
+        gst: parseFloat(totals.gst),
+        delivery: parseFloat(totals.delivery),
+        total: parseFloat(totals.total),
+        paymentMethodId,
+        paymentMethodLabel,
+        deliveryAddress: formatAddressLine(address),
+        recipientName: address?.recipientName || '',
+        recipientMobile: address?.recipientMobile || '',
+        estimatedDelivery: storeData.orderConfig.showEstimatedDelivery ? '45-60 mins' : null,
+        canCancel: storeData.orderConfig.enableCancellation,
+      };
+
+      setStoreData(prev => ({
+        ...prev,
+        orders: [newOrder, ...prev.orders],
+        cart: { ...prev.cart, items: [] },
+      }));
+
+      return { success: true, order: newOrder };
+    } catch (err) {
+      console.error('Failed to place order:', err);
+      return { success: false, error: err.message || 'Failed to place order' };
+    }
+  };
+
+  // ✅ Fetches the customer's real orders from the backend, with whatever
+  // current status Store Admin has set — replaces relying on the frozen
+  // local copy created at the moment the order was placed. Call this when
+  // the Orders tab becomes active.
+  const refreshOrders = async () => {
+    if (!storeId || !customerToken) return;
+    try {
+      const result = await customerOrderAPI.getMine(storeId, customerToken);
+      if (!result.success) return;
+
+      const mappedOrders = result.data.map(o => ({
+        id: o.order_id,
+        date: new Date(o.created_at).toISOString().split('T')[0],
+        deliveredAt: o.delivered_at ? new Date(o.delivered_at).toISOString().split('T')[0] : null,
+        status: o.status,
+        statusText: ORDER_STATUS_TEXT[o.status] || o.status,
+        items: o.items || [],
+        subtotal: parseFloat(o.subtotal || 0),
+        gst: parseFloat(o.tax_amount || 0),
+        delivery: parseFloat(o.delivery_charge || 0),
+        total: parseFloat(o.total_amount),
+        paymentMethodId: o.payment_method,
+        deliveryAddress: formatAddressLine(o.delivery_address),
+        recipientName: o.delivery_address?.recipientName || '',
+        recipientMobile: o.delivery_address?.recipientMobile || '',
+        estimatedDelivery: storeData.orderConfig?.showEstimatedDelivery ? '45-60 mins' : null,
+        canCancel: storeData.orderConfig?.enableCancellation && o.status === 'pending',
+        courierName: o.courier_name || null,
+        trackingNumber: o.tracking_number || null,
+        trackingStatus: o.tracking_status || null,
+      }));
+
+      setStoreData(prev => ({ ...prev, orders: mappedOrders }));
+    } catch (err) {
+      console.error('Failed to refresh orders:', err);
+    }
   };
 
   const cancelOrder = (orderId, reason) => {
@@ -542,5 +624,6 @@ export const usePreviewData = (builderData) => {
     setDefaultAddress,
     placeOrder,
     cancelOrder,
+    refreshOrders,
   };
 };

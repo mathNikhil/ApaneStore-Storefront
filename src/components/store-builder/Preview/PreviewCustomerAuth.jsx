@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { customerAuthAPI } from '../../../services/api';
 
-// Simulated customer login + OTP verification, shown inside the store preview
-// so tenants can see exactly what their customers experience before they can
-// browse/shop. This mirrors CustomerLoginPage.jsx / CustomerVerifyOTPPage.jsx
-// visually, but stays self-contained (no react-router) since it lives inside
-// the preview modal rather than as a standalone route.
-const PreviewCustomerAuth = ({ brand, onAuthenticated }) => {
+// Real customer login + OTP verification, backed by the actual backend
+// (same OTP mechanism the main tenant dashboard uses, scoped to this
+// specific store — a phone number is a separate customer at every store).
+const PreviewCustomerAuth = ({ brand, storeId, onAuthenticated, onCancel }) => {
   const [step, setStep] = useState('mobile'); // 'mobile' | 'otp'
   const [mobile, setMobile] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -13,10 +12,12 @@ const PreviewCustomerAuth = ({ brand, onAuthenticated }) => {
   const [error, setError] = useState('');
   const [timeLeft, setTimeLeft] = useState(30);
   const [canResend, setCanResend] = useState(false);
+  const [devOtpHint, setDevOtpHint] = useState('');
   const inputRefs = useRef([]);
 
   const primary = brand?.colors?.primary || '#25D366';
   const buttonLabel = brand?.colors?.buttonLabel || '#005523';
+  const background = brand?.colors?.background || '#FFFFFF';
 
   useEffect(() => {
     if (step !== 'otp') return;
@@ -28,20 +29,36 @@ const PreviewCustomerAuth = ({ brand, onAuthenticated }) => {
     return () => clearTimeout(timer);
   }, [step, timeLeft]);
 
+  const sendOtp = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      const result = await customerAuthAPI.sendOTP(storeId, mobile);
+      if (result.success) {
+        setStep('otp');
+        setTimeLeft(30);
+        setCanResend(false);
+        setOtp(['', '', '', '', '', '']);
+        // Dev mode: backend echoes the OTP when no real SMS gateway is
+        // configured yet, same as the tenant dashboard's login screen.
+        setDevOtpHint(result.test_otp || '');
+      } else {
+        setError(result.error || result.message || 'Failed to send OTP');
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to send OTP');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSendOtp = (e) => {
     e.preventDefault();
     if (mobile.length !== 10) {
       setError('Please enter a valid 10-digit mobile number');
       return;
     }
-    setError('');
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      setStep('otp');
-      setTimeLeft(30);
-      setCanResend(false);
-    }, 800);
+    sendOtp();
   };
 
   const handleOtpChange = (index, value) => {
@@ -59,22 +76,40 @@ const PreviewCustomerAuth = ({ brand, onAuthenticated }) => {
     }
   };
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
     if (otp.join('').length !== 6) {
       setError('Please enter all 6 digits');
       return;
     }
+    setError('');
     setLoading(true);
-    setTimeout(() => {
+    try {
+      const result = await customerAuthAPI.verifyOTP(storeId, mobile, otp.join(''));
+      if (result.success) {
+        onAuthenticated(result.data.customer, result.data.token);
+      } else {
+        setError(result.error || result.message || 'Invalid OTP');
+      }
+    } catch (err) {
+      setError(err.message || 'Invalid OTP');
+    } finally {
       setLoading(false);
-      onAuthenticated(mobile);
-    }, 800);
+    }
   };
 
   if (step === 'mobile') {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-[#f7f9fc] p-4">
-        <div className="w-full max-w-sm bg-white rounded-xl shadow-md border border-[#bbcbb9] p-6">
+      <div className="w-full h-full flex items-center justify-center p-4" style={{ backgroundColor: background }}>
+        <div className="w-full max-w-sm rounded-xl shadow-md border border-[#bbcbb9] p-6 relative" style={{ backgroundColor: background }}>
+          {onCancel && (
+            <button
+              onClick={onCancel}
+              className="absolute top-3 right-3 text-[#556067] hover:text-[#191c1e]"
+              aria-label="Continue browsing"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+          )}
           <div
             className="w-full aspect-video rounded-lg overflow-hidden mb-6 flex flex-col items-center justify-center"
             style={{ backgroundColor: `${primary}15` }}
@@ -129,10 +164,6 @@ const PreviewCustomerAuth = ({ brand, onAuthenticated }) => {
               )}
             </button>
           </form>
-
-          <div className="mt-6 pt-6 border-t border-[#bbcbb9] text-center">
-            <p className="text-xs text-[#3c4a3d]">This is a simulated login for preview purposes only.</p>
-          </div>
         </div>
       </div>
     );
@@ -140,8 +171,8 @@ const PreviewCustomerAuth = ({ brand, onAuthenticated }) => {
 
   // OTP step
   return (
-    <div className="w-full h-full flex items-center justify-center bg-[#f0f2f5] p-4">
-      <div className="bg-white rounded-xl w-full max-w-sm p-8 shadow-md border border-[#E9EDEF]">
+    <div className="w-full h-full flex items-center justify-center p-4" style={{ backgroundColor: background }}>
+      <div className="rounded-xl w-full max-w-sm p-8 shadow-md border border-[#E9EDEF]" style={{ backgroundColor: background }}>
         <div className="flex flex-col items-center text-center gap-3">
           <div className="w-16 h-16 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: `${primary}20` }}>
             <span className="material-symbols-outlined text-3xl" style={{ color: primary }}>verified_user</span>
@@ -150,6 +181,11 @@ const PreviewCustomerAuth = ({ brand, onAuthenticated }) => {
           <p className="text-sm text-[#3c4a3d]">
             Please enter the 6-digit code sent to <span className="font-bold text-[#191c1e]">+91 {mobile}</span>
           </p>
+          {devOtpHint && (
+            <p className="text-xs text-[#8e9eab] bg-[#f2f4f7] rounded-lg px-3 py-2">
+              Dev mode — no SMS gateway configured yet. Your OTP is <span className="font-bold text-[#191c1e]">{devOtpHint}</span>
+            </p>
+          )}
         </div>
 
         <div className="flex flex-col gap-6 mt-8">
@@ -174,8 +210,8 @@ const PreviewCustomerAuth = ({ brand, onAuthenticated }) => {
               Resend in <span className="font-bold">{timeLeft}s</span>
             </span>
             <button
-              onClick={() => { setTimeLeft(30); setCanResend(false); setError(''); }}
-              disabled={!canResend}
+              onClick={sendOtp}
+              disabled={!canResend || loading}
               className={`text-sm font-semibold ${canResend ? 'hover:underline cursor-pointer' : 'text-gray-400 cursor-not-allowed opacity-50'}`}
               style={canResend ? { color: primary } : {}}
             >

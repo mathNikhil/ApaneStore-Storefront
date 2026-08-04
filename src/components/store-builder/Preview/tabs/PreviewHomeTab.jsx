@@ -56,11 +56,11 @@ const PreviewHomeTab = ({ data, onAddToCart, device = 'desktop' }) => {
               className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors whitespace-nowrap ${
                 selectedCategory === 'all'
                   ? 'text-white'
-                  : 'hover:bg-[#f2f4f7]'
+                  : 'hover:opacity-80'
               }`}
               style={selectedCategory === 'all'
                 ? { backgroundColor: brand.colors.primary, color: brand.colors.buttonLabel || '#005523' }
-                : { color: brand.colors.secondary }
+                : { backgroundColor: brand.colors.secondary, color: brand.colors.fontBody }
               }
             >
               All ({allProducts.length})
@@ -72,11 +72,11 @@ const PreviewHomeTab = ({ data, onAddToCart, device = 'desktop' }) => {
                 className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors whitespace-nowrap ${
                   selectedCategory === category.id
                     ? 'text-white'
-                    : 'hover:bg-[#f2f4f7]'
+                    : 'hover:opacity-80'
                 }`}
                 style={selectedCategory === category.id
                   ? { backgroundColor: brand.colors.primary, color: brand.colors.buttonLabel || '#005523' }
-                  : { color: brand.colors.secondary }
+                  : { backgroundColor: brand.colors.secondary, color: brand.colors.fontBody }
                 }
               >
                 {category.name} ({category.products?.length || 0})
@@ -88,12 +88,12 @@ const PreviewHomeTab = ({ data, onAddToCart, device = 'desktop' }) => {
 
       {/* Products Grid - Fully Responsive */}
       {!hasProducts ? (
-        <div className="text-center py-12" style={{ color: brand.colors.secondary }}>
+        <div className="text-center py-12" style={{ color: brand.colors.fontBody }}>
           <span className="material-symbols-outlined text-6xl block mb-4 opacity-30">storefront</span>
           <p>No products added yet. Add some products to see preview.</p>
         </div>
       ) : filteredProducts.length === 0 ? (
-        <div className="text-center py-8" style={{ color: brand.colors.secondary }}>
+        <div className="text-center py-8" style={{ color: brand.colors.fontBody }}>
           <p>No products in this category</p>
         </div>
       ) : (

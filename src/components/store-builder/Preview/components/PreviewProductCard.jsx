@@ -70,8 +70,9 @@ const PreviewProductCard = ({
 
   const primaryColor = brandColors.primary || '#25D366';
   const buttonLabelColor = brandColors.buttonLabel || '#005523';
-  const fontColor = brandColors.font || '#191C1E';
-  const secondaryColor = brandColors.secondary || '#556067';
+  const fontColor = brandColors.fontHeader || brandColors.font || '#191C1E';
+  const fontBodyColor = brandColors.fontBody || '#556067';
+  const secondaryColor = brandColors.secondary || '#E0E3E6';
 
   const quickViewModal = quickViewOpen && (
     <div
@@ -79,11 +80,12 @@ const PreviewProductCard = ({
       onClick={() => setQuickViewOpen(false)}
     >
       <div
-        className="bg-white w-full sm:max-w-sm sm:rounded-xl rounded-t-2xl max-h-[92%] overflow-y-auto"
+        className="w-full sm:max-w-sm sm:rounded-xl rounded-t-2xl max-h-[92%] overflow-y-auto"
+        style={{ backgroundColor: brandColors.background || '#FFFFFF' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Image carousel */}
-        <div className="relative aspect-square bg-[#f7f9fc]">
+        <div className="relative aspect-square" style={{ backgroundColor: brandColors.background || '#FFFFFF' }}>
           <button
             onClick={() => setQuickViewOpen(false)}
             className="absolute top-2 right-2 z-10 bg-black/40 hover:bg-black/60 text-white rounded-full p-1.5 transition-colors"
@@ -140,7 +142,7 @@ const PreviewProductCard = ({
         <div className="p-4">
           <h3 className="font-semibold text-base" style={{ color: fontColor }}>{product.name}</h3>
           {product.description && (
-            <p className="text-xs mt-1" style={{ color: secondaryColor }}>{product.description}</p>
+            <p className="text-xs mt-1" style={{ color: fontBodyColor }}>{product.description}</p>
           )}
 
           {/* Price for currently selected combination */}
@@ -148,7 +150,7 @@ const PreviewProductCard = ({
             <span className="text-xl font-bold" style={{ color: primaryColor }}>₹{selectedPrice.toFixed(2)}</span>
             {discount > 0 && (
               <>
-                <span className="text-sm line-through opacity-60" style={{ color: secondaryColor }}>
+                <span className="text-sm line-through opacity-60" style={{ color: fontBodyColor }}>
                   ₹{selectedOriginalPrice.toFixed(2)}
                 </span>
                 <span className="text-xs font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor: `${primaryColor}20`, color: primaryColor }}>
@@ -167,7 +169,7 @@ const PreviewProductCard = ({
           {/* Variant selector, with thumbnail if uploaded */}
           {product.variations && product.variations.length > 0 && (
             <div className="mt-3">
-              <p className="text-xs font-medium uppercase tracking-wider mb-1" style={{ color: secondaryColor }}>
+              <p className="text-xs font-medium uppercase tracking-wider mb-1" style={{ color: fontBodyColor }}>
                 {product.variations[0]?.name || 'Options'}
               </p>
               <div className="flex flex-wrap gap-1.5">
@@ -175,10 +177,10 @@ const PreviewProductCard = ({
                   <button
                     key={v.id}
                     onClick={() => { setSelectedVariation(v); setSelectedSize(v.sizes?.[0] || null); }}
-                    className={`flex items-center gap-1 pl-1 pr-2 py-1 text-xs rounded-full transition-colors ${selectedVariation?.id === v.id ? 'text-white' : 'border'}`}
+                    className="flex items-center gap-1 pl-1 pr-2 py-1 text-xs rounded-full transition-colors"
                     style={selectedVariation?.id === v.id
                       ? { backgroundColor: primaryColor, color: buttonLabelColor }
-                      : { borderColor: secondaryColor, color: secondaryColor }
+                      : { backgroundColor: secondaryColor, color: fontBodyColor }
                     }
                   >
                     {v.image && <img src={v.image.url} alt={v.name} className="w-4 h-4 rounded-full object-cover flex-shrink-0" />}
@@ -192,16 +194,16 @@ const PreviewProductCard = ({
           {/* Size selector */}
           {selectedVariation?.sizes?.length > 0 && (
             <div className="mt-3">
-              <p className="text-xs font-medium uppercase tracking-wider mb-1" style={{ color: secondaryColor }}>Size</p>
+              <p className="text-xs font-medium uppercase tracking-wider mb-1" style={{ color: fontBodyColor }}>Size</p>
               <div className="flex flex-wrap gap-1.5">
                 {selectedVariation.sizes.map((s) => (
                   <button
                     key={s.id}
                     onClick={() => setSelectedSize(s)}
-                    className={`px-2.5 py-1 text-xs rounded-full transition-colors ${selectedSize?.id === s.id ? 'text-white' : 'border'}`}
+                    className="px-2.5 py-1 text-xs rounded-full transition-colors"
                     style={selectedSize?.id === s.id
                       ? { backgroundColor: primaryColor, color: buttonLabelColor }
-                      : { borderColor: secondaryColor, color: secondaryColor }
+                      : { backgroundColor: secondaryColor, color: fontBodyColor }
                     }
                   >
                     {s.label}
@@ -224,10 +226,11 @@ const PreviewProductCard = ({
   );
 
   return (
-    <div className="bg-white rounded-lg border overflow-hidden hover:shadow-md transition-shadow flex flex-col">
+    <div className="rounded-lg border overflow-hidden hover:shadow-md transition-shadow flex flex-col" style={{ backgroundColor: brandColors.background || '#FFFFFF' }}>
       {/* Product Image — auto-slides through all uploaded images */}
       <div
-        className={`aspect-square bg-[#f7f9fc] relative overflow-hidden ${zoomEnabled && images.length > 0 ? 'cursor-zoom-in' : ''}`}
+        className={`aspect-square relative overflow-hidden ${zoomEnabled && images.length > 0 ? 'cursor-zoom-in' : ''}`}
+        style={{ backgroundColor: brandColors.background || '#FFFFFF' }}
         onClick={handleCardImageClick}
       >
         {images.length > 0 ? (
@@ -281,7 +284,7 @@ const PreviewProductCard = ({
           </span>
           {discount > 0 && (
             <>
-              <span className="text-xs line-through opacity-60" style={{ color: secondaryColor }}>
+              <span className="text-xs line-through opacity-60" style={{ color: fontBodyColor }}>
                 ₹{cardOriginalPrice.toFixed(2)}
               </span>
               <span className="text-[10px] font-bold px-1 py-0.5 rounded whitespace-nowrap" style={{ backgroundColor: `${primaryColor}20`, color: primaryColor }}>
@@ -295,7 +298,7 @@ const PreviewProductCard = ({
           <button
             onClick={() => setQuickViewOpen(true)}
             className="text-xs mt-1 text-left underline decoration-dotted"
-            style={{ color: secondaryColor }}
+            style={{ color: fontBodyColor }}
           >
             {product.variations.length > 1 ? `${product.variations.length} options` : `${product.variations[0].sizes.length} sizes`} available
           </button>

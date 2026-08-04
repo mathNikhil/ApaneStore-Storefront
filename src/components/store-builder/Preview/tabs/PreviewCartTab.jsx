@@ -1,11 +1,18 @@
 import React, { useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 
-const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGoToProfile }) => {
+// ✅ New brand color system (see design discussion): brand.colors.font
+// replaced by fontHeader (used on heading tags h1-h4) and fontBody (used
+// everywhere else — labels, values, body text). brand.colors.secondary
+// used to double as muted text color; that job moved entirely to fontBody.
+// Secondary is now purely a UI-state color (e.g. the free-delivery
+// progress bar's track, quantity-stepper borders).
+const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGoToProfile, isAuthenticated, onRequireAuth }) => {
   const { cart, brand, payment, profile } = data;
   const [showCheckout, setShowCheckout] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState(payment?.defaultPayment || 'cod');
   const [orderPlaced, setOrderPlaced] = useState(false);
+  const [placingOrder, setPlacingOrder] = useState(false);
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [showAddressSelector, setShowAddressSelector] = useState(false);
 
@@ -44,6 +51,10 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
       alert('Your cart is empty');
       return;
     }
+    if (!isAuthenticated) {
+      onRequireAuth?.();
+      return;
+    }
     if (!currentAddress) {
       alert('Please add a delivery address from the Profile tab before checking out');
       return;
@@ -51,7 +62,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
     setShowCheckout(true);
   };
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     if (!currentAddress) {
       alert('Please select a delivery address');
       return;
@@ -63,24 +74,31 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
 
     const methodLabel = paymentMethods.find(m => m.id === selectedPayment)?.label || selectedPayment;
 
-    setOrderPlaced(true);
-    setTimeout(() => {
-      placeOrder({
-        address: currentAddress,
-        paymentMethodId: selectedPayment,
-        paymentMethodLabel: methodLabel,
-      });
-      setShowCheckout(false);
-      setOrderPlaced(false);
-    }, 1200);
+    setPlacingOrder(true);
+    const result = await placeOrder({
+      address: currentAddress,
+      paymentMethodId: selectedPayment,
+      paymentMethodLabel: methodLabel,
+    });
+    setPlacingOrder(false);
+
+    if (result.success) {
+      setOrderPlaced(true);
+      setTimeout(() => {
+        setShowCheckout(false);
+        setOrderPlaced(false);
+      }, 1200);
+    } else {
+      alert(result.error || 'Failed to place your order. Please try again.');
+    }
   };
 
   if (orderPlaced) {
     return (
       <div className="p-4 max-w-3xl mx-auto text-center py-12">
         <span className="material-symbols-outlined text-6xl text-[#006d2f] block mb-4">check_circle</span>
-        <h2 className="text-2xl font-bold" style={{ color: brand.colors.font }}>Order Placed! 🎉</h2>
-        <p style={{ color: brand.colors.secondary }}>Your order has been placed successfully.</p>
+        <h2 className="text-2xl font-bold" style={{ color: brand.colors.fontHeader }}>Order Placed! 🎉</h2>
+        <p style={{ color: brand.colors.fontBody }}>Your order has been placed successfully.</p>
       </div>
     );
   }
@@ -92,39 +110,39 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
           <span className="material-symbols-outlined">arrow_back</span> Back to Cart
         </button>
 
-        <h2 className="text-xl font-bold mb-4" style={{ color: brand.colors.font }}>Payment</h2>
+        <h2 className="text-xl font-bold mb-4" style={{ color: brand.colors.fontHeader }}>Payment</h2>
 
         {/* Order Summary */}
-        <div className="bg-white rounded-lg border p-4 mb-4">
-          <h3 className="font-semibold text-sm mb-3" style={{ color: brand.colors.font }}>Order Summary</h3>
+        <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
+          <h3 className="font-semibold text-sm mb-3" style={{ color: brand.colors.fontHeader }}>Order Summary</h3>
           <div className="space-y-2">
             {items.map((item) => (
               <div key={item.id} className="flex justify-between text-sm">
-                <span style={{ color: brand.colors.secondary }}>{item.productName} x{item.quantity}</span>
-                <span style={{ color: brand.colors.font }}>₹{(item.price * item.quantity).toFixed(2)}</span>
+                <span style={{ color: brand.colors.fontBody }}>{item.productName} x{item.quantity}</span>
+                <span style={{ color: brand.colors.fontBody }}>₹{(item.price * item.quantity).toFixed(2)}</span>
               </div>
             ))}
             <div className="border-t pt-2 mt-2">
               {showGSTBreakdownCheckout ? (
                 <>
                   <div className="flex justify-between text-sm">
-                    <span style={{ color: brand.colors.secondary }}>Subtotal</span>
-                    <span style={{ color: brand.colors.font }}>₹{subtotal.toFixed(2)}</span>
+                    <span style={{ color: brand.colors.fontBody }}>Subtotal</span>
+                    <span style={{ color: brand.colors.fontBody }}>₹{subtotal.toFixed(2)}</span>
                   </div>
                   {enableGST && (
                     <div className="flex justify-between text-sm">
-                      <span style={{ color: brand.colors.secondary }}>{taxLabel} ({gstRate}%)</span>
-                      <span style={{ color: brand.colors.font }}>₹{gst.toFixed(2)}</span>
+                      <span style={{ color: brand.colors.fontBody }}>{taxLabel} ({gstRate}%)</span>
+                      <span style={{ color: brand.colors.fontBody }}>₹{gst.toFixed(2)}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-sm">
-                    <span style={{ color: brand.colors.secondary }}>Delivery</span>
-                    <span style={{ color: brand.colors.font }}>{delivery === 0 ? 'FREE' : `₹${delivery.toFixed(2)}`}</span>
+                    <span style={{ color: brand.colors.fontBody }}>Delivery</span>
+                    <span style={{ color: brand.colors.fontBody }}>{delivery === 0 ? 'FREE' : `₹${delivery.toFixed(2)}`}</span>
                   </div>
                 </>
               ) : null}
               <div className="flex justify-between font-bold mt-2 pt-2 border-t">
-                <span style={{ color: brand.colors.font }}>Total</span>
+                <span style={{ color: brand.colors.fontBody }}>Total</span>
                 <span style={{ color: brand.colors.primary }}>₹{total.toFixed(2)}</span>
               </div>
             </div>
@@ -132,11 +150,11 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
         </div>
 
         {/* Delivery Address */}
-        <div className="bg-white rounded-lg border p-4 mb-4">
-          <h3 className="font-semibold text-sm mb-2" style={{ color: brand.colors.font }}>Deliver To</h3>
+        <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
+          <h3 className="font-semibold text-sm mb-2" style={{ color: brand.colors.fontHeader }}>Deliver To</h3>
           {currentAddress ? (
-            <p className="text-sm" style={{ color: brand.colors.secondary }}>
-              <span className="font-medium" style={{ color: brand.colors.font }}>{currentAddress.recipientName}</span><br />
+            <p className="text-sm" style={{ color: brand.colors.fontBody }}>
+              <span className="font-medium" style={{ color: brand.colors.fontBody }}>{currentAddress.recipientName}</span><br />
               {currentAddress.addressLine1}{currentAddress.addressLine2 && `, ${currentAddress.addressLine2}`}<br />
               {currentAddress.city}, {currentAddress.state} - {currentAddress.pincode}<br />
               <span className="text-xs">{currentAddress.recipientMobile}</span>
@@ -147,8 +165,8 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
         </div>
 
         {/* Payment Methods - From Step 4 */}
-        <div className="bg-white rounded-lg border p-4 mb-4">
-          <h3 className="font-semibold text-sm mb-3" style={{ color: brand.colors.font }}>Select Payment Method</h3>
+        <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
+          <h3 className="font-semibold text-sm mb-3" style={{ color: brand.colors.fontHeader }}>Select Payment Method</h3>
           {paymentMethods.length === 0 ? (
             <p className="text-sm text-[#556067]">No payment methods enabled. Please enable at least one in Step 4 (Payment Configuration).</p>
           ) : (
@@ -164,31 +182,52 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                     className="w-4 h-4 text-[#006d2f]"
                   />
                   <span className="material-symbols-outlined text-[#556067]">{method.icon}</span>
-                  <span className="text-sm" style={{ color: brand.colors.font }}>{method.label}</span>
+                  <span className="text-sm" style={{ color: brand.colors.fontBody }}>{method.label}</span>
                 </label>
               ))}
             </div>
           )}
           {selectedPayment === 'upi' && payment?.upiId && (
             <div className="mt-3 p-3 bg-[#f2f4f7] rounded-lg flex flex-col items-center gap-2">
-              {payment?.showQRCode && (
-                <>
-                  <div className="bg-white p-3 rounded-lg border">
-                    <QRCodeSVG
-                      value={`upi://pay?pa=${payment.upiId.trim()}&pn=${encodeURIComponent(brand?.name || 'Store')}&am=${total.toFixed(2)}&cu=INR&tn=${encodeURIComponent('Order Payment')}`}
-                      size={140}
-                    />
-                  </div>
-                  {!/^[\w.\-]{2,256}@[a-zA-Z]{2,64}$/.test(payment.upiId.trim()) && (
-                    <p className="text-xs text-[#ba1a1a] text-center max-w-[220px]">
-                      This UPI ID doesn't look like a real registered VPA (e.g. name@okhdfcbank, name@ybl) — a real UPI app will reject it as "invalid beneficiary." Update it in Step 4 with a genuine UPI ID to test scanning.
-                    </p>
-                  )}
-                </>
-              )}
+              {(() => {
+                const isValidVpa = /^[\w.\-]{2,256}@[a-zA-Z]{2,64}$/.test(payment.upiId.trim());
+                // ✅ tr (transaction reference) is recommended by the NPCI
+                // UPI spec and expected by several apps for a reliable
+                // payment request — was missing before.
+                const txnRef = `TXN${Date.now()}`;
+                const upiUri = `upi://pay?pa=${encodeURIComponent(payment.upiId.trim())}&pn=${encodeURIComponent(brand?.name || 'Store')}&am=${total.toFixed(2)}&cu=INR&tn=${encodeURIComponent('Order Payment')}&tr=${txnRef}`;
+
+                return (
+                  <>
+                    {payment?.showQRCode && (
+                      <div className="bg-white p-3 rounded-lg border">
+                        <QRCodeSVG value={upiUri} size={140} />
+                      </div>
+                    )}
+                    {/* ✅ Was missing entirely — a QR code alone is useless
+                        to a customer checking out on their own phone (you
+                        can't scan your own screen). This tappable link uses
+                        the same UPI URI; the phone's OS intercepts upi://
+                        links and shows the installed UPI app chooser
+                        directly, which is the actual "click to pay" flow. */}
+                    <a
+                      href={upiUri}
+                      className="w-full text-center py-2.5 rounded-lg font-semibold text-sm mt-1"
+                      style={{ backgroundColor: brand.colors.button || '#25D366', color: brand.colors.buttonLabel || '#FFFFFF' }}
+                    >
+                      Pay ₹{total.toFixed(2)} via UPI App
+                    </a>
+                    {!isValidVpa && (
+                      <p className="text-xs text-[#ba1a1a] text-center max-w-[220px]">
+                        This UPI ID doesn't look like a real registered VPA (e.g. name@okhdfcbank, name@ybl) — a real UPI app will reject it as "invalid beneficiary." Update it in Step 4 with a genuine UPI ID to test scanning.
+                      </p>
+                    )}
+                  </>
+                );
+              })()}
               {payment?.showUPIId && (
-                <p className="text-sm" style={{ color: brand.colors.secondary }}>
-                  UPI ID: <span className="font-semibold" style={{ color: brand.colors.font }}>{payment.upiId}</span>
+                <p className="text-sm" style={{ color: brand.colors.fontBody }}>
+                  UPI ID: <span className="font-semibold" style={{ color: brand.colors.fontBody }}>{payment.upiId}</span>
                 </p>
               )}
             </div>
@@ -197,11 +236,11 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
 
         <button
           onClick={handlePlaceOrder}
-          disabled={paymentMethods.length === 0}
+          disabled={paymentMethods.length === 0 || placingOrder}
           className="w-full py-3 rounded-lg font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50 disabled:pointer-events-none"
           style={{ backgroundColor: brand.colors.button || '#25D366' }}
         >
-          Place Order
+          {placingOrder ? 'Placing Order...' : 'Place Order'}
         </button>
       </div>
     );
@@ -210,16 +249,17 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
   // Cart view
   return (
     <div className="p-4 max-w-3xl mx-auto">
-      <h2 className="text-xl font-bold mb-4" style={{ color: brand.colors.font }}>
+      <h2 className="text-xl font-bold mb-4" style={{ color: brand.colors.fontHeader }}>
         My Cart ({items.length} {items.length === 1 ? 'item' : 'items'})
       </h2>
 
       {items.length > 0 && freeDelivery && showProgressBar && remainingForFree > 0 && (
         <div className="mb-4 p-3 bg-[#f2f4f7] rounded-lg">
-          <p className="text-sm" style={{ color: brand.colors.secondary }}>
+          <p className="text-sm" style={{ color: brand.colors.fontBody }}>
             Add <span className="font-bold" style={{ color: brand.colors.primary }}>₹{remainingForFree.toFixed(2)}</span> more for FREE delivery
           </p>
-          <div className="w-full h-1.5 bg-[#e0e3e6] rounded-full mt-1 overflow-hidden">
+          {/* Progress bar: Primary = filled/completed portion, Secondary = track/remaining */}
+          <div className="w-full h-1.5 rounded-full mt-1 overflow-hidden" style={{ backgroundColor: brand.colors.secondary }}>
             <div
               className="h-full rounded-full transition-all"
               style={{
@@ -232,7 +272,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
       )}
 
       {items.length === 0 ? (
-        <div className="text-center py-12" style={{ color: brand.colors.secondary }}>
+        <div className="text-center py-12" style={{ color: brand.colors.fontBody }}>
           <span className="material-symbols-outlined text-6xl block mb-4 opacity-30">shopping_cart</span>
           <p>Your cart is empty</p>
           <p className="text-sm mt-2">Add some products from the Home tab</p>
@@ -243,7 +283,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
             {items.map((item) => {
               const itemTotal = item.price * item.quantity;
               return (
-                <div key={item.id} className="bg-white rounded-lg border p-4 flex items-center gap-4">
+                <div key={item.id} className="rounded-lg border p-4 flex items-center gap-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
                   <div className="w-16 h-16 rounded-lg bg-[#f2f4f7] flex items-center justify-center overflow-hidden flex-shrink-0">
                     {item.image ? (
                       <img src={item.image} alt={item.productName} className="w-full h-full object-cover" />
@@ -252,10 +292,10 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                     )}
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-semibold text-sm" style={{ color: brand.colors.font }}>
+                    <h4 className="font-semibold text-sm" style={{ color: brand.colors.fontHeader }}>
                       {item.productName}
                     </h4>
-                    <p className="text-xs" style={{ color: brand.colors.secondary }}>
+                    <p className="text-xs" style={{ color: brand.colors.fontBody }}>
                       {item.sizeLabel} • {item.variationName}
                     </p>
                     <p className="text-sm font-bold" style={{ color: brand.colors.primary }}>
@@ -291,9 +331,9 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
           </div>
 
           {/* Delivery Address - From the shared address book (Step 5 config) */}
-          <div className="bg-white rounded-lg border p-4 mb-4">
+          <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-semibold" style={{ color: brand.colors.font }}>
+              <p className="text-sm font-semibold" style={{ color: brand.colors.fontHeader }}>
                 Deliver to {currentAddress?.label || 'Address'}
               </p>
               {addresses.length > 1 && (
@@ -308,7 +348,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
             </div>
 
             {currentAddress ? (
-              <p className="text-sm" style={{ color: brand.colors.secondary }}>
+              <p className="text-sm" style={{ color: brand.colors.fontBody }}>
                 {currentAddress.recipientName}<br />
                 {currentAddress.addressLine1}
                 {currentAddress.addressLine2 && <>, {currentAddress.addressLine2}</>}<br />
@@ -324,7 +364,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
 
             {showAddressSelector && (
               <div className="mt-3 pt-3 border-t border-[#e0e3e6] space-y-2">
-                <p className="text-xs font-semibold" style={{ color: brand.colors.secondary }}>Select Delivery Address</p>
+                <p className="text-xs font-semibold" style={{ color: brand.colors.fontBody }}>Select Delivery Address</p>
                 {addresses.map((addr) => (
                   <button
                     key={addr.id}
@@ -342,10 +382,10 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                       : {}
                     }
                   >
-                    <p className="text-sm font-medium" style={{ color: brand.colors.font }}>
+                    <p className="text-sm font-medium" style={{ color: brand.colors.fontHeader }}>
                       {addr.label}
                     </p>
-                    <p className="text-xs" style={{ color: brand.colors.secondary }}>
+                    <p className="text-xs" style={{ color: brand.colors.fontBody }}>
                       {addr.addressLine1}, {addr.city}
                     </p>
                   </button>
@@ -374,33 +414,33 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
           </div>
 
           {/* Bill Details */}
-          <div className="bg-white rounded-lg border p-4">
-            <h3 className="font-semibold text-sm mb-3" style={{ color: brand.colors.font }}>
+          <div className="rounded-lg border p-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
+            <h3 className="font-semibold text-sm mb-3" style={{ color: brand.colors.fontHeader }}>
               Bill Details
             </h3>
             <div className="space-y-2">
               {showGSTBreakdownCart ? (
                 <>
                   <div className="flex justify-between text-sm">
-                    <span style={{ color: brand.colors.secondary }}>Subtotal</span>
-                    <span style={{ color: brand.colors.font }}>₹{subtotal.toFixed(2)}</span>
+                    <span style={{ color: brand.colors.fontBody }}>Subtotal</span>
+                    <span style={{ color: brand.colors.fontBody }}>₹{subtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span style={{ color: brand.colors.secondary }}>Delivery</span>
-                    <span style={{ color: brand.colors.font }}>
+                    <span style={{ color: brand.colors.fontBody }}>Delivery</span>
+                    <span style={{ color: brand.colors.fontBody }}>
                       {delivery === 0 ? 'FREE' : `₹${delivery.toFixed(2)}`}
                     </span>
                   </div>
                   {enableGST && (
                     <div className="flex justify-between text-sm">
-                      <span style={{ color: brand.colors.secondary }}>{taxLabel} ({gstRate}%)</span>
-                      <span style={{ color: brand.colors.font }}>₹{gst.toFixed(2)}</span>
+                      <span style={{ color: brand.colors.fontBody }}>{taxLabel} ({gstRate}%)</span>
+                      <span style={{ color: brand.colors.fontBody }}>₹{gst.toFixed(2)}</span>
                     </div>
                   )}
                 </>
               ) : null}
               <div className="border-t pt-2 flex justify-between font-bold">
-                <span style={{ color: brand.colors.font }}>Total</span>
+                <span style={{ color: brand.colors.fontBody }}>Total</span>
                 <span style={{ color: brand.colors.primary }}>₹{total.toFixed(2)}</span>
               </div>
             </div>

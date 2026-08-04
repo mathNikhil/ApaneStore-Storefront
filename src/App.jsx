@@ -2,6 +2,35 @@ import React, { useState, useEffect } from 'react';
 import StorefrontApp from './components/store-builder/Preview/StorefrontApp';
 import { publicStoreAPI } from './services/api';
 
+// ✅ The backend saves brand fields as storeName/logoUrl/brandColors, but
+// StorefrontApp expects brandName/logo/colors — this mismatch meant every
+// real published store silently fell back to hardcoded defaults (green
+// #25D366, no logo, wrong name) instead of what the tenant actually
+// configured. FinalStorePreview.jsx (the builder's own preview) already
+// does this same mapping correctly for its live in-memory state; this is
+// the equivalent for data loaded fresh from the backend. Every other
+// section (products/cart/payment/address/order/profile) already matches
+// what StorefrontApp expects, so only brand needs remapping.
+const mapConfigToBuilderData = (config) => ({
+  ...config,
+  brand: {
+    brandName: config?.brand?.storeName || '',
+    tagline: config?.brand?.tagline || '',
+    logo: config?.brand?.logoUrl || null,
+    colors: config?.brand?.brandColors || {
+      primary: '#25D366',
+      secondary: '#E0E3E6',
+      background: '#FFFFFF',
+      button: '#25D366',
+      buttonLabel: '#005523',
+      fontHeader: '#191C1E',
+      fontBody: '#556067',
+    },
+    fonts: config?.brand?.fonts || { heading: 'Inter', body: 'Inter' },
+    baseFontSize: config?.brand?.baseFontSize || '16px',
+  },
+});
+
 // Phase 1 (local dev, no real hosting yet): which store to render comes from
 // a ?store=<subdomain> query param, e.g. http://localhost:3001/?store=blue-star-4821
 // Phase 2 will replace this with real subdomain/custom-domain DNS routing —
@@ -66,13 +95,15 @@ function App() {
     );
   }
 
+  const builderData = mapConfigToBuilderData(store.config);
+
   return (
     <StorefrontApp
-      builderData={store.config}
+      builderData={builderData}
       storeId={store.id}
       device="desktop"
-      className="min-h-screen bg-white"
-      style={{ minHeight: '100vh' }}
+      className="min-h-screen"
+      style={{ minHeight: '100vh', backgroundColor: builderData.brand.colors.background }}
     />
   );
 }
