@@ -53,14 +53,10 @@ const PreviewHomeTab = ({ data, onAddToCart, device = 'desktop' }) => {
           <div className="flex gap-2 border-b border-[#e0e3e6] pb-2 min-w-max">
             <button
               onClick={() => setSelectedCategory('all')}
-              className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors whitespace-nowrap ${
-                selectedCategory === 'all'
-                  ? 'text-white'
-                  : 'hover:opacity-80'
-              }`}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full font-medium text-sm transition-colors whitespace-nowrap border-2 bg-transparent hover:opacity-80"
               style={selectedCategory === 'all'
-                ? { backgroundColor: brand.colors.primary, color: brand.colors.buttonLabel || '#005523' }
-                : { backgroundColor: brand.colors.secondary, color: brand.colors.fontBody }
+                ? { borderColor: brand.colors.primary, color: brand.colors.primary }
+                : { borderColor: brand.colors.secondary, color: brand.colors.fontBody }
               }
             >
               All ({allProducts.length})
@@ -69,16 +65,17 @@ const PreviewHomeTab = ({ data, onAddToCart, device = 'desktop' }) => {
               <button
                 key={category.id}
                 onClick={() => setSelectedCategory(category.id)}
-                className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors whitespace-nowrap ${
-                  selectedCategory === category.id
-                    ? 'text-white'
-                    : 'hover:opacity-80'
-                }`}
+                className="flex items-center gap-1.5 pl-1.5 pr-4 py-1 rounded-full font-medium text-sm transition-colors whitespace-nowrap border-2 bg-transparent hover:opacity-80"
                 style={selectedCategory === category.id
-                  ? { backgroundColor: brand.colors.primary, color: brand.colors.buttonLabel || '#005523' }
-                  : { backgroundColor: brand.colors.secondary, color: brand.colors.fontBody }
+                  ? { borderColor: brand.colors.primary, color: brand.colors.primary }
+                  : { borderColor: brand.colors.secondary, color: brand.colors.fontBody }
                 }
               >
+                {category.image?.url ? (
+                  <img src={category.image.url} alt={category.name} className="w-6 h-6 rounded-full object-cover flex-shrink-0" />
+                ) : (
+                  <span className="w-2 h-2" />
+                )}
                 {category.name} ({category.products?.length || 0})
               </button>
             ))}

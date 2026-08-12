@@ -1,13 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { getOrderStatusColor, getOrderStatusIcon } from '../utils/mockOrders';
+import { customerReturnAPI } from '../../../../services/api';
 
-const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart }) => {
+const RETURN_STATUS_LABELS = {
+  requested: 'Pending Review',
+  approved: 'Approved',
+  rejected: 'Rejected',
+  parcel_received: 'Parcel Received',
+  refund_initiated: 'Refund Initiated',
+  refunded: 'Refunded',
+};
+
+const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart, storeId, customerToken }) => {
   const [filter, setFilter] = useState('all');
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [returnReason, setReturnReason] = useState('');
-  const [returnComment, setReturnComment] = useState('');
   const [returnPhotos, setReturnPhotos] = useState([]);
+  const [submittingReturn, setSubmittingReturn] = useState(false);
+  // ✅ Real return status per order, replacing the old fake alert()-only flow.
+  const [returnStatuses, setReturnStatuses] = useState({}); // { [orderId]: returnRecord | null }
+  const [shippingFormOrderId, setShippingFormOrderId] = useState(null);
+  const [shippingCourier, setShippingCourier] = useState('');
+  const [shippingTracking, setShippingTracking] = useState('');
+  const [submittingShipping, setSubmittingShipping] = useState(false);
 
   // SAFE: No optional chaining
   const orders = data && data.orders ? data.orders : [];
@@ -19,6 +35,24 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart }) => {
 
   // Get return window in days
   const returnWindowDays = returnConfig.returnWindowDays || 7;
+
+  // ✅ Fetch real return status for every delivered order — this is what
+  // actually shows the customer what the operator did (approved, rejected
+  // + reason, parcel received, refund initiated, refunded) instead of the
+  // request silently vanishing after the old fake alert().
+  useEffect(() => {
+    if (!storeId || !customerToken) return;
+    const deliveredOrders = orders.filter((o) => o.status === 'delivered');
+    deliveredOrders.forEach((order) => {
+      if (returnStatuses[order.id] !== undefined) return; // already fetched
+      customerReturnAPI.getForOrder(storeId, customerToken, order.id).then((result) => {
+        if (result.success) {
+          setReturnStatuses((prev) => ({ ...prev, [order.id]: result.data }));
+        }
+      });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orders, storeId, customerToken]);
 
   // Check if order is within return window
   const isWithinReturnWindow = (deliveredAt) => {
@@ -40,6 +74,8 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart }) => {
 
   const handleReturnClick = function(order) {
     setSelectedOrder(order);
+    setReturnReason('');
+    setReturnPhotos([]);
     setShowReturnModal(true);
   };
 
@@ -85,13 +121,88 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart }) => {
     }
   };
 
-  const handleReturnSubmit = function() {
-    alert('Return request submitted!');
-    setShowReturnModal(false);
-    setSelectedOrder(null);
-    setReturnReason('');
-    setReturnComment('');
-    setReturnPhotos([]);
+  const handleReturnSubmit = async function() {
+    if (!selectedOrder || !storeId || !customerToken) return;
+
+    if (returnConfig.requireReason && !returnReason) {
+      alert('Please select a return reason');
+      return;
+    }
+    if (returnConfig.requirePhotos && returnPhotos.length === 0) {
+      alert('Please upload at least one photo');
+      return;
+    }
+
+    setSubmittingReturn(true);
+    try {
+      const result = await customerReturnAPI.create(storeId, customerToken, selectedOrder.id, returnReason || 'other');
+      if (!result.success) {
+        alert(result.error || 'Failed to submit return request');
+        return;
+      }
+
+      // Upload photos one at a time — the return itself is already
+      // created even if a photo upload fails, but the customer needs to
+      // actually be told if one didn't go through, not have it silently
+      // vanish. A failed upload comes back as a normal {success: false}
+      // response, not a thrown error, so it has to be checked explicitly —
+      // a try/catch alone would never have caught it.
+      let failedPhotoCount = 0;
+      for (const file of returnPhotos) {
+        try {
+          const photoResult = await customerReturnAPI.uploadPhoto(storeId, customerToken, selectedOrder.id, file);
+          if (!photoResult.success) {
+            failedPhotoCount++;
+            console.error('Photo upload failed:', photoResult.error);
+          }
+        } catch (err) {
+          failedPhotoCount++;
+          console.error('Photo upload failed:', err);
+        }
+      }
+      if (failedPhotoCount > 0) {
+        alert(`Your return was submitted, but ${failedPhotoCount} photo(s) failed to upload. You can add them later if needed.`);
+      }
+
+      const refreshed = await customerReturnAPI.getForOrder(storeId, customerToken, selectedOrder.id);
+      if (refreshed.success) {
+        setReturnStatuses((prev) => ({ ...prev, [selectedOrder.id]: refreshed.data }));
+      }
+
+      setShowReturnModal(false);
+      setSelectedOrder(null);
+      setReturnReason('');
+      setReturnPhotos([]);
+    } catch (error) {
+      alert(error.message || 'Failed to submit return request');
+    } finally {
+      setSubmittingReturn(false);
+    }
+  };
+
+  // ✅ Customer-pays flow: after the return is approved, the customer
+  // shares their own courier + tracking number.
+  const handleSubmitShipping = async function(orderId) {
+    if (!shippingCourier.trim() || !shippingTracking.trim()) {
+      alert('Please enter both courier name and tracking number');
+      return;
+    }
+    setSubmittingShipping(true);
+    try {
+      const result = await customerReturnAPI.submitCustomerShipping(storeId, customerToken, orderId, shippingCourier.trim(), shippingTracking.trim());
+      if (result.success) {
+        setReturnStatuses((prev) => ({ ...prev, [orderId]: result.data }));
+        setShippingFormOrderId(null);
+        setShippingCourier('');
+        setShippingTracking('');
+      } else {
+        alert(result.error || 'Failed to save shipping details');
+      }
+    } catch (error) {
+      alert(error.message || 'Failed to save shipping details');
+    } finally {
+      setSubmittingShipping(false);
+    }
   };
 
   const filters = [
@@ -150,10 +261,10 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart }) => {
             <button
               key={f.id}
               onClick={function() { setFilter(f.id); }}
-              className="px-3 py-1.5 rounded-full text-sm font-medium transition-colors"
+              className="px-3 py-1.5 rounded-full text-sm font-medium transition-colors border-2 bg-transparent"
               style={isActive
-                ? { backgroundColor: getPrimaryColor(), color: getButtonLabelColor() }
-                : { backgroundColor: getSecondaryColor(), color: getFontBodyColor() }
+                ? { borderColor: getPrimaryColor(), color: getPrimaryColor() }
+                : { borderColor: getSecondaryColor(), color: getFontBodyColor() }
               }
             >
               {f.label}
@@ -173,6 +284,8 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart }) => {
             var statusColor = getOrderStatusColor(order.status);
             var statusIcon = getOrderStatusIcon(order.status);
             var eligibleForReturn = isEligibleForReturn(order);
+            var returnRecord = returnStatuses[order.id];
+            var hasReturn = !!returnRecord;
 
             return (
               <div key={order.id} className="rounded-lg border p-4" style={{ backgroundColor: getBackgroundColor() }}>
@@ -225,34 +338,34 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart }) => {
                   <div className="flex flex-wrap gap-2">
                     {order.status === 'out-for-delivery' && order.estimatedDelivery && (
                       <button
-                        className="px-3 py-1 text-xs font-semibold rounded-lg"
-                        style={{ backgroundColor: getPrimaryColor(), color: getButtonLabelColor() }}
+                        className="px-3 py-1 text-xs font-semibold rounded-lg border-2 bg-transparent"
+                        style={{ borderColor: getPrimaryColor(), color: getPrimaryColor() }}
                       >
                         <span className="material-symbols-outlined text-xs align-middle mr-1">gps_fixed</span>
                         Track Driver
                       </button>
                     )}
-                    {order.status === 'delivered' && eligibleForReturn && (
+                    {order.status === 'delivered' && eligibleForReturn && !hasReturn && (
                       <button
                         onClick={function() { handleReturnClick(order); }}
-                        className="px-3 py-1 text-xs font-semibold rounded-lg"
-                        style={{ backgroundColor: getPrimaryColor(), color: getButtonLabelColor() }}
+                        className="px-3 py-1 text-xs font-semibold rounded-lg border-2 bg-transparent"
+                        style={{ borderColor: getPrimaryColor(), color: getPrimaryColor() }}
                       >
                         <span className="material-symbols-outlined text-xs align-middle mr-1">undo</span>
                         Return
                       </button>
                     )}
                     <button
-                      className="px-3 py-1 text-xs font-semibold rounded-lg border"
-                      style={{ borderColor: getSecondaryColor(), color: getPrimaryColor() }}
+                      className="px-3 py-1 text-xs font-semibold rounded-lg border-2 bg-transparent"
+                      style={{ borderColor: getSecondaryColor(), color: getFontBodyColor() }}
                     >
                       View Details
                     </button>
                     {order.status === 'delivered' && (
                       <button
                         onClick={function() { handleReorder(order); }}
-                        className="px-3 py-1 text-xs font-semibold rounded-lg"
-                        style={{ backgroundColor: getPrimaryColor(), color: getButtonLabelColor() }}
+                        className="px-3 py-1 text-xs font-semibold rounded-lg border-2 bg-transparent"
+                        style={{ borderColor: getPrimaryColor(), color: getPrimaryColor() }}
                       >
                         Reorder
                       </button>
@@ -261,9 +374,84 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart }) => {
                 </div>
 
                 {/* Return Window Info */}
-                {order.status === 'delivered' && !eligibleForReturn && isReturnEnabled && (
+                {order.status === 'delivered' && !eligibleForReturn && !hasReturn && isReturnEnabled && (
                   <div className="mt-2 text-xs text-[#556067]">
                     Return window has expired ({returnWindowDays} days from delivery)
+                  </div>
+                )}
+
+                {/* ✅ Real return status — this is what actually shows the
+                    customer what the operator did, replacing the old fake
+                    alert() that just made the request vanish. */}
+                {hasReturn && (
+                  <div className="mt-3 pt-3 border-t border-[#f2f4f7]">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="material-symbols-outlined text-sm" style={{ color: getPrimaryColor() }}>undo</span>
+                      <p className="text-sm font-semibold" style={{ color: getFontHeaderColor() }}>
+                        Return {returnRecord.return_id}: {RETURN_STATUS_LABELS[returnRecord.status] || returnRecord.status}
+                      </p>
+                    </div>
+                    {returnRecord.status === 'rejected' && returnRecord.reject_reason && (
+                      <p className="text-xs" style={{ color: getFontBodyColor() }}>
+                        Reason: {returnRecord.reject_reason}
+                      </p>
+                    )}
+                    {returnRecord.status === 'approved' && returnRecord.return_shipping_method === 'merchant-pays' && returnRecord.courier_name && (
+                      <p className="text-xs" style={{ color: getFontBodyColor() }}>
+                        Pickup arranged via {returnRecord.courier_name} ({returnRecord.tracking_number})
+                        {returnRecord.pickup_date && ` on ${new Date(returnRecord.pickup_date).toLocaleDateString('en-IN')}`}
+                      </p>
+                    )}
+                    {returnRecord.status === 'approved' && returnRecord.return_shipping_method === 'customer-pays' && !returnRecord.customer_tracking_number && (
+                      shippingFormOrderId === order.id ? (
+                        <div className="mt-2 space-y-2 max-w-xs">
+                          <input
+                            type="text"
+                            placeholder="Courier name"
+                            value={shippingCourier}
+                            onChange={function(e) { setShippingCourier(e.target.value); }}
+                            className="w-full px-3 py-1.5 border rounded-lg text-sm"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Tracking number"
+                            value={shippingTracking}
+                            onChange={function(e) { setShippingTracking(e.target.value); }}
+                            className="w-full px-3 py-1.5 border rounded-lg text-sm"
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              onClick={function() { handleSubmitShipping(order.id); }}
+                              disabled={submittingShipping}
+                              className="px-3 py-1 text-xs font-semibold rounded-lg text-white disabled:opacity-50"
+                              style={{ backgroundColor: getPrimaryColor() }}
+                            >
+                              {submittingShipping ? 'Saving...' : 'Save'}
+                            </button>
+                            <button
+                              onClick={function() { setShippingFormOrderId(null); }}
+                              className="px-3 py-1 text-xs font-semibold rounded-lg border"
+                              style={{ borderColor: getSecondaryColor(), color: getPrimaryColor() }}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={function() { setShippingFormOrderId(order.id); setShippingCourier(''); setShippingTracking(''); }}
+                          className="mt-2 px-3 py-1 text-xs font-semibold rounded-lg border"
+                          style={{ borderColor: getSecondaryColor(), color: getPrimaryColor() }}
+                        >
+                          Share Courier & Tracking Details
+                        </button>
+                      )
+                    )}
+                    {returnRecord.status === 'approved' && returnRecord.return_shipping_method === 'customer-pays' && returnRecord.customer_tracking_number && (
+                      <p className="text-xs" style={{ color: getFontBodyColor() }}>
+                        You shared: {returnRecord.customer_courier_name} ({returnRecord.customer_tracking_number})
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
@@ -291,28 +479,11 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart }) => {
             <p className="text-sm" style={{ color: getFontBodyColor() }}>
               Order: {selectedOrder.id}
             </p>
+            <p className="text-xs mt-1" style={{ color: getFontBodyColor() }}>
+              This will request a return for the entire order.
+            </p>
 
             <div className="mt-4 space-y-4">
-              {/* Items to return */}
-              <div>
-                <p className="text-sm font-semibold" style={{ color: getFontHeaderColor() }}>Select Items to Return</p>
-                {selectedOrder.items.map(function(item, idx) {
-                  return (
-                    <label key={idx} className="flex items-center gap-3 p-2 border rounded-lg mt-2">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 text-[#006d2f] rounded"
-                        defaultChecked={idx === 0}
-                      />
-                      <div>
-                        <p className="text-sm font-medium" style={{ color: getFontHeaderColor() }}>{item.name}</p>
-                        <p className="text-xs" style={{ color: getFontBodyColor() }}>{item.weight} • ₹{item.price}</p>
-                      </div>
-                    </label>
-                  );
-                })}
-              </div>
-
               {/* Return Reason */}
               {returnConfig.requireReason && (
                 <div>
@@ -340,17 +511,6 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart }) => {
                   </select>
                 </div>
               )}
-
-              {/* Comments */}
-              <div>
-                <p className="text-sm font-semibold" style={{ color: getFontHeaderColor() }}>Comments (Optional)</p>
-                <textarea
-                  value={returnComment}
-                  onChange={function(e) { setReturnComment(e.target.value); }}
-                  placeholder="Describe the issue..."
-                  className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#25D366] min-h-[80px] mt-1"
-                />
-              </div>
 
               {/* Photos */}
               {returnConfig.requirePhotos && (
@@ -387,10 +547,11 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart }) => {
               <div className="pt-4 border-t flex gap-2">
                 <button
                   onClick={handleReturnSubmit}
-                  className="flex-1 py-2 rounded-lg font-semibold text-white"
+                  disabled={submittingReturn}
+                  className="flex-1 py-2 rounded-lg font-semibold text-white disabled:opacity-50"
                   style={{ backgroundColor: getPrimaryColor() }}
                 >
-                  Submit Return Request
+                  {submittingReturn ? 'Submitting...' : 'Submit Return Request'}
                 </button>
                 <button
                   onClick={function() { setShowReturnModal(false); }}

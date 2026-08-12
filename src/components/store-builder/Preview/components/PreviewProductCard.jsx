@@ -177,10 +177,10 @@ const PreviewProductCard = ({
                   <button
                     key={v.id}
                     onClick={() => { setSelectedVariation(v); setSelectedSize(v.sizes?.[0] || null); }}
-                    className="flex items-center gap-1 pl-1 pr-2 py-1 text-xs rounded-full transition-colors"
+                    className="flex items-center gap-1 pl-1 pr-2 py-1 text-xs rounded-full transition-colors border-2 bg-transparent"
                     style={selectedVariation?.id === v.id
-                      ? { backgroundColor: primaryColor, color: buttonLabelColor }
-                      : { backgroundColor: secondaryColor, color: fontBodyColor }
+                      ? { borderColor: primaryColor, color: primaryColor }
+                      : { borderColor: secondaryColor, color: fontBodyColor }
                     }
                   >
                     {v.image && <img src={v.image.url} alt={v.name} className="w-4 h-4 rounded-full object-cover flex-shrink-0" />}
@@ -200,10 +200,10 @@ const PreviewProductCard = ({
                   <button
                     key={s.id}
                     onClick={() => setSelectedSize(s)}
-                    className="px-2.5 py-1 text-xs rounded-full transition-colors"
+                    className="px-2.5 py-1 text-xs rounded-full transition-colors border-2 bg-transparent"
                     style={selectedSize?.id === s.id
-                      ? { backgroundColor: primaryColor, color: buttonLabelColor }
-                      : { backgroundColor: secondaryColor, color: fontBodyColor }
+                      ? { borderColor: primaryColor, color: primaryColor }
+                      : { borderColor: secondaryColor, color: fontBodyColor }
                     }
                   >
                     {s.label}

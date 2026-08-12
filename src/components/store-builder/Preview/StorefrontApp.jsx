@@ -66,6 +66,15 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, customer]);
 
+  // ✅ Loads the customer's real name/email/address book right after
+  // login — replaces the hardcoded "Amit Sharma" sample data every
+  // customer used to see regardless of who they actually were.
+  useEffect(() => {
+    if (!customer) return;
+    refreshProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customer]);
+
   // Any modal (product quick-view, etc.) portals into this root, so it stays
   // contained within whatever box this component is rendered inside —
   // the simulated device frame in the builder, or the whole page when live.
@@ -137,6 +146,12 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
     aboutUs: builderData.profile.aboutUs,
     socialLinks: builderData.profile.socialLinks,
     feedbackLinks: builderData.profile.feedbackLinks,
+
+    // ✅ Was missing entirely — Step 8's return policy never reached
+    // usePreviewData at all, regardless of what usePreviewData itself did
+    // with it. This is why every store showed the same hardcoded default
+    // (returns always enabled, 7-day window) no matter what a tenant set.
+    return: builderData.return,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [builderData]);
 
@@ -153,6 +168,8 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
     placeOrder,
     cancelOrder,
     refreshOrders,
+    refreshProfile,
+    updateProfileInfo,
   } = usePreviewData(flattenedData, storeId, customerToken);
 
   const handleAddToCart = (productId, variationId, sizeId) => {
@@ -208,7 +225,7 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
           />
         );
       case 'orders':
-        return <PreviewOrdersTab data={storeData} cancelOrder={cancelOrder} addToCart={addToCart} onGoToCart={() => setActiveTab('cart')} />;
+        return <PreviewOrdersTab data={storeData} cancelOrder={cancelOrder} addToCart={addToCart} onGoToCart={() => setActiveTab('cart')} storeId={storeId} customerToken={customerToken} />;
       case 'profile':
         return (
           <PreviewProfileTab
@@ -218,6 +235,7 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
             updateAddress={updateAddress}
             deleteAddress={deleteAddress}
             setDefaultAddress={setDefaultAddress}
+            updateProfileInfo={updateProfileInfo}
             onLogout={handleLogout}
           />
         );

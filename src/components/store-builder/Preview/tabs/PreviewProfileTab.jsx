@@ -30,6 +30,7 @@ const PreviewProfileTab = ({
   updateAddress,
   deleteAddress,
   setDefaultAddress,
+  updateProfileInfo,
   onLogout,
 }) => {
   const { profile, brand, address } = data || {};
@@ -74,6 +75,10 @@ const PreviewProfileTab = ({
   // UI State
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [editingAddressId, setEditingAddressId] = useState(null);
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [profileNameInput, setProfileNameInput] = useState(profile?.name || '');
+  const [profileEmailInput, setProfileEmailInput] = useState(profile?.email || '');
+  const [savingProfile, setSavingProfile] = useState(false);
 
   const [addressForm, setAddressForm] = useState({
     label: 'Home',
@@ -89,6 +94,21 @@ const PreviewProfileTab = ({
   });
 
   const labelOptions = ['Home', 'Office', 'Other'];
+
+  const handleSaveProfile = async () => {
+    if (!updateProfileInfo) return;
+    setSavingProfile(true);
+    try {
+      const result = await updateProfileInfo({ name: profileNameInput.trim(), email: profileEmailInput.trim() });
+      if (result.success) {
+        setEditingProfile(false);
+      } else {
+        alert(result.error || 'Failed to save. Please try again.');
+      }
+    } finally {
+      setSavingProfile(false);
+    }
+  };
 
   const handleAddAddress = () => {
     if (addressBook.length >= maxAddresses) {
@@ -178,7 +198,7 @@ const PreviewProfileTab = ({
       <div className="rounded-lg border p-6 mb-6" style={{ backgroundColor: brandColors.background || '#FFFFFF' }}>
         <div className="flex items-center gap-4">
           <div
-            className="w-20 h-20 rounded-full flex items-center justify-center text-3xl font-bold border-2"
+            className="w-20 h-20 rounded-full flex items-center justify-center text-3xl font-bold border-2 flex-shrink-0"
             style={{
               backgroundColor: `${brandColors.primary}20`,
               color: brandColors.primary,
@@ -188,12 +208,72 @@ const PreviewProfileTab = ({
             <span className="material-symbols-outlined text-3xl">person</span>
           </div>
           <div className="flex-1">
-            <h2 className="text-xl font-bold" style={{ color: brandColors.fontHeader }}>
-              Customer
-            </h2>
-            <p className="text-sm" style={{ color: brandColors.fontBody }}>
-              {customerMobile ? `+91 ${customerMobile}` : 'Logged in'}
-            </p>
+            {editingProfile ? (
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={profileNameInput}
+                  onChange={(e) => setProfileNameInput(e.target.value)}
+                  placeholder="Your name"
+                  className="w-full px-3 py-1.5 text-sm border rounded-lg"
+                  style={{ borderColor: brandColors.secondary, color: brandColors.fontHeader }}
+                />
+                <input
+                  type="email"
+                  value={profileEmailInput}
+                  onChange={(e) => setProfileEmailInput(e.target.value)}
+                  placeholder="you@example.com"
+                  className="w-full px-3 py-1.5 text-sm border rounded-lg"
+                  style={{ borderColor: brandColors.secondary, color: brandColors.fontBody }}
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSaveProfile}
+                    disabled={savingProfile}
+                    className="px-3 py-1 text-xs font-semibold rounded-lg disabled:opacity-50"
+                    style={{ backgroundColor: brandColors.button || brandColors.primary, color: brandColors.buttonLabel || '#FFFFFF' }}
+                  >
+                    {savingProfile ? 'Saving...' : 'Save'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setEditingProfile(false);
+                      setProfileNameInput(profile?.name || '');
+                      setProfileEmailInput(profile?.email || '');
+                    }}
+                    className="px-3 py-1 text-xs font-semibold rounded-lg border"
+                    style={{ borderColor: brandColors.secondary, color: brandColors.fontBody }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-bold" style={{ color: brandColors.fontHeader }}>
+                    {profile?.name || 'Add your name'}
+                  </h2>
+                  <button
+                    onClick={() => {
+                      setProfileNameInput(profile?.name || '');
+                      setProfileEmailInput(profile?.email || '');
+                      setEditingProfile(true);
+                    }}
+                    className="text-xs underline"
+                    style={{ color: brandColors.primary }}
+                  >
+                    Edit
+                  </button>
+                </div>
+                <p className="text-sm" style={{ color: brandColors.fontBody }}>
+                  {customerMobile ? `+91 ${customerMobile}` : 'Logged in'}
+                </p>
+                {profile?.email && (
+                  <p className="text-sm" style={{ color: brandColors.fontBody }}>{profile.email}</p>
+                )}
+              </>
+            )}
           </div>
         </div>
       </div>

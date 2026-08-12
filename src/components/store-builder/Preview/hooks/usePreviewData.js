@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { customerOrderAPI } from '../../../../services/api';
+import { customerOrderAPI, customerProfileAPI } from '../../../../services/api';
 
 // Helper function to adapt product for preview
 const adaptProductForPreview = (builderProduct) => {
@@ -53,6 +53,7 @@ const adaptCategoryForPreview = (builderCategory) => {
   return {
     id: builderCategory.id,
     name: builderCategory.name,
+    image: builderCategory.image || null,
     products: (builderCategory.products || []).map(adaptProductForPreview)
   };
 };
@@ -132,24 +133,12 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
     // no mock/random orders, so the tenant sees exactly what a customer would).
     orders: [],
     profile: {
-      name: 'Amit Sharma',
-      email: 'amit.sharma@premiumgrains.com',
+      name: '',
+      email: '',
       // Shared address book — used by BOTH the Profile tab and the Cart/checkout tab.
-      addresses: [
-        {
-          id: 1,
-          label: 'Home',
-          recipientName: 'Amit Sharma',
-          recipientMobile: '+91 98765 43210',
-          addressLine1: 'A-102, Green Valley Apartments',
-          addressLine2: '',
-          city: 'Gurgaon',
-          state: 'Haryana',
-          pincode: '122003',
-          landmark: 'Near City Center',
-          isDefault: true,
-        },
-      ],
+      // ✅ Starts empty — real addresses are loaded via refreshProfile()
+      // once the customer logs in, and saved to the backend from here on.
+      addresses: [],
       // Step 7 fields
       officeNumber: '+91 8800244169',
       supportTime: '9:00 AM - 6:00 PM',
@@ -205,6 +194,18 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
       sendCancelEmail: true,
       showStatusTimeline: true,
       showEstimatedDelivery: true,
+    },
+    // ✅ Step 8: return policy — was missing entirely before, so
+    // data.return was always undefined and every check silently fell back
+    // to a hardcoded default regardless of what a tenant actually set.
+    return: {
+      isEnabled: true,
+      returnWindowDays: 7,
+      restockingFeePercent: 0,
+      returnShippingMethod: 'customer-pays',
+      requirePhotos: false,
+      requireReason: true,
+      allowedReasons: [],
     },
   });
 
@@ -325,6 +326,11 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
           showStatusTimeline: builderData.showStatusTimeline ?? prev.orderConfig.showStatusTimeline,
           showEstimatedDelivery: builderData.showEstimatedDelivery ?? prev.orderConfig.showEstimatedDelivery,
         },
+        // ✅ Step 8: return policy — was never mapped here at all before,
+        // so isReturnEnabled/returnWindowDays/etc always fell back to
+        // hardcoded defaults regardless of what a tenant actually
+        // configured (or disabled) in the builder.
+        return: builderData.return ? { ...prev.return, ...builderData.return } : prev.return,
       }));
     }
   }, [builderData]);
@@ -432,57 +438,159 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
 
   // ============================================
   // ADDRESS BOOK FUNCTIONS (shared by Profile tab + Cart/checkout tab)
+  // ✅ Real backend calls now — replaces what was previously entirely
+  // local browser state, never sent to the backend at all.
   // ============================================
-  const addAddress = (address) => {
-    setStoreData(prev => {
-      const isFirst = prev.profile.addresses.length === 0;
-      const newAddress = {
-        ...address,
-        id: Date.now(),
-        isDefault: isFirst ? true : !!address.isDefault,
-      };
-      let addresses = [newAddress, ...prev.profile.addresses];
-      if (newAddress.isDefault) {
-        addresses = addresses.map(a => ({ ...a, isDefault: a.id === newAddress.id }));
+  const mapAddressFromBackend = (a) => ({
+    id: a.id,
+    label: a.label,
+    recipientName: a.recipient_name,
+    recipientMobile: a.recipient_mobile,
+    addressLine1: a.address_line1,
+    addressLine2: a.address_line2,
+    city: a.city,
+    state: a.state,
+    pincode: a.pincode,
+    landmark: a.landmark,
+    isDefault: a.is_default,
+  });
+
+  // ✅ Fetches the customer's real profile (name/email) and address book
+  // from the backend — call this once the customer logs in. Replaces the
+  // hardcoded "Amit Sharma" sample data every customer used to see.
+  const refreshProfile = async () => {
+    if (!storeId || !customerToken) return;
+    try {
+      const result = await customerProfileAPI.getMe(storeId, customerToken);
+      if (!result.success) return;
+      const { name, email, addresses } = result.data;
+      setStoreData(prev => ({
+        ...prev,
+        profile: {
+          ...prev.profile,
+          name: name || '',
+          email: email || '',
+          addresses: (addresses || []).map(mapAddressFromBackend),
+        },
+      }));
+    } catch (err) {
+      console.error('Failed to refresh profile:', err);
+    }
+  };
+
+  const updateProfileInfo = async ({ name, email }) => {
+    if (!storeId || !customerToken) return { success: false, error: 'Please log in' };
+    try {
+      const result = await customerProfileAPI.updateMe(storeId, customerToken, { name, email });
+      if (result.success) {
+        setStoreData(prev => ({
+          ...prev,
+          profile: { ...prev.profile, name: result.data.name || '', email: result.data.email || '' },
+        }));
+        return { success: true };
       }
-      return { ...prev, profile: { ...prev.profile, addresses } };
-    });
+      return { success: false, error: result.error };
+    } catch (err) {
+      return { success: false, error: err.message || 'Failed to update profile' };
+    }
   };
 
-  const updateAddress = (addressId, updatedFields) => {
-    setStoreData(prev => ({
-      ...prev,
-      profile: {
-        ...prev.profile,
-        addresses: prev.profile.addresses.map(addr =>
-          addr.id === addressId ? { ...addr, ...updatedFields, id: addressId } : addr
-        ),
-      },
-    }));
+  const addAddress = async (address) => {
+    if (!storeId || !customerToken) return { success: false, error: 'Please log in' };
+    try {
+      const result = await customerProfileAPI.addAddress(storeId, customerToken, {
+        label: address.label,
+        recipientName: address.recipientName,
+        recipientMobile: address.recipientMobile,
+        addressLine1: address.addressLine1,
+        addressLine2: address.addressLine2,
+        city: address.city,
+        state: address.state,
+        pincode: address.pincode,
+        landmark: address.landmark,
+        isDefault: address.isDefault,
+      });
+      if (!result.success) return { success: false, error: result.error };
+
+      const newAddress = mapAddressFromBackend(result.data);
+      setStoreData(prev => {
+        let addresses = [newAddress, ...prev.profile.addresses];
+        if (newAddress.isDefault) {
+          addresses = addresses.map(a => ({ ...a, isDefault: a.id === newAddress.id }));
+        }
+        return { ...prev, profile: { ...prev.profile, addresses } };
+      });
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message || 'Failed to add address' };
+    }
   };
 
-  const deleteAddress = (addressId) => {
-    setStoreData(prev => {
-      const remaining = prev.profile.addresses.filter(addr => addr.id !== addressId);
-      // If we deleted the default address, promote the next one.
-      if (remaining.length > 0 && !remaining.some(a => a.isDefault)) {
-        remaining[0].isDefault = true;
-      }
-      return { ...prev, profile: { ...prev.profile, addresses: remaining } };
-    });
+  const updateAddress = async (addressId, updatedFields) => {
+    if (!storeId || !customerToken) return { success: false, error: 'Please log in' };
+    try {
+      const result = await customerProfileAPI.updateAddress(storeId, customerToken, addressId, {
+        label: updatedFields.label,
+        recipientName: updatedFields.recipientName,
+        recipientMobile: updatedFields.recipientMobile,
+        addressLine1: updatedFields.addressLine1,
+        addressLine2: updatedFields.addressLine2,
+        city: updatedFields.city,
+        state: updatedFields.state,
+        pincode: updatedFields.pincode,
+        landmark: updatedFields.landmark,
+      });
+      if (!result.success) return { success: false, error: result.error };
+
+      setStoreData(prev => ({
+        ...prev,
+        profile: {
+          ...prev.profile,
+          addresses: prev.profile.addresses.map(addr =>
+            addr.id === addressId ? mapAddressFromBackend(result.data) : addr
+          ),
+        },
+      }));
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message || 'Failed to update address' };
+    }
   };
 
-  const setDefaultAddress = (addressId) => {
-    setStoreData(prev => ({
-      ...prev,
-      profile: {
-        ...prev.profile,
-        addresses: prev.profile.addresses.map(addr => ({
-          ...addr,
-          isDefault: addr.id === addressId,
-        })),
-      },
-    }));
+  const deleteAddress = async (addressId) => {
+    if (!storeId || !customerToken) return;
+    try {
+      const result = await customerProfileAPI.deleteAddress(storeId, customerToken, addressId);
+      if (!result.success) return;
+      setStoreData(prev => {
+        const remaining = prev.profile.addresses.filter(addr => addr.id !== addressId);
+        return { ...prev, profile: { ...prev.profile, addresses: remaining } };
+      });
+      // Re-fetch to correctly reflect which address the backend promoted to default
+      refreshProfile();
+    } catch (err) {
+      console.error('Failed to delete address:', err);
+    }
+  };
+
+  const setDefaultAddress = async (addressId) => {
+    if (!storeId || !customerToken) return;
+    try {
+      const result = await customerProfileAPI.setDefaultAddress(storeId, customerToken, addressId);
+      if (!result.success) return;
+      setStoreData(prev => ({
+        ...prev,
+        profile: {
+          ...prev.profile,
+          addresses: prev.profile.addresses.map(addr => ({
+            ...addr,
+            isDefault: addr.id === addressId,
+          })),
+        },
+      }));
+    } catch (err) {
+      console.error('Failed to set default address:', err);
+    }
   };
 
   // ============================================
@@ -494,7 +602,7 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
   // this is now async and returns {success, order, error} instead of the
   // order object directly, so the checkout screen can show a real success
   // or failure instead of always assuming success after a fixed delay.
-  const placeOrder = async ({ address, paymentMethodId, paymentMethodLabel }) => {
+  const placeOrder = async ({ address, paymentMethodId, paymentMethodLabel, customerUpiId }) => {
     const items = storeData.cart.items;
     if (items.length === 0) return { success: false, error: 'Your cart is empty' };
     if (!storeId || !customerToken) {
@@ -518,6 +626,7 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
         items: orderItems,
         deliveryAddress: address,
         paymentMethod: paymentMethodId,
+        customerUpiId,
         subtotal: parseFloat(totals.subtotal),
         deliveryCharge: parseFloat(totals.delivery),
         taxAmount: parseFloat(totals.gst),
@@ -622,6 +731,8 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
     updateAddress,
     deleteAddress,
     setDefaultAddress,
+    refreshProfile,
+    updateProfileInfo,
     placeOrder,
     cancelOrder,
     refreshOrders,

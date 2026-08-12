@@ -15,6 +15,12 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
   const [placingOrder, setPlacingOrder] = useState(false);
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [showAddressSelector, setShowAddressSelector] = useState(false);
+  // ✅ Only relevant for the COD+UPI tier (no real gateway yet) — customer
+  // enters their own UPI ID and confirms it before the QR/pay link reveals,
+  // so an operator has something concrete to cross-check against their own
+  // bank/UPI app before confirming the order.
+  const [customerUpiId, setCustomerUpiId] = useState('');
+  const [upiIdConfirmed, setUpiIdConfirmed] = useState(false);
 
   const { items, freeDelivery, freeDeliveryThreshold, deliveryCharge, showProgressBar, enableGST, gstRate, taxLabel, showGSTBreakdownCart, showGSTBreakdownCheckout } = cart;
 
@@ -71,6 +77,10 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
       alert('Please select a payment method');
       return;
     }
+    if (selectedPayment === 'upi' && !upiIdConfirmed) {
+      alert('Please enter your UPI ID and tap "Pay" first');
+      return;
+    }
 
     const methodLabel = paymentMethods.find(m => m.id === selectedPayment)?.label || selectedPayment;
 
@@ -79,6 +89,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
       address: currentAddress,
       paymentMethodId: selectedPayment,
       paymentMethodLabel: methodLabel,
+      customerUpiId: selectedPayment === 'upi' ? customerUpiId.trim() : undefined,
     });
     setPlacingOrder(false);
 
@@ -178,7 +189,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                     name="paymentMethod"
                     value={method.id}
                     checked={selectedPayment === method.id}
-                    onChange={() => setSelectedPayment(method.id)}
+                    onChange={() => { setSelectedPayment(method.id); setUpiIdConfirmed(false); }}
                     className="w-4 h-4 text-[#006d2f]"
                   />
                   <span className="material-symbols-outlined text-[#556067]">{method.icon}</span>
@@ -189,7 +200,34 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
           )}
           {selectedPayment === 'upi' && payment?.upiId && (
             <div className="mt-3 p-3 bg-[#f2f4f7] rounded-lg flex flex-col items-center gap-2">
-              {(() => {
+              {!upiIdConfirmed ? (
+                <div className="w-full flex flex-col gap-2">
+                  <label className="text-sm font-medium" style={{ color: brand.colors.fontBody }}>
+                    Enter your UPI ID
+                  </label>
+                  <input
+                    type="text"
+                    value={customerUpiId}
+                    onChange={(e) => setCustomerUpiId(e.target.value)}
+                    placeholder="yourname@okhdfcbank"
+                    className="w-full px-3 py-2 rounded-lg border text-sm"
+                  />
+                  <button
+                    onClick={() => {
+                      if (!customerUpiId.trim()) {
+                        alert('Please enter your UPI ID');
+                        return;
+                      }
+                      setUpiIdConfirmed(true);
+                    }}
+                    className="w-full py-2.5 rounded-lg font-semibold text-sm"
+                    style={{ backgroundColor: brand.colors.button || '#25D366', color: brand.colors.buttonLabel || '#FFFFFF' }}
+                  >
+                    Pay ₹{total.toFixed(2)}
+                  </button>
+                </div>
+              ) : (
+              (() => {
                 const isValidVpa = /^[\w.\-]{2,256}@[a-zA-Z]{2,64}$/.test(payment.upiId.trim());
                 // ✅ tr (transaction reference) is recommended by the NPCI
                 // UPI spec and expected by several apps for a reliable
@@ -199,6 +237,10 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
 
                 return (
                   <>
+                    <p className="text-xs" style={{ color: brand.colors.fontBody }}>
+                      Paying from <span className="font-semibold">{customerUpiId}</span>{' '}
+                      <button onClick={() => setUpiIdConfirmed(false)} className="underline">change</button>
+                    </p>
                     {payment?.showQRCode && (
                       <div className="bg-white p-3 rounded-lg border">
                         <QRCodeSVG value={upiUri} size={140} />
@@ -217,6 +259,9 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                     >
                       Pay ₹{total.toFixed(2)} via UPI App
                     </a>
+                    <p className="text-xs text-center max-w-[240px]" style={{ color: brand.colors.fontBody }}>
+                      Once you've completed the payment, tap "Place Order" below.
+                    </p>
                     {!isValidVpa && (
                       <p className="text-xs text-[#ba1a1a] text-center max-w-[220px]">
                         This UPI ID doesn't look like a real registered VPA (e.g. name@okhdfcbank, name@ybl) — a real UPI app will reject it as "invalid beneficiary." Update it in Step 4 with a genuine UPI ID to test scanning.
@@ -224,7 +269,8 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                     )}
                   </>
                 );
-              })()}
+              })()
+              )}
               {payment?.showUPIId && (
                 <p className="text-sm" style={{ color: brand.colors.fontBody }}>
                   UPI ID: <span className="font-semibold" style={{ color: brand.colors.fontBody }}>{payment.upiId}</span>
@@ -236,7 +282,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
 
         <button
           onClick={handlePlaceOrder}
-          disabled={paymentMethods.length === 0 || placingOrder}
+          disabled={paymentMethods.length === 0 || placingOrder || (selectedPayment === 'upi' && !upiIdConfirmed)}
           className="w-full py-3 rounded-lg font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50 disabled:pointer-events-none"
           style={{ backgroundColor: brand.colors.button || '#25D366' }}
         >
