@@ -24,6 +24,7 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart, storeId, c
   const [shippingCourier, setShippingCourier] = useState('');
   const [shippingTracking, setShippingTracking] = useState('');
   const [submittingShipping, setSubmittingShipping] = useState(false);
+  const [expandedOrderId, setExpandedOrderId] = useState(null);
 
   // SAFE: No optional chaining
   const orders = data && data.orders ? data.orders : [];
@@ -311,8 +312,15 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart, storeId, c
                 {order.items.map(function(item, idx) {
                   return (
                     <div key={idx} className="py-2 border-t border-[#f2f4f7]">
-                      <div className="flex justify-between">
-                        <div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-14 h-14 rounded-lg bg-[#f2f4f7] flex items-center justify-center overflow-hidden flex-shrink-0">
+                          {item.image ? (
+                            <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="material-symbols-outlined text-[#bbcbb9] text-2xl">image</span>
+                          )}
+                        </div>
+                        <div className="flex-1">
                           <p className="font-medium text-sm" style={{ color: getFontHeaderColor() }}>
                             {item.name}
                           </p>
@@ -327,6 +335,38 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart, storeId, c
                     </div>
                   );
                 })}
+
+                {/* Bill Summary */}
+                <div className="mt-3 pt-3 border-t border-[#f2f4f7] space-y-1">
+                  {order.subtotal > 0 && (
+                    <div className="flex justify-between text-xs" style={{ color: getFontBodyColor() }}>
+                      <span>Subtotal</span>
+                      <span>₹{order.subtotal.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {order.gst > 0 && (
+                    <div className="flex justify-between text-xs" style={{ color: getFontBodyColor() }}>
+                      <span>GST</span>
+                      <span>₹{order.gst.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {order.delivery > 0 && (
+                    <div className="flex justify-between text-xs" style={{ color: getFontBodyColor() }}>
+                      <span>Delivery</span>
+                      <span>₹{order.delivery.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {order.delivery === 0 && (
+                    <div className="flex justify-between text-xs" style={{ color: getFontBodyColor() }}>
+                      <span>Delivery</span>
+                      <span className="text-green-600">FREE</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm font-bold pt-1 border-t border-[#f2f4f7]">
+                    <span style={{ color: getFontBodyColor() }}>Grand Total</span>
+                    <span style={{ color: getPrimaryColor() }}>₹{order.total.toFixed(2)}</span>
+                  </div>
+                </div>
 
                 {/* Order Footer */}
                 <div className="flex flex-wrap justify-between items-center mt-3 pt-3 border-t border-[#f2f4f7]">
@@ -356,10 +396,11 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart, storeId, c
                       </button>
                     )}
                     <button
+                      onClick={function() { setExpandedOrderId(expandedOrderId === order.id ? null : order.id); }}
                       className="px-3 py-1 text-xs font-semibold rounded-lg border-2 bg-transparent"
                       style={{ borderColor: getSecondaryColor(), color: getFontBodyColor() }}
                     >
-                      View Details
+                      {expandedOrderId === order.id ? 'Hide Details' : 'View Details'}
                     </button>
                     {order.status === 'delivered' && (
                       <button
@@ -377,6 +418,31 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart, storeId, c
                 {order.status === 'delivered' && !eligibleForReturn && !hasReturn && isReturnEnabled && (
                   <div className="mt-2 text-xs text-[#556067]">
                     Return window has expired ({returnWindowDays} days from delivery)
+                  </div>
+                )}
+
+                {/* Order Detail Panel */}
+                {expandedOrderId === order.id && (
+                  <div className="mt-3 pt-3 border-t border-[#f2f4f7] space-y-3">
+                    {/* Delivery Address */}
+                    <div>
+                      <p className="text-xs font-semibold mb-1" style={{ color: getFontHeaderColor() }}>📍 Delivery Address</p>
+                      {order.deliveryAddress ? (
+                        <div className="text-sm p-3 rounded-lg bg-[#f7f9fc]" style={{ color: getFontBodyColor() }}>
+                          <p className="font-medium">{order.recipientName} | {order.recipientMobile || ''}</p>
+                          <p>{order.deliveryAddress}</p>
+                        </div>
+                      ) : (
+                        <p className="text-sm" style={{ color: getFontBodyColor() }}>No address on record</p>
+                      )}
+                    </div>
+                    {/* Payment Info */}
+                    <div>
+                      <p className="text-xs font-semibold mb-1" style={{ color: getFontHeaderColor() }}>💳 Payment</p>
+                      <p className="text-sm" style={{ color: getFontBodyColor() }}>
+                        {order.paymentMethodId === 'cod' ? 'Cash on Delivery' : order.paymentMethodId === 'upi' ? 'UPI' : order.paymentMethodId || '—'}
+                      </p>
+                    </div>
                   </div>
                 )}
 

@@ -619,6 +619,7 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
       productId: item.productId,
       variationId: item.variationId,
       sizeId: item.sizeId,
+      image: item.image || null,
     }));
 
     try {

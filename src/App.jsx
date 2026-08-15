@@ -41,8 +41,22 @@ function App() {
   const [store, setStore] = useState(null);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const subdomain = params.get('store');
+    // Real production: the tenant's subdomain is the actual hostname the
+    // browser connected to (e.g. redhouse.aapnaestore.com -> "redhouse").
+    // Local dev fallback: ?store=<subdomain> query param, since localhost
+    // has no real subdomain to read.
+    const hostname = window.location.hostname;
+    const isLocalDev = hostname === 'localhost' || hostname === '127.0.0.1';
+
+    let subdomain;
+    if (isLocalDev) {
+      const params = new URLSearchParams(window.location.search);
+      subdomain = params.get('store');
+    } else {
+      // First label of the hostname, e.g. "redhouse" from
+      // "redhouse.aapnaestore.com" — everything before the first dot.
+      subdomain = hostname.split('.')[0];
+    }
 
     if (!subdomain) {
       setStatus('not-found');
