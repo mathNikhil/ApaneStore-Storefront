@@ -10,6 +10,23 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    /* Remove default grey focus outline globally */
+    outline: none;
+  }
+
+  /* Use store primary color for focus ring */
+  *:focus-visible {
+    outline: 2px solid var(--store-primary, #25D366);
+    outline-offset: 2px;
+  }
+
+  button:focus,
+  input:focus,
+  select:focus,
+  textarea:focus,
+  a:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--store-primary, #25D366);
   }
 
   body {

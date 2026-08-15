@@ -67,6 +67,12 @@ function App() {
       try {
         const result = await publicStoreAPI.getBySubdomain(subdomain);
         if (result.success && result.data) {
+            // Inject store brand colors as CSS variables for focus rings etc
+            const colors = result.data.config?.brand?.brandColors || {};
+            const primary = colors.primary || '#25D366';
+            const secondary = colors.secondary || '#E0E3E6';
+            document.documentElement.style.setProperty('--store-primary', primary);
+            document.documentElement.style.setProperty('--store-secondary', secondary);
           setStore(result.data);
           setStatus('ready');
         } else {
