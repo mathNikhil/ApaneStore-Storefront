@@ -21,6 +21,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
   // bank/UPI app before confirming the order.
   const [customerUpiId, setCustomerUpiId] = useState('');
   const [upiIdConfirmed, setUpiIdConfirmed] = useState(false);
+  const [cashfreeLoading, setCashfreeLoading] = useState(false);
 
   const { items, freeDelivery, freeDeliveryThreshold, deliveryCharge, showProgressBar, enableGST, gstRate, taxLabel, showGSTBreakdownCart, showGSTBreakdownCheckout } = cart;
 
@@ -45,6 +46,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
     const methods = [];
     if (payment?.codEnabled) methods.push({ id: 'cod', label: 'Cash on Delivery', icon: 'payments' });
     if (payment?.upiEnabled) methods.push({ id: 'upi', label: 'UPI / GPay / PhonePe', icon: 'qr_code_2' });
+    if (payment?.cashfreeEnabled) methods.push({ id: 'cashfree', label: 'Pay Online (Card/UPI/NetBanking)', icon: 'credit_card' });
     if (payment?.cardEnabled) methods.push({ id: 'card', label: 'Credit/Debit Card', icon: 'credit_card' });
     if (payment?.netBankingEnabled) methods.push({ id: 'netbanking', label: 'Net Banking', icon: 'account_balance' });
     return methods;
@@ -68,6 +70,52 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
     setShowCheckout(true);
   };
 
+  const handleCashfreePayment = async (orderId, amount, customerPhone) => {
+    setCashfreeLoading(true);
+    try {
+      const storeId = window.location.hostname.split('.')[0];
+      const API = 'https://api.aapnaestore.com';
+      
+      // Create Cashfree order
+      const res = await fetch(`${API}/api/store/${storeId}/cashfree/create-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId,
+          amount,
+          customerPhone: customerPhone || '9999999999',
+          customerName: 'Customer',
+          customerEmail: 'customer@store.com'
+        })
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Failed to create payment');
+
+      // Load Cashfree SDK
+      const cashfree = await new Promise((resolve, reject) => {
+        if (window.Cashfree) { resolve(window.Cashfree({ mode: 'sandbox' })); return; }
+        const script = document.createElement('script');
+        script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
+        script.onload = () => resolve(window.Cashfree({ mode: 'sandbox' }));
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+
+      // Open Cashfree modal
+      const result = await cashfree.checkout({
+        paymentSessionId: data.data.paymentSessionId,
+        redirectTarget: '_modal',
+      });
+
+      if (result.error) throw new Error(result.error.message);
+      return { success: true };
+    } catch (e) {
+      return { success: false, error: e.message };
+    } finally {
+      setCashfreeLoading(false);
+    }
+  };
+
   const handlePlaceOrder = async () => {
     if (!currentAddress) {
       alert('Please select a delivery address');
@@ -83,6 +131,16 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
     }
 
     const methodLabel = paymentMethods.find(m => m.id === selectedPayment)?.label || selectedPayment;
+
+    // Handle Cashfree payment first
+    if (selectedPayment === 'cashfree') {
+      const orderId = 'ORD_' + Date.now();
+      const cfResult = await handleCashfreePayment(orderId, total, currentAddress?.recipientMobile);
+      if (!cfResult.success) {
+        alert(cfResult.error || 'Payment failed. Please try again.');
+        return;
+      }
+    }
 
     setPlacingOrder(true);
     const result = await placeOrder({
