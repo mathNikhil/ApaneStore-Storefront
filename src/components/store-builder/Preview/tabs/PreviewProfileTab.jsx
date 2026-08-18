@@ -35,6 +35,7 @@ const PreviewProfileTab = ({
 }) => {
   const { profile, brand, address } = data || {};
   const brandColors = brand?.colors || {};
+  const brandFonts = brand?.fonts || { heading: 'Inter', body: 'Inter' };
 
   // Address fields/rules from Step 5
   const addressFields = address?.fields || {
@@ -216,7 +217,7 @@ const PreviewProfileTab = ({
                   onChange={(e) => setProfileNameInput(e.target.value)}
                   placeholder="Your name"
                   className="w-full px-3 py-1.5 text-sm border rounded-lg"
-                  style={{ borderColor: brandColors.secondary, color: brandColors.fontHeader }}
+                  style={{ borderColor: brandColors.secondary, color: brandColors.fontHeader , fontFamily: brandFonts?.heading || 'Inter' }}
                 />
                 <input
                   type="email"
@@ -224,7 +225,7 @@ const PreviewProfileTab = ({
                   onChange={(e) => setProfileEmailInput(e.target.value)}
                   placeholder="you@example.com"
                   className="w-full px-3 py-1.5 text-sm border rounded-lg"
-                  style={{ borderColor: brandColors.secondary, color: brandColors.fontBody }}
+                  style={{ borderColor: brandColors.secondary, color: brandColors.fontBody , fontFamily: brandFonts?.body || 'Inter' }}
                 />
                 <div className="flex gap-2">
                   <button
@@ -242,7 +243,7 @@ const PreviewProfileTab = ({
                       setProfileEmailInput(profile?.email || '');
                     }}
                     className="px-3 py-1 text-xs font-semibold rounded-lg border"
-                    style={{ borderColor: brandColors.secondary, color: brandColors.fontBody }}
+                    style={{ borderColor: brandColors.secondary, color: brandColors.fontBody , fontFamily: brandFonts?.body || 'Inter' }}
                   >
                     Cancel
                   </button>
@@ -251,7 +252,7 @@ const PreviewProfileTab = ({
             ) : (
               <>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-xl font-bold" style={{ color: brandColors.fontHeader }}>
+                  <h2 className="text-xl font-bold" style={{ color: brandColors.fontHeader, fontFamily: brandFonts?.heading || 'Inter' }}>
                     {profile?.name || 'Add your name'}
                   </h2>
                   <button
@@ -266,11 +267,11 @@ const PreviewProfileTab = ({
                     Edit
                   </button>
                 </div>
-                <p className="text-sm" style={{ color: brandColors.fontBody }}>
+                <p className="text-sm" style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>
                   {customerMobile ? `+91 ${customerMobile}` : 'Logged in'}
                 </p>
                 {profile?.email && (
-                  <p className="text-sm" style={{ color: brandColors.fontBody }}>{profile.email}</p>
+                  <p className="text-sm" style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>{profile.email}</p>
                 )}
               </>
             )}
@@ -281,10 +282,10 @@ const PreviewProfileTab = ({
       {/* ADDRESS BOOK — From Step 5, shared with Cart tab */}
       <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brandColors.background || '#FFFFFF' }}>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-sm" style={{ color: brandColors.fontHeader }}>
+          <h3 className="font-semibold text-sm" style={{ color: brandColors.fontHeader, fontFamily: brandFonts?.heading || 'Inter' }}>
             Address Book
           </h3>
-          <span className="text-xs" style={{ color: brandColors.fontBody }}>
+          <span className="text-xs" style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>
             {addressBook.length}/{maxAddresses} addresses
           </span>
         </div>
@@ -319,7 +320,7 @@ const PreviewProfileTab = ({
                       </div>
                     )}
 
-                    <div className="text-sm" style={{ color: brandColors.fontBody }}>
+                    <div className="text-sm" style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>
                       {addressFields.recipientName && addr.recipientName && (
                         <div><span className="font-medium">Name:</span> {addr.recipientName}</div>
                       )}
@@ -339,7 +340,7 @@ const PreviewProfileTab = ({
                         <div>Pincode: {addr.pincode}</div>
                       )}
                       {addressFields.landmark && addr.landmark && (
-                        <div className="text-xs" style={{ color: brandColors.fontBody }}>
+                        <div className="text-xs" style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>
                           Landmark: {addr.landmark}
                         </div>
                       )}
@@ -368,7 +369,7 @@ const PreviewProfileTab = ({
                       <button
                         onClick={() => setDefaultAddress(addr.id)}
                         className="text-xs px-2 py-0.5 rounded font-medium"
-                        style={{ color: brandColors.fontBody }}
+                        style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}
                       >
                         Set Default
                       </button>
@@ -379,7 +380,7 @@ const PreviewProfileTab = ({
             ))}
           </div>
         ) : (
-          <p className="text-sm" style={{ color: brandColors.fontBody }}>
+          <p className="text-sm" style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>
             No addresses saved yet
           </p>
         )}
@@ -398,14 +399,14 @@ const PreviewProfileTab = ({
       {/* ADDRESS FORM - Add/Edit */}
       {showAddressForm && (
         <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brandColors.background || '#FFFFFF' }}>
-          <h3 className="font-semibold text-sm mb-3" style={{ color: brandColors.fontHeader }}>
+          <h3 className="font-semibold text-sm mb-3" style={{ color: brandColors.fontHeader, fontFamily: brandFonts?.heading || 'Inter' }}>
             {editingAddressId ? 'Edit Address' : 'Add New Address'}
           </h3>
 
           <div className="space-y-3">
             {showAddressLabels && (
               <div>
-                <label className="block text-xs font-medium mb-1" style={{ color: brandColors.fontBody }}>
+                <label className="block text-xs font-medium mb-1" style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>
                   Address Label
                 </label>
                 <select
@@ -423,7 +424,7 @@ const PreviewProfileTab = ({
 
             {addressFields.recipientName && (
               <div>
-                <label className="block text-xs font-medium mb-1" style={{ color: brandColors.fontBody }}>
+                <label className="block text-xs font-medium mb-1" style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>
                   Recipient Name <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -439,7 +440,7 @@ const PreviewProfileTab = ({
 
             {addressFields.recipientMobile && (
               <div>
-                <label className="block text-xs font-medium mb-1" style={{ color: brandColors.fontBody }}>
+                <label className="block text-xs font-medium mb-1" style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>
                   Recipient Mobile <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -455,7 +456,7 @@ const PreviewProfileTab = ({
 
             {addressFields.addressLine1 && (
               <div>
-                <label className="block text-xs font-medium mb-1" style={{ color: brandColors.fontBody }}>
+                <label className="block text-xs font-medium mb-1" style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>
                   Address Line 1 <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -471,7 +472,7 @@ const PreviewProfileTab = ({
 
             {addressFields.addressLine2 && (
               <div>
-                <label className="block text-xs font-medium mb-1" style={{ color: brandColors.fontBody }}>
+                <label className="block text-xs font-medium mb-1" style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>
                   Address Line 2
                 </label>
                 <input
@@ -487,7 +488,7 @@ const PreviewProfileTab = ({
 
             {addressFields.city && (
               <div>
-                <label className="block text-xs font-medium mb-1" style={{ color: brandColors.fontBody }}>
+                <label className="block text-xs font-medium mb-1" style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>
                   City <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -503,7 +504,7 @@ const PreviewProfileTab = ({
 
             {addressFields.state && (
               <div>
-                <label className="block text-xs font-medium mb-1" style={{ color: brandColors.fontBody }}>
+                <label className="block text-xs font-medium mb-1" style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>
                   State <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -519,7 +520,7 @@ const PreviewProfileTab = ({
 
             {addressFields.pincode && (
               <div>
-                <label className="block text-xs font-medium mb-1" style={{ color: brandColors.fontBody }}>
+                <label className="block text-xs font-medium mb-1" style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>
                   Pincode <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -550,7 +551,7 @@ const PreviewProfileTab = ({
             )}
 
             {address?.allowDefaultAddress && (
-              <label className="flex items-center gap-2 text-sm" style={{ color: brandColors.fontBody }}>
+              <label className="flex items-center gap-2 text-sm" style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>
                 <input
                   type="checkbox"
                   checked={addressForm.isDefault}
@@ -582,31 +583,31 @@ const PreviewProfileTab = ({
 
       {/* ABOUT US - From Step 7 */}
       <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brandColors.background || '#FFFFFF' }}>
-        <h3 className="font-semibold text-sm mb-2" style={{ color: brandColors.fontHeader }}>
+        <h3 className="font-semibold text-sm mb-2" style={{ color: brandColors.fontHeader, fontFamily: brandFonts?.heading || 'Inter' }}>
           About Us
         </h3>
-        <p className="text-sm leading-relaxed" style={{ color: brandColors.fontBody }}>
+        <p className="text-sm leading-relaxed" style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>
           {aboutUs}
         </p>
       </div>
 
       {/* SUPPORT DETAILS - From Step 7 */}
       <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brandColors.background || '#FFFFFF' }}>
-        <h3 className="font-semibold text-sm mb-3" style={{ color: brandColors.fontHeader }}>
+        <h3 className="font-semibold text-sm mb-3" style={{ color: brandColors.fontHeader, fontFamily: brandFonts?.heading || 'Inter' }}>
           Support Details
         </h3>
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span style={{ color: brandColors.fontBody }}>Phone</span>
-            <span style={{ color: brandColors.fontBody }}>{supportDetails.officeNumber}</span>
+            <span style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>Phone</span>
+            <span style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>{supportDetails.officeNumber}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span style={{ color: brandColors.fontBody }}>Email</span>
-            <span style={{ color: brandColors.fontBody }}>{supportDetails.supportEmail}</span>
+            <span style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>Email</span>
+            <span style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>{supportDetails.supportEmail}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span style={{ color: brandColors.fontBody }}>Business Hours</span>
-            <span style={{ color: brandColors.fontBody }}>{supportDetails.supportTime}</span>
+            <span style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>Business Hours</span>
+            <span style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>{supportDetails.supportTime}</span>
           </div>
         </div>
       </div>
@@ -614,7 +615,7 @@ const PreviewProfileTab = ({
       {/* SOCIAL MEDIA - From Step 7, clickable icons linking to the tenant's pages */}
       {socialEntries.length > 0 && (
         <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brandColors.background || '#FFFFFF' }}>
-          <h3 className="font-semibold text-sm mb-3" style={{ color: brandColors.fontHeader }}>
+          <h3 className="font-semibold text-sm mb-3" style={{ color: brandColors.fontHeader, fontFamily: brandFonts?.heading || 'Inter' }}>
             Follow Us
           </h3>
           <div className="flex items-center gap-3">

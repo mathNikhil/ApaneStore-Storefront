@@ -1,6 +1,6 @@
 import React from 'react';
 
-const PreviewFooter = ({ activeTab, onChange, brandColors }) => {
+const PreviewFooter = ({ activeTab, onChange, brandColors, brandFonts = { heading: 'Inter', body: 'Inter' } }) => {
   const tabs = [
     { id: 'home', label: 'Home', icon: 'home' },
     { id: 'cart', label: 'Cart', icon: 'shopping_cart' },
@@ -35,7 +35,8 @@ const PreviewFooter = ({ activeTab, onChange, brandColors }) => {
           <span 
             className="text-xs font-medium"
             style={{ 
-              color: activeTab === tab.id ? brandColors.primary : brandColors.secondary || '#556067'
+              color: activeTab === tab.id ? brandColors.primary : brandColors.secondary || '#556067',
+              fontFamily: brandFonts?.body || 'Inter'
             }}
           >
             {tab.label}

@@ -7,6 +7,8 @@ const PreviewProductCard = ({
   onAddToCart,
   brandColors,
   zoomEnabled = true,
+  autoSlide = false,
+  brandFonts = { heading: 'Inter', body: 'Inter' },
 }) => {
   const [selectedVariation, setSelectedVariation] = useState(
     product.variations?.[0] || null
@@ -26,12 +28,12 @@ const PreviewProductCard = ({
   // Auto-slide through all uploaded product images so customers see every shot,
   // not just the first one.
   useEffect(() => {
-    if (images.length <= 1) return;
+    if (images.length <= 1 || !autoSlide) return;
     const interval = setInterval(() => {
       setActiveImageIndex(prev => (prev + 1) % images.length);
     }, 2800);
     return () => clearInterval(interval);
-  }, [images.length]);
+  }, [images.length, autoSlide]);
 
   const goToImage = (idx) => setActiveImageIndex((idx + images.length) % images.length);
 
@@ -72,6 +74,8 @@ const PreviewProductCard = ({
   const buttonLabelColor = brandColors.buttonLabel || '#005523';
   const fontColor = brandColors.fontHeader || brandColors.font || '#191C1E';
   const fontBodyColor = brandColors.fontBody || '#556067';
+  const headingFont = brandFonts?.heading || 'Inter';
+  const bodyFont = brandFonts?.body || 'Inter';
   const secondaryColor = brandColors.secondary || '#E0E3E6';
 
   const quickViewModal = quickViewOpen && (
@@ -140,9 +144,9 @@ const PreviewProductCard = ({
 
         {/* Details */}
         <div className="p-4">
-          <h3 className="font-semibold text-base" style={{ color: fontColor }}>{product.name}</h3>
+          <h3 className="font-semibold text-base" style={{ color: fontColor, fontFamily: headingFont }}>{product.name}</h3>
           {product.description && (
-            <p className="text-xs mt-1" style={{ color: fontBodyColor }}>{product.description}</p>
+            <p className="text-xs mt-1" style={{ color: fontBodyColor, fontFamily: bodyFont }}>{product.description}</p>
           )}
 
           {/* Price for currently selected combination */}
@@ -150,10 +154,10 @@ const PreviewProductCard = ({
             <span className="text-xl font-bold" style={{ color: primaryColor }}>₹{selectedPrice.toFixed(2)}</span>
             {discount > 0 && (
               <>
-                <span className="text-sm line-through opacity-60" style={{ color: fontBodyColor }}>
+                <span className="text-sm line-through opacity-60" style={{ color: fontBodyColor, fontFamily: bodyFont }}>
                   ₹{selectedOriginalPrice.toFixed(2)}
                 </span>
-                <span className="text-xs font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor: `${primaryColor}20`, color: primaryColor }}>
+                <span className="text-xs font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor: `${primaryColor}20`, color: primaryColor, fontFamily: bodyFont }}>
                   {Math.round(discount)}% OFF
                 </span>
               </>
@@ -169,7 +173,7 @@ const PreviewProductCard = ({
           {/* Variant selector, with thumbnail if uploaded */}
           {product.variations && product.variations.length > 0 && (
             <div className="mt-3">
-              <p className="text-xs font-medium uppercase tracking-wider mb-1" style={{ color: fontBodyColor }}>
+              <p className="text-xs font-medium uppercase tracking-wider mb-1" style={{ color: fontBodyColor, fontFamily: bodyFont }}>
                 {product.variations[0]?.name || 'Options'}
               </p>
               <div className="flex flex-wrap gap-1.5">
@@ -180,7 +184,7 @@ const PreviewProductCard = ({
                     className="flex items-center gap-1 pl-1 pr-2 py-1 text-xs rounded-full transition-colors border-2 bg-transparent"
                     style={selectedVariation?.id === v.id
                       ? { borderColor: primaryColor, color: primaryColor }
-                      : { borderColor: secondaryColor, color: fontBodyColor }
+                      : { borderColor: secondaryColor, color: fontBodyColor, fontFamily: bodyFont }
                     }
                   >
                     {v.image && <img src={v.image.url} alt={v.name} className="w-4 h-4 rounded-full object-cover flex-shrink-0" />}
@@ -194,7 +198,7 @@ const PreviewProductCard = ({
           {/* Size selector */}
           {selectedVariation?.sizes?.length > 0 && (
             <div className="mt-3">
-              <p className="text-xs font-medium uppercase tracking-wider mb-1" style={{ color: fontBodyColor }}>Size</p>
+              <p className="text-xs font-medium uppercase tracking-wider mb-1" style={{ color: fontBodyColor, fontFamily: bodyFont }}>Size</p>
               <div className="flex flex-wrap gap-1.5">
                 {selectedVariation.sizes.map((s) => (
                   <button
@@ -203,7 +207,7 @@ const PreviewProductCard = ({
                     className="px-2.5 py-1 text-xs rounded-full transition-colors border-2 bg-transparent"
                     style={selectedSize?.id === s.id
                       ? { borderColor: primaryColor, color: primaryColor }
-                      : { borderColor: secondaryColor, color: fontBodyColor }
+                      : { borderColor: secondaryColor, color: fontBodyColor, fontFamily: bodyFont }
                     }
                   >
                     {s.label}
@@ -273,7 +277,7 @@ const PreviewProductCard = ({
       {deviceFrameNode && ReactDOM.createPortal(quickViewModal, deviceFrameNode)}
 
       <div className="p-3 flex-1 flex flex-col">
-        <h4 className="font-semibold text-sm line-clamp-2" style={{ color: fontColor }}>
+        <h4 className="font-semibold text-sm line-clamp-2" style={{ color: fontColor, fontFamily: headingFont }}>
           {product.name}
         </h4>
 
@@ -284,10 +288,10 @@ const PreviewProductCard = ({
           </span>
           {discount > 0 && (
             <>
-              <span className="text-xs line-through opacity-60" style={{ color: fontBodyColor }}>
+              <span className="text-xs line-through opacity-60" style={{ color: fontBodyColor, fontFamily: bodyFont }}>
                 ₹{cardOriginalPrice.toFixed(2)}
               </span>
-              <span className="text-[10px] font-bold px-1 py-0.5 rounded whitespace-nowrap" style={{ backgroundColor: `${primaryColor}20`, color: primaryColor }}>
+              <span className="text-[10px] font-bold px-1 py-0.5 rounded whitespace-nowrap" style={{ backgroundColor: `${primaryColor}20`, color: primaryColor, fontFamily: bodyFont }}>
                 {Math.round(discount)}% OFF
               </span>
             </>
@@ -298,7 +302,7 @@ const PreviewProductCard = ({
           <button
             onClick={() => setQuickViewOpen(true)}
             className="text-xs mt-1 text-left underline decoration-dotted"
-            style={{ color: fontBodyColor }}
+            style={{ color: fontBodyColor, fontFamily: bodyFont }}
           >
             {product.variations.length > 1 ? `${product.variations.length} options` : `${product.variations[0].sizes.length} sizes`} available
           </button>

@@ -166,8 +166,8 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
     return (
       <div className="p-4 max-w-3xl mx-auto text-center py-12">
         <span className="material-symbols-outlined text-6xl text-[#006d2f] block mb-4">check_circle</span>
-        <h2 className="text-2xl font-bold" style={{ color: brand.colors.fontHeader }}>Order Placed! 🎉</h2>
-        <p style={{ color: brand.colors.fontBody }}>Your order has been placed successfully.</p>
+        <h2 className="text-2xl font-bold" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.heading || 'Inter' }}>Order Placed! 🎉</h2>
+        <p style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>Your order has been placed successfully.</p>
       </div>
     );
   }
@@ -179,39 +179,39 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
           <span className="material-symbols-outlined">arrow_back</span> Back to Cart
         </button>
 
-        <h2 className="text-xl font-bold mb-4" style={{ color: brand.colors.fontHeader }}>Payment</h2>
+        <h2 className="text-xl font-bold mb-4" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.heading || 'Inter' }}>Payment</h2>
 
         {/* Order Summary */}
         <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
-          <h3 className="font-semibold text-sm mb-3" style={{ color: brand.colors.fontHeader }}>Order Summary</h3>
+          <h3 className="font-semibold text-sm mb-3" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.heading || 'Inter' }}>Order Summary</h3>
           <div className="space-y-2">
             {items.map((item) => (
               <div key={item.id} className="flex justify-between text-sm">
-                <span style={{ color: brand.colors.fontBody }}>{item.productName} x{item.quantity}</span>
-                <span style={{ color: brand.colors.fontBody }}>₹{(item.price * item.quantity).toFixed(2)}</span>
+                <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>{item.productName} x{item.quantity}</span>
+                <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>₹{(item.price * item.quantity).toFixed(2)}</span>
               </div>
             ))}
             <div className="border-t pt-2 mt-2">
               {showGSTBreakdownCheckout ? (
                 <>
                   <div className="flex justify-between text-sm">
-                    <span style={{ color: brand.colors.fontBody }}>Subtotal</span>
-                    <span style={{ color: brand.colors.fontBody }}>₹{subtotal.toFixed(2)}</span>
+                    <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>Subtotal</span>
+                    <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>₹{subtotal.toFixed(2)}</span>
                   </div>
                   {enableGST && (
                     <div className="flex justify-between text-sm">
-                      <span style={{ color: brand.colors.fontBody }}>{taxLabel} ({gstRate}%)</span>
-                      <span style={{ color: brand.colors.fontBody }}>₹{gst.toFixed(2)}</span>
+                      <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>{taxLabel} ({gstRate}%)</span>
+                      <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>₹{gst.toFixed(2)}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-sm">
-                    <span style={{ color: brand.colors.fontBody }}>Delivery</span>
-                    <span style={{ color: brand.colors.fontBody }}>{delivery === 0 ? 'FREE' : `₹${delivery.toFixed(2)}`}</span>
+                    <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>Delivery</span>
+                    <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>{delivery === 0 ? 'FREE' : `₹${delivery.toFixed(2)}`}</span>
                   </div>
                 </>
               ) : null}
               <div className="flex justify-between font-bold mt-2 pt-2 border-t">
-                <span style={{ color: brand.colors.fontBody }}>Total</span>
+                <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>Total</span>
                 <span style={{ color: brand.colors.primary }}>₹{total.toFixed(2)}</span>
               </div>
             </div>
@@ -220,10 +220,10 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
 
         {/* Delivery Address */}
         <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
-          <h3 className="font-semibold text-sm mb-2" style={{ color: brand.colors.fontHeader }}>Deliver To</h3>
+          <h3 className="font-semibold text-sm mb-2" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.heading || 'Inter' }}>Deliver To</h3>
           {currentAddress ? (
-            <p className="text-sm" style={{ color: brand.colors.fontBody }}>
-              <span className="font-medium" style={{ color: brand.colors.fontBody }}>{currentAddress.recipientName}</span><br />
+            <p className="text-sm" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>
+              <span className="font-medium" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>{currentAddress.recipientName}</span><br />
               {currentAddress.addressLine1}{currentAddress.addressLine2 && `, ${currentAddress.addressLine2}`}<br />
               {currentAddress.city}, {currentAddress.state} - {currentAddress.pincode}<br />
               <span className="text-xs">{currentAddress.recipientMobile}</span>
@@ -235,7 +235,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
 
         {/* Payment Methods - From Step 4 */}
         <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
-          <h3 className="font-semibold text-sm mb-3" style={{ color: brand.colors.fontHeader }}>Select Payment Method</h3>
+          <h3 className="font-semibold text-sm mb-3" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.heading || 'Inter' }}>Select Payment Method</h3>
           {paymentMethods.length === 0 ? (
             <p className="text-sm text-[#556067]">No payment methods enabled. Please enable at least one in Step 4 (Payment Configuration).</p>
           ) : (
@@ -251,7 +251,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                     className="w-4 h-4 text-[#006d2f]"
                   />
                   <span className="material-symbols-outlined text-[#556067]">{method.icon}</span>
-                  <span className="text-sm" style={{ color: brand.colors.fontBody }}>{method.label}</span>
+                  <span className="text-sm" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>{method.label}</span>
                 </label>
               ))}
             </div>
@@ -260,7 +260,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
             <div className="mt-3 p-3 bg-[#f2f4f7] rounded-lg flex flex-col items-center gap-2">
               {!upiIdConfirmed ? (
                 <div className="w-full flex flex-col gap-2">
-                  <label className="text-sm font-medium" style={{ color: brand.colors.fontBody }}>
+                  <label className="text-sm font-medium" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>
                     Enter your UPI ID
                   </label>
                   <input
@@ -295,7 +295,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
 
                 return (
                   <>
-                    <p className="text-xs" style={{ color: brand.colors.fontBody }}>
+                    <p className="text-xs" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>
                       Paying from <span className="font-semibold">{customerUpiId}</span>{' '}
                       <button onClick={() => setUpiIdConfirmed(false)} className="underline">change</button>
                     </p>
@@ -317,7 +317,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                     >
                       Pay ₹{total.toFixed(2)} via UPI App
                     </a>
-                    <p className="text-xs text-center max-w-[240px]" style={{ color: brand.colors.fontBody }}>
+                    <p className="text-xs text-center max-w-[240px]" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>
                       Once you've completed the payment, tap "Place Order" below.
                     </p>
                     {!isValidVpa && (
@@ -330,8 +330,8 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
               })()
               )}
               {payment?.showUPIId && (
-                <p className="text-sm" style={{ color: brand.colors.fontBody }}>
-                  UPI ID: <span className="font-semibold" style={{ color: brand.colors.fontBody }}>{payment.upiId}</span>
+                <p className="text-sm" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>
+                  UPI ID: <span className="font-semibold" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>{payment.upiId}</span>
                 </p>
               )}
             </div>
@@ -353,13 +353,13 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
   // Cart view
   return (
     <div className="p-4 max-w-3xl mx-auto">
-      <h2 className="text-xl font-bold mb-4" style={{ color: brand.colors.fontHeader }}>
+      <h2 className="text-xl font-bold mb-4" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.heading || 'Inter' }}>
         My Cart ({items.length} {items.length === 1 ? 'item' : 'items'})
       </h2>
 
       {items.length > 0 && freeDelivery && showProgressBar && remainingForFree > 0 && (
         <div className="mb-4 p-3 bg-[#f2f4f7] rounded-lg">
-          <p className="text-sm" style={{ color: brand.colors.fontBody }}>
+          <p className="text-sm" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>
             Add <span className="font-bold" style={{ color: brand.colors.primary }}>₹{remainingForFree.toFixed(2)}</span> more for FREE delivery
           </p>
           {/* Progress bar: Primary = filled/completed portion, Secondary = track/remaining */}
@@ -376,7 +376,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
       )}
 
       {items.length === 0 ? (
-        <div className="text-center py-12" style={{ color: brand.colors.fontBody }}>
+        <div className="text-center py-12" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>
           <span className="material-symbols-outlined text-6xl block mb-4 opacity-30">shopping_cart</span>
           <p>Your cart is empty</p>
           <p className="text-sm mt-2">Add some products from the Home tab</p>
@@ -396,10 +396,10 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                     )}
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-semibold text-sm" style={{ color: brand.colors.fontHeader }}>
+                    <h4 className="font-semibold text-sm" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.heading || 'Inter' }}>
                       {item.productName}
                     </h4>
-                    <p className="text-xs" style={{ color: brand.colors.fontBody }}>
+                    <p className="text-xs" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>
                       {item.sizeLabel} • {item.variationName}
                     </p>
                     <p className="text-sm font-bold" style={{ color: brand.colors.primary }}>
@@ -437,7 +437,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
           {/* Delivery Address - From the shared address book (Step 5 config) */}
           <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-semibold" style={{ color: brand.colors.fontHeader }}>
+              <p className="text-sm font-semibold" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.heading || 'Inter' }}>
                 Deliver to {currentAddress?.label || 'Address'}
               </p>
               {addresses.length > 1 && (
@@ -452,7 +452,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
             </div>
 
             {currentAddress ? (
-              <p className="text-sm" style={{ color: brand.colors.fontBody }}>
+              <p className="text-sm" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>
                 {currentAddress.recipientName}<br />
                 {currentAddress.addressLine1}
                 {currentAddress.addressLine2 && <>, {currentAddress.addressLine2}</>}<br />
@@ -468,7 +468,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
 
             {showAddressSelector && (
               <div className="mt-3 pt-3 border-t border-[#e0e3e6] space-y-2">
-                <p className="text-xs font-semibold" style={{ color: brand.colors.fontBody }}>Select Delivery Address</p>
+                <p className="text-xs font-semibold" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>Select Delivery Address</p>
                 {addresses.map((addr) => (
                   <button
                     key={addr.id}
@@ -486,10 +486,10 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                       : {}
                     }
                   >
-                    <p className="text-sm font-medium" style={{ color: brand.colors.fontHeader }}>
+                    <p className="text-sm font-medium" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.heading || 'Inter' }}>
                       {addr.label}
                     </p>
-                    <p className="text-xs" style={{ color: brand.colors.fontBody }}>
+                    <p className="text-xs" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>
                       {addr.addressLine1}, {addr.city}
                     </p>
                   </button>
@@ -519,32 +519,32 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
 
           {/* Bill Details */}
           <div className="rounded-lg border p-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
-            <h3 className="font-semibold text-sm mb-3" style={{ color: brand.colors.fontHeader }}>
+            <h3 className="font-semibold text-sm mb-3" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.heading || 'Inter' }}>
               Bill Details
             </h3>
             <div className="space-y-2">
               {showGSTBreakdownCart ? (
                 <>
                   <div className="flex justify-between text-sm">
-                    <span style={{ color: brand.colors.fontBody }}>Subtotal</span>
-                    <span style={{ color: brand.colors.fontBody }}>₹{subtotal.toFixed(2)}</span>
+                    <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>Subtotal</span>
+                    <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>₹{subtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span style={{ color: brand.colors.fontBody }}>Delivery</span>
-                    <span style={{ color: brand.colors.fontBody }}>
+                    <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>Delivery</span>
+                    <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>
                       {delivery === 0 ? 'FREE' : `₹${delivery.toFixed(2)}`}
                     </span>
                   </div>
                   {enableGST && (
                     <div className="flex justify-between text-sm">
-                      <span style={{ color: brand.colors.fontBody }}>{taxLabel} ({gstRate}%)</span>
-                      <span style={{ color: brand.colors.fontBody }}>₹{gst.toFixed(2)}</span>
+                      <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>{taxLabel} ({gstRate}%)</span>
+                      <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>₹{gst.toFixed(2)}</span>
                     </div>
                   )}
                 </>
               ) : null}
               <div className="border-t pt-2 flex justify-between font-bold">
-                <span style={{ color: brand.colors.fontBody }}>Total</span>
+                <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>Total</span>
                 <span style={{ color: brand.colors.primary }}>₹{total.toFixed(2)}</span>
               </div>
             </div>
@@ -553,7 +553,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
           <button
             onClick={handleCheckout}
             className="w-full mt-4 py-3 rounded-lg font-bold text-white transition-opacity hover:opacity-90"
-            style={{ backgroundColor: brand.colors.button || '#25D366' }}
+            style={{ backgroundColor: brand.colors.button || '#25D366', fontFamily: brand.fonts?.body || 'Inter' }}
           >
             Proceed to Checkout
           </button>

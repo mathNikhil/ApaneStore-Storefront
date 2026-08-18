@@ -102,7 +102,10 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
     categories: [],
     // Store-wide display settings (Step 2, applies to every product)
     settings: {
-      enableImageZoom: true,
+      enableImageZoom: builderData.enableImageZoom !== false,
+      categoryImageSize: builderData.settings?.categoryImageSize || 'S',
+      categoryImageShape: builderData.settings?.categoryImageShape || 'circle',
+      autoSlideProductImages: builderData.settings?.autoSlideProductImages || false,
     },
     banner: {
       image: null,

@@ -29,6 +29,27 @@
     box-shadow: 0 0 0 2px var(--store-primary, #25D366);
   }
 
+
+  .store-root {
+    font-family: inherit;
+  }
+  .store-root p,
+  .store-root span:not(.material-symbols-outlined),
+  .store-root label,
+  .store-root input,
+  .store-root button,
+  .store-root a,
+  .store-root div {
+    font-family: inherit;
+  }
+  .store-root h1,
+  .store-root h2,
+  .store-root h3,
+  .store-root h4,
+  .store-root h5,
+  .store-root h6 {
+    font-family: var(--font-heading, inherit);
+  }
   body {
     font-family: 'Inter', sans-serif;
     background-color: #f7f9fc;
@@ -156,3 +177,9 @@
   }
 }
 
+
+/* Override Tailwind font-sans inside store */
+.store-root .font-sans,
+.store-root {
+  font-family: var(--font-body, 'Inter'), sans-serif !important;
+}

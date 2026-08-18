@@ -29,6 +29,13 @@ const mapConfigToBuilderData = (config) => ({
     fonts: config?.brand?.fonts || { heading: 'Inter', body: 'Inter' },
     baseFontSize: config?.brand?.baseFontSize || '16px',
   },
+  products: {
+    ...config?.products,
+    categoryImageShape: config?.products?.categoryImageShape || 'circle',
+    categoryImageSize: config?.products?.categoryImageSize || 'S',
+    autoSlideProductImages: config?.products?.autoSlideProductImages || false,
+    enableImageZoom: config?.products?.enableImageZoom !== false,
+  },
 });
 
 // Phase 1 (local dev, no real hosting yet): which store to render comes from
@@ -69,6 +76,7 @@ function App() {
         if (result.success && result.data) {
             // Inject store brand colors as CSS variables for focus rings etc
             const colors = result.data.config?.brand?.brandColors || {};
+            const prodConfig = result.data.config?.products || {};
             const primary = colors.primary || '#25D366';
             const secondary = colors.secondary || '#E0E3E6';
             document.documentElement.style.setProperty('--store-primary', primary);

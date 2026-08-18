@@ -5,6 +5,11 @@ import { customerAuthAPI } from '../../../services/api';
 // (same OTP mechanism the main tenant dashboard uses, scoped to this
 // specific store — a phone number is a separate customer at every store).
 const PreviewCustomerAuth = ({ brand, storeId, onAuthenticated, onCancel }) => {
+  const headingFont = brand?.fonts?.heading || 'Inter';
+  const bodyFont = brand?.fonts?.body || 'Inter';
+  const primaryColor = brand?.colors?.primary || '#25D366';
+  const fontHeader = brand?.colors?.fontHeader || '#191C1E';
+  const fontBody = brand?.colors?.fontBody || '#556067';
   const [step, setStep] = useState('mobile'); // 'mobile' | 'otp'
   const [mobile, setMobile] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);

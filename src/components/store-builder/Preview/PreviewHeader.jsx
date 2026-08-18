@@ -32,8 +32,7 @@ const PreviewHeader = ({ brand, cartCount = 0 }) => {
             <h1 
               className="font-bold text-lg"
               style={{ 
-                color: colors.fontHeader || '#191C1E',
-                fontFamily: fonts.heading || 'Inter'
+                color: colors.fontHeader || '#191C1E', fontFamily: fonts?.heading || 'Inter'
               }}
             >
               {name || 'Your Store'}
@@ -41,8 +40,7 @@ const PreviewHeader = ({ brand, cartCount = 0 }) => {
             <p 
               className="text-xs"
               style={{ 
-                color: colors.fontBody || '#556067',
-                fontFamily: fonts.body || 'Inter'
+                color: colors.fontBody || '#556067', fontFamily: fonts?.body || 'Inter'
               }}
             >
               {tagline || 'Your tagline here'}
@@ -52,7 +50,7 @@ const PreviewHeader = ({ brand, cartCount = 0 }) => {
 
         {/* Cart Icon */}
         <button className="relative p-2 hover:bg-[#f2f4f7] rounded-full transition-colors">
-          <span className="material-symbols-outlined" style={{ color: colors.fontBody }}>
+          <span className="material-symbols-outlined" style={{ color: colors.fontBody}}>
             shopping_cart
           </span>
           {cartCount > 0 && (

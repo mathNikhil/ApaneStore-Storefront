@@ -82,6 +82,25 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
   const [rootNode, setRootNode] = useState(null);
   useEffect(() => { setRootNode(rootRef.current); }, []);
 
+
+  // Load Google Fonts for heading and body fonts
+  useEffect(() => {
+    const heading = builderData?.brand?.fonts?.heading || 'Inter';
+    const body = builderData?.brand?.fonts?.body || 'Inter';
+    const fonts = [...new Set([heading, body])].map(f => f.replace(/ /g, '+') + ':wght@400;500;600;700').join('&family=');
+    const linkId = 'store-google-fonts';
+    let link = document.getElementById(linkId);
+    if (!link) {
+      link = document.createElement('link');
+      link.id = linkId;
+      link.rel = 'stylesheet';
+      document.head.appendChild(link);
+    }
+    link.href = `https://fonts.googleapis.com/css2?family=${fonts}&display=swap`;
+
+
+  }, [builderData?.brand?.fonts?.heading, builderData?.brand?.fonts?.body]);
+
   const flattenedData = useMemo(() => ({
     brandName: builderData.brand.brandName,
     tagline: builderData.brand.tagline,
@@ -93,6 +112,12 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
 
     categories: builderData.products.categories,
     enableImageZoom: builderData.products.enableImageZoom,
+    enableProductSearch: builderData.products.enableProductSearch,
+    settings: {
+      categoryImageSize: builderData.products.categoryImageSize || 'S',
+      categoryImageShape: builderData.products.categoryImageShape || 'circle',
+      autoSlideProductImages: builderData.products.autoSlideProductImages || false,
+    },
     bannerImage: builderData.products.banner.image,
     bannerTagline: builderData.products.banner.tagline,
     bannerSubtitle: builderData.products.banner.subtitle,
@@ -245,7 +270,14 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
   };
 
   return (
-    <div ref={rootRef} className={`flex flex-col relative ${className}`} style={style}>
+    <div ref={rootRef} className={`store-root flex flex-col relative ${className}`} style={{
+      ...style,
+      '--font-heading': builderData?.brand?.fonts?.heading || 'Inter',
+      '--font-body': builderData?.brand?.fonts?.body || 'Inter',
+      '--color-font-header': builderData?.brand?.colors?.fontHeader || '#191C1E',
+      '--color-font-body': builderData?.brand?.colors?.fontBody || '#556067',
+      fontFamily: `'${builderData?.brand?.fonts?.body || 'Inter'}', sans-serif`,
+    }}>
       <DeviceFrameContext.Provider value={rootNode}>
         <PreviewHeader brand={storeData.brand || {}} cartCount={getCartItemCount()} />
         <div className="flex-1 overflow-y-auto">
@@ -255,6 +287,7 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
           activeTab={activeTab}
           onChange={setActiveTab}
           brandColors={storeData.brand?.colors || {}}
+          brandFonts={storeData.brand?.fonts || { heading: 'Inter', body: 'Inter' }}
         />
       </DeviceFrameContext.Provider>
     </div>
