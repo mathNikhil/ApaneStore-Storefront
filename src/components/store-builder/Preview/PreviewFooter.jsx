@@ -10,7 +10,7 @@ const PreviewFooter = ({ activeTab, onChange, brandColors, brandFonts = { headin
 
   return (
     <nav 
-      className="w-full bg-white border-t py-2 px-4 flex justify-around items-center flex-shrink-0"
+      className="w-full bg-white border-t py-2 px-4 flex justify-around items-center flex-shrink-0 fixed bottom-0 left-0 right-0 z-50"
       style={{ 
         borderColor: brandColors.secondary || '#e0e3e6',
         backgroundColor: brandColors.background || '#FFFFFF'

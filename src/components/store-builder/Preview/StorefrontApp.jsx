@@ -270,7 +270,7 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
   };
 
   return (
-    <div ref={rootRef} className={`store-root flex flex-col relative ${className}`} style={{
+    <div ref={rootRef} className={`store-root flex flex-col relative ${className}`}  style={{
       ...style,
       '--font-heading': builderData?.brand?.fonts?.heading || 'Inter',
       '--font-body': builderData?.brand?.fonts?.body || 'Inter',
@@ -280,15 +280,17 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
     }}>
       <DeviceFrameContext.Provider value={rootNode}>
         <PreviewHeader brand={storeData.brand || {}} cartCount={getCartItemCount()} />
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto pb-20">
           {renderTab()}
         </div>
-        <PreviewFooter
-          activeTab={activeTab}
-          onChange={setActiveTab}
-          brandColors={storeData.brand?.colors || {}}
-          brandFonts={storeData.brand?.fonts || { heading: 'Inter', body: 'Inter' }}
-        />
+        <div className="flex-shrink-0">
+          <PreviewFooter
+            activeTab={activeTab}
+            onChange={setActiveTab}
+            brandColors={storeData.brand?.colors || {}}
+            brandFonts={storeData.brand?.fonts || { heading: 'Inter', body: 'Inter' }}
+          />
+        </div>
       </DeviceFrameContext.Provider>
     </div>
   );
