@@ -29,6 +29,8 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart, storeId, c
   // SAFE: No optional chaining
   const orders = data && data.orders ? data.orders : [];
   const brandColors = data && data.brand && data.brand.colors ? data.brand.colors : {};
+  const storeName = data && data.brand && data.brand.storeName ? data.brand.storeName : 'Store';
+  const storePhone = data && data.brand && data.brand.contactPhone ? data.brand.contactPhone : '';
   const returnConfig = data && data.return ? data.return : {};
 
   // Check if returns are enabled
@@ -401,6 +403,74 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart, storeId, c
                       style={{ borderColor: getSecondaryColor(), color: getFontBodyColor() }}
                     >
                       {expandedOrderId === order.id ? 'Hide Details' : 'View Details'}
+                    </button>
+                    <button
+                      onClick={function() {
+                        // Generate printable bill in new window
+                        const addr = order.deliveryAddress || {};
+                        const html = `<!DOCTYPE html><html><head><title>Order Bill - ${order.id}</title><style>
+                          body{font-family:Arial,sans-serif;max-width:700px;margin:24px auto;padding:24px;color:#191c1e;}
+                          .header{text-align:center;margin-bottom:16px;}
+                          .store-name{font-size:22px;font-weight:800;}
+                          .divider{border-top:1px solid #e0e3e6;margin:14px 0;}
+                          .bill-title{text-align:center;font-size:13px;font-weight:700;letter-spacing:3px;color:#556067;margin-bottom:14px;}
+                          .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:8px;}
+                          .label{font-size:10px;color:#8e9eab;font-weight:700;text-transform:uppercase;margin-bottom:3px;}
+                          .value{font-size:13px;font-weight:600;}
+                          .small{font-size:11px;color:#556067;margin-top:2px;}
+                          table{width:100%;border-collapse:collapse;margin:8px 0;}
+                          th{padding:8px;font-size:11px;font-weight:700;color:#556067;text-transform:uppercase;border-bottom:2px solid #e0e3e6;text-align:left;}
+                          td{padding:8px;font-size:12px;border-bottom:1px solid #f2f4f7;}
+                          .total-row{display:flex;justify-content:space-between;font-size:12px;color:#556067;margin-bottom:3px;}
+                          .grand-total{display:flex;justify-content:space-between;font-size:15px;font-weight:800;color:#006d2f;margin-top:6px;}
+                          .footer{text-align:center;font-size:11px;color:#8e9eab;margin-top:16px;}
+                          @media print{@page{size:A4;margin:10mm;}}
+                        </style></head><body>
+                        <div class="header">
+                          <div class="store-name">${storeName}</div>
+                          ${storePhone ? '<div class="small">📞 '+storePhone+'</div>' : ''}
+                        </div>
+                        <div class="divider"></div>
+                        <div class="bill-title">ORDER INVOICE</div>
+                        <div class="grid">
+                          <div><div class="label">Order ID</div><div class="value">#${order.id}</div></div>
+                          <div style="text-align:right"><div class="label">Date</div><div class="value">${order.date}</div></div>
+                          <div><div class="label">Payment</div><div class="value">${order.paymentMethod === 'cod' ? 'Cash on Delivery' : order.paymentMethod === 'upi' ? 'UPI' : order.paymentMethod || 'N/A'}</div></div>
+                          <div style="text-align:right"><div class="label">Status</div><div class="value">${order.statusText || order.status}</div></div>
+                        </div>
+                        <div class="divider"></div>
+                        <div class="grid">
+                          <div><div class="label">Customer</div><div class="value">${order.customerName || 'Customer'}</div>${order.customerPhone ? '<div class="small">📞 '+order.customerPhone+'</div>' : ''}</div>
+                          ${addr.addressLine1 ? '<div style="text-align:right"><div class="label">Deliver To</div><div class="value">'+(addr.recipientName||'')+'</div><div class="small">'+addr.addressLine1+(addr.addressLine2?', '+addr.addressLine2:'')+'</div><div class="small">'+addr.city+', '+addr.state+' - '+addr.pincode+'</div></div>' : ''}
+                        </div>
+                        <div class="divider"></div>
+                        <table>
+                          <thead><tr><th>Item</th><th>Variant</th><th style="text-align:center">Qty</th><th style="text-align:right">Price</th><th style="text-align:right">Subtotal</th></tr></thead>
+                          <tbody>${order.items.map(item => '<tr><td><div style="display:flex;align-items:center;gap:10px">'+(item.image ? '<img src="'+item.image+'" style="width:40px;height:40px;object-fit:cover;border-radius:6px;flex-shrink:0" />' : '<div style="width:40px;height:40px;background:#f2f4f7;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:18px">📦</div>')+'<span>'+item.name+'</span></div></td><td style="color:#8e9eab;font-size:11px">'+(item.weight||item.variant||'—')+'</td><td style="text-align:center">'+item.quantity+'</td><td style="text-align:right">₹'+item.price.toFixed(2)+'</td><td style="text-align:right;font-weight:600">₹'+item.total.toFixed(2)+'</td></tr>').join('')}</tbody>
+                        </table>
+                        <div style="margin-left:auto;width:260px;margin-top:8px;">
+                          ${order.subtotal > 0 ? '<div class="total-row"><span>Subtotal</span><span>₹'+order.subtotal.toFixed(2)+'</span></div>' : ''}
+                          ${order.gst > 0 ? '<div class="total-row"><span>GST</span><span>₹'+order.gst.toFixed(2)+'</span></div>' : ''}
+                          <div class="total-row"><span>Delivery</span><span>${order.delivery === 0 ? 'FREE' : '₹'+order.delivery.toFixed(2)}</span></div>
+                          <div class="divider"></div>
+                          <div class="grand-total"><span>TOTAL</span><span>₹${order.total.toFixed(2)}</span></div>
+                        </div>
+                        <div class="divider"></div>
+                        <div class="footer">
+                          <div>Thank you for your order! 🎉</div>
+                          <div style="margin-top:4px">Powered by AapnaEstore · aapnaestore.com</div>
+                        </div>
+                        </body></html>`;
+                        const w = window.open('', '_blank');
+                        w.document.write(html);
+                        w.document.close();
+                        setTimeout(() => w.print(), 500);
+                      }}
+                      className="px-3 py-1 text-xs font-semibold rounded-lg border-2 bg-transparent"
+                      style={{ borderColor: getPrimaryColor(), color: getPrimaryColor() }}
+                    >
+                      <span className="material-symbols-outlined text-xs align-middle mr-1">print</span>
+                      Print Bill
                     </button>
                     {order.status === 'delivered' && (
                       <button
