@@ -247,7 +247,7 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart, storeId, c
 
   return (
     <div className="p-4 max-w-3xl mx-auto pb-24">
-      <h2 className="text-xl font-bold mb-2" style={{ color: getFontHeaderColor() }}>
+      <h2 className="text-xl font-bold mb-2" style={{ color: getFontHeaderColor(), fontFamily: data?.brand?.fonts?.body || 'Inter' }}>
         My Orders
       </h2>
       <p className="text-sm mb-4" style={{ color: getFontBodyColor() }}>

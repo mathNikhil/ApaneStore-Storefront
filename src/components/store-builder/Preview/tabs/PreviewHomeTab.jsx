@@ -70,6 +70,7 @@ const PreviewHomeTab = ({ data, onAddToCart, device = 'desktop' }) => {
         textColor={banner.textColor}
         primaryColor={brand.colors.primary}
         device={device}
+        fonts={brand.fonts}
       />
 
       {searchEnabled && (

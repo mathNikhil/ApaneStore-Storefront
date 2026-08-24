@@ -32,7 +32,7 @@ const PreviewHeader = ({ brand, cartCount = 0 }) => {
             <h1 
               className="font-bold text-lg"
               style={{ 
-                color: colors.fontHeader || '#191C1E', fontFamily: fonts?.heading || 'Inter'
+                color: colors.fontHeader || '#191C1E', fontFamily: fonts?.body || 'Inter'
               }}
             >
               {name || 'Your Store'}

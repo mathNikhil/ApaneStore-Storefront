@@ -13,6 +13,7 @@ const PreviewBanner = ({
   textColor = '#FFFFFF',
   primaryColor = '#25D366',
   device = 'desktop',
+  fonts = { body: 'Inter' },
 }) => {
   const getAlignmentClass = () => {
     switch(textAlignment) {
@@ -58,7 +59,7 @@ const PreviewBanner = ({
               <div className="max-w-2xl">
                 <h1 
                   className={`${headingSizeClass} font-bold drop-shadow-lg mb-2`}
-                  style={{ color: textColor || '#FFFFFF' }}
+                  style={{ color: textColor || '#FFFFFF', fontFamily: fonts?.body || 'Inter' }}
                 >
                   {tagline || 'Fresh, Organic & Delivered'}
                 </h1>
@@ -86,7 +87,7 @@ const PreviewBanner = ({
             <div className="max-w-2xl">
               <h1 
                 className={`${headingSizeClass} font-bold drop-shadow-lg mb-2`}
-                style={{ color: textColor || '#FFFFFF' }}
+                style={{ color: textColor || '#FFFFFF', fontFamily: fonts?.body || 'Inter' }}
               >
                 {tagline || 'Fresh, Organic & Delivered'}
               </h1>

@@ -252,7 +252,7 @@ const PreviewProfileTab = ({
             ) : (
               <>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-xl font-bold" style={{ color: brandColors.fontHeader, fontFamily: brandFonts?.heading || 'Inter' }}>
+                  <h2 className="text-xl font-bold" style={{ color: brandColors.fontHeader, fontFamily: brandFonts?.body || 'Inter' }}>
                     {profile?.name || 'Add your name'}
                   </h2>
                   <button
@@ -282,7 +282,7 @@ const PreviewProfileTab = ({
       {/* ADDRESS BOOK — From Step 5, shared with Cart tab */}
       <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brandColors.background || '#FFFFFF' }}>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-sm" style={{ color: brandColors.fontHeader, fontFamily: brandFonts?.heading || 'Inter' }}>
+          <h3 className="font-semibold text-sm" style={{ color: brandColors.fontHeader, fontFamily: brandFonts?.body || 'Inter' }}>
             Address Book
           </h3>
           <span className="text-xs" style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>
@@ -399,7 +399,7 @@ const PreviewProfileTab = ({
       {/* ADDRESS FORM - Add/Edit */}
       {showAddressForm && (
         <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brandColors.background || '#FFFFFF' }}>
-          <h3 className="font-semibold text-sm mb-3" style={{ color: brandColors.fontHeader, fontFamily: brandFonts?.heading || 'Inter' }}>
+          <h3 className="font-semibold text-sm mb-3" style={{ color: brandColors.fontHeader, fontFamily: brandFonts?.body || 'Inter' }}>
             {editingAddressId ? 'Edit Address' : 'Add New Address'}
           </h3>
 
@@ -583,7 +583,7 @@ const PreviewProfileTab = ({
 
       {/* ABOUT US - From Step 7 */}
       <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brandColors.background || '#FFFFFF' }}>
-        <h3 className="font-semibold text-sm mb-2" style={{ color: brandColors.fontHeader, fontFamily: brandFonts?.heading || 'Inter' }}>
+        <h3 className="font-semibold text-sm mb-2" style={{ color: brandColors.fontHeader, fontFamily: brandFonts?.body || 'Inter' }}>
           About Us
         </h3>
         <p className="text-sm leading-relaxed" style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>
@@ -593,7 +593,7 @@ const PreviewProfileTab = ({
 
       {/* SUPPORT DETAILS - From Step 7 */}
       <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brandColors.background || '#FFFFFF' }}>
-        <h3 className="font-semibold text-sm mb-3" style={{ color: brandColors.fontHeader, fontFamily: brandFonts?.heading || 'Inter' }}>
+        <h3 className="font-semibold text-sm mb-3" style={{ color: brandColors.fontHeader, fontFamily: brandFonts?.body || 'Inter' }}>
           Support Details
         </h3>
         <div className="space-y-2">
@@ -615,7 +615,7 @@ const PreviewProfileTab = ({
       {/* SOCIAL MEDIA - From Step 7, clickable icons linking to the tenant's pages */}
       {socialEntries.length > 0 && (
         <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brandColors.background || '#FFFFFF' }}>
-          <h3 className="font-semibold text-sm mb-3" style={{ color: brandColors.fontHeader, fontFamily: brandFonts?.heading || 'Inter' }}>
+          <h3 className="font-semibold text-sm mb-3" style={{ color: brandColors.fontHeader, fontFamily: brandFonts?.body || 'Inter' }}>
             Follow Us
           </h3>
           <div className="flex items-center gap-3">

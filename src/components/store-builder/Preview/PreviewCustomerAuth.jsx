@@ -135,7 +135,7 @@ const PreviewCustomerAuth = ({ brand, storeId, onAuthenticated, onCancel }) => {
           </div>
 
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-gray-800 mb-2">Customer Login</h1>
+            <h1 className="text-2xl font-bold mb-2" style={{ fontFamily: headingFont, color: fontHeader }}>Customer Login</h1>
             <p className="text-gray-500 text-sm">Enter your mobile number to receive OTP</p>
           </div>
 
@@ -182,7 +182,7 @@ const PreviewCustomerAuth = ({ brand, storeId, onAuthenticated, onCancel }) => {
           <div className="w-16 h-16 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: `${primary}20` }}>
             <span className="material-symbols-outlined text-3xl" style={{ color: primary }}>verified_user</span>
           </div>
-          <h2 className="text-2xl font-semibold text-[#191c1e]">Enter OTP</h2>
+          <h2 className="text-2xl font-semibold" style={{ fontFamily: headingFont, color: fontHeader }}>Enter OTP</h2>
           <p className="text-sm text-[#3c4a3d]">
             Please enter the 6-digit code sent to <span className="font-bold text-[#191c1e]">+91 {mobile}</span>
           </p>

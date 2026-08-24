@@ -166,7 +166,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
     return (
       <div className="p-4 max-w-3xl mx-auto text-center py-12">
         <span className="material-symbols-outlined text-6xl text-[#006d2f] block mb-4">check_circle</span>
-        <h2 className="text-2xl font-bold" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.heading || 'Inter' }}>Order Placed! 🎉</h2>
+        <h2 className="text-2xl font-bold" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>Order Placed! 🎉</h2>
         <p style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>Your order has been placed successfully.</p>
       </div>
     );
@@ -179,11 +179,11 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
           <span className="material-symbols-outlined">arrow_back</span> Back to Cart
         </button>
 
-        <h2 className="text-xl font-bold mb-4" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.heading || 'Inter' }}>Payment</h2>
+        <h2 className="text-xl font-bold mb-4" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>Payment</h2>
 
         {/* Order Summary */}
         <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
-          <h3 className="font-semibold text-sm mb-3" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.heading || 'Inter' }}>Order Summary</h3>
+          <h3 className="font-semibold text-sm mb-3" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>Order Summary</h3>
           <div className="space-y-2">
             {items.map((item) => (
               <div key={item.id} className="flex justify-between text-sm">
@@ -220,7 +220,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
 
         {/* Delivery Address */}
         <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
-          <h3 className="font-semibold text-sm mb-2" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.heading || 'Inter' }}>Deliver To</h3>
+          <h3 className="font-semibold text-sm mb-2" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>Deliver To</h3>
           {currentAddress ? (
             <p className="text-sm" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>
               <span className="font-medium" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>{currentAddress.recipientName}</span><br />
@@ -235,7 +235,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
 
         {/* Payment Methods - From Step 4 */}
         <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
-          <h3 className="font-semibold text-sm mb-3" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.heading || 'Inter' }}>Select Payment Method</h3>
+          <h3 className="font-semibold text-sm mb-3" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>Select Payment Method</h3>
           {paymentMethods.length === 0 ? (
             <p className="text-sm text-[#556067]">No payment methods enabled. Please enable at least one in Step 4 (Payment Configuration).</p>
           ) : (
@@ -353,7 +353,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
   // Cart view
   return (
     <div className="p-4 max-w-3xl mx-auto">
-      <h2 className="text-xl font-bold mb-4" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.heading || 'Inter' }}>
+      <h2 className="text-xl font-bold mb-4" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>
         My Cart ({items.length} {items.length === 1 ? 'item' : 'items'})
       </h2>
 
@@ -396,7 +396,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                     )}
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-semibold text-sm" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.heading || 'Inter' }}>
+                    <h4 className="font-semibold text-sm" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>
                       {item.productName}
                     </h4>
                     <p className="text-xs" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>
@@ -437,7 +437,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
           {/* Delivery Address - From the shared address book (Step 5 config) */}
           <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-semibold" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.heading || 'Inter' }}>
+              <p className="text-sm font-semibold" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>
                 Deliver to {currentAddress?.label || 'Address'}
               </p>
               {addresses.length > 1 && (
@@ -486,7 +486,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                       : {}
                     }
                   >
-                    <p className="text-sm font-medium" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.heading || 'Inter' }}>
+                    <p className="text-sm font-medium" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>
                       {addr.label}
                     </p>
                     <p className="text-xs" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>
@@ -519,7 +519,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
 
           {/* Bill Details */}
           <div className="rounded-lg border p-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
-            <h3 className="font-semibold text-sm mb-3" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.heading || 'Inter' }}>
+            <h3 className="font-semibold text-sm mb-3" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>
               Bill Details
             </h3>
             <div className="space-y-2">
