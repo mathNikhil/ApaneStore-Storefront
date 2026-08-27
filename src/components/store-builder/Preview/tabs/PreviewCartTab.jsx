@@ -70,7 +70,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
     setShowCheckout(true);
   };
 
-  const handleCashfreePayment = async (orderId, amount, customerPhone) => {
+  const handleCashfreePayment = async (orderId, amount, customerPhone, orderData = {}) => {
     setCashfreeLoading(true);
     try {
       const storeId = window.location.hostname.split('.')[0];
@@ -83,9 +83,10 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
         body: JSON.stringify({
           orderId,
           amount,
-          customerPhone: customerPhone || '9999999999',
-          customerName: 'Customer',
-          customerEmail: 'customer@store.com'
+          customerPhone: orderData?.customerPhone || customerPhone || '9999999999',
+          customerName: orderData?.customerName || 'Customer',
+          customerEmail: 'customer@store.com',
+          orderData,
         })
       });
       const data = await res.json();
@@ -93,10 +94,11 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
 
       // Load Cashfree SDK
       const cashfree = await new Promise((resolve, reject) => {
-        if (window.Cashfree) { resolve(window.Cashfree({ mode: 'sandbox' })); return; }
+        const cfMode = data.data?.mode === 'production' ? 'production' : 'sandbox';
+        if (window.Cashfree) { resolve(window.Cashfree({ mode: cfMode })); return; }
         const script = document.createElement('script');
         script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
-        script.onload = () => resolve(window.Cashfree({ mode: 'sandbox' }));
+        script.onload = () => resolve(window.Cashfree({ mode: cfMode }));
         script.onerror = reject;
         document.head.appendChild(script);
       });
@@ -135,7 +137,18 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
     // Handle Cashfree payment first
     if (selectedPayment === 'cashfree') {
       const orderId = 'ORD_' + Date.now();
-      const cfResult = await handleCashfreePayment(orderId, total, currentAddress?.recipientMobile);
+      const cfOrderData = {
+        customerId: null, // customer ID not available at this scope
+        customerName: currentAddress?.recipientName,
+        customerPhone: currentAddress?.recipientMobile,
+        items: cart,
+        deliveryAddress: currentAddress,
+        subtotal: subtotal,
+        deliveryCharge: deliveryCharge,
+        taxAmount: gst,
+        totalAmount: total,
+      };
+      const cfResult = await handleCashfreePayment(orderId, total, currentAddress?.recipientMobile, cfOrderData);
       if (!cfResult.success) {
         alert(cfResult.error || 'Payment failed. Please try again.');
         return;

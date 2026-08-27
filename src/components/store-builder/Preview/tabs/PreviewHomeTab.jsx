@@ -218,6 +218,8 @@ const PreviewHomeTab = ({ data, onAddToCart, device = 'desktop' }) => {
               brandFonts={brand.fonts}
               onAddToCart={onAddToCart}
               autoSlide={settings?.autoSlideProductImages || false}
+              addToCartLabel={data?.addToCartLabel || 'Add to Cart'}
+              // debug
             />
           ))}
         </div>

@@ -31,6 +31,7 @@ const mapConfigToBuilderData = (config) => ({
   },
   products: {
     ...config?.products,
+    addToCartLabel: config?.products?.addToCartLabel || 'Add to Cart',
     categoryImageShape: config?.products?.categoryImageShape || 'circle',
     categoryImageSize: config?.products?.categoryImageSize || 'S',
     autoSlideProductImages: config?.products?.autoSlideProductImages || false,

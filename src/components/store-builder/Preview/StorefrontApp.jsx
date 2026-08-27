@@ -149,6 +149,25 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
     showQRCode: builderData.payment.showQRCode,
     showUPIId: builderData.payment.showUPIId,
     defaultPayment: builderData.payment.defaultPayment,
+    cashfreeEnabled: builderData.payment.cashfreeEnabled,
+    addToCartLabel: builderData.products?.addToCartLabel || builderData.addToCartLabel || 'Add to Cart',
+    stripeEnabled: builderData.payment.stripeEnabled,
+
+    // ✅ payment as nested object for PreviewCartTab which reads data.payment
+    payment: {
+        codEnabled: builderData.payment.codEnabled,
+        upiEnabled: builderData.payment.upiEnabled,
+        cardEnabled: builderData.payment.cardEnabled,
+        netBankingEnabled: builderData.payment.netBankingEnabled,
+        cashfreeEnabled: builderData.payment.cashfreeEnabled,
+    addToCartLabel: builderData.products?.addToCartLabel || builderData.addToCartLabel || 'Add to Cart',
+        stripeEnabled: builderData.payment.stripeEnabled,
+        upiId: builderData.payment.upiId,
+        upiAppName: builderData.payment.upiAppName,
+        showQRCode: builderData.payment.showQRCode,
+        showUPIId: builderData.payment.showUPIId,
+        defaultPayment: builderData.payment.defaultPayment,
+    },
 
     maxAddresses: builderData.address.maxAddresses,
     allowDefaultAddress: builderData.address.allowDefaultAddress,

@@ -9,6 +9,7 @@ const PreviewProductCard = ({
   zoomEnabled = true,
   autoSlide = false,
   brandFonts = { heading: 'Inter', body: 'Inter' },
+  addToCartLabel = 'Add to Cart',
 }) => {
   const [selectedVariation, setSelectedVariation] = useState(
     product.variations?.[0] || null
@@ -222,7 +223,7 @@ const PreviewProductCard = ({
             className="w-full mt-4 py-2.5 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90"
             style={{ backgroundColor: brandColors.button || primaryColor, color: buttonLabelColor }}
           >
-            Add to Cart
+            {addToCartLabel}
           </button>
         </div>
       </div>
@@ -314,7 +315,7 @@ const PreviewProductCard = ({
           className="w-full mt-auto pt-2 py-1.5 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90"
           style={{ backgroundColor: brandColors.button || primaryColor, color: buttonLabelColor, marginTop: '0.5rem' }}
         >
-          {zoomEnabled && hasMultipleOptions ? 'View Options' : 'Add to Cart'}
+          {zoomEnabled && hasMultipleOptions ? 'View Options' : addToCartLabel}
         </button>
       </div>
     </div>

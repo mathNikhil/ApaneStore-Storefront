@@ -178,6 +178,8 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
     },
     // Step 4: payment methods available at checkout
     payment: {
+      cashfreeEnabled: builderData.cashfreeEnabled ?? builderData.payment?.cashfreeEnabled ?? false,
+      stripeEnabled: builderData.stripeEnabled ?? builderData.payment?.stripeEnabled ?? false,
       codEnabled: true,
       upiEnabled: true,
       cardEnabled: false,
@@ -251,6 +253,7 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
         },
         categories: builderData.categories ? builderData.categories.map(adaptCategoryForPreview) : prev.categories,
         products: builderData.categories ? builderData.categories.flatMap(cat => cat.products || []).map(adaptProductForPreview) : prev.products,
+        addToCartLabel: builderData.addToCartLabel || builderData.products?.addToCartLabel || prev.addToCartLabel || 'Add to Cart',
         settings: {
           ...prev.settings,
           enableImageZoom: builderData.enableImageZoom !== false,
@@ -315,6 +318,8 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
           showQRCode: builderData.showQRCode ?? prev.payment.showQRCode,
           showUPIId: builderData.showUPIId ?? prev.payment.showUPIId,
           defaultPayment: builderData.defaultPayment || prev.payment.defaultPayment,
+          cashfreeEnabled: builderData.cashfreeEnabled ?? builderData.payment?.cashfreeEnabled ?? prev.payment.cashfreeEnabled,
+          stripeEnabled: builderData.stripeEnabled ?? builderData.payment?.stripeEnabled ?? prev.payment.stripeEnabled,
         },
         // ============================================
         // STEP 6: ORDER TRACKER / CANCELLATION CONFIG
