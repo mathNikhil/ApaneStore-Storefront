@@ -110,7 +110,7 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
     banner: {
       image: null,
       tagline: 'Fresh, Organic & Delivered',
-      subtitle: '100% Natural Stone-Ground Flour',
+      subtitle: '',
       cta: 'Shop Now',
       height: 400,
       bgColor: '#25D366',
@@ -118,6 +118,7 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
       showCta: true,
       textAlignment: 'center',
       textColor: '#FFFFFF',
+      textShadow: true,
     },
     cart: {
       items: [],
@@ -250,6 +251,7 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
           showCta: builderData.showCta !== undefined ? builderData.showCta : prev.banner.showCta,
           textAlignment: builderData.textAlignment || prev.banner.textAlignment,
           textColor: builderData.textColor || prev.banner.textColor,
+          textShadow: builderData.textShadow !== undefined ? builderData.textShadow : prev.banner.textShadow,
         },
         categories: builderData.categories ? builderData.categories.map(adaptCategoryForPreview) : prev.categories,
         products: builderData.categories ? builderData.categories.flatMap(cat => cat.products || []).map(adaptProductForPreview) : prev.products,

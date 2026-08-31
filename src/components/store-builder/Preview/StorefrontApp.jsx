@@ -124,6 +124,7 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
     bannerCta: builderData.products.banner.cta,
     bannerHeight: builderData.products.banner.height,
     bannerBgColor: builderData.products.banner.bgColor,
+    textShadow: builderData.products.banner.textShadow !== undefined ? builderData.products.banner.textShadow : true,
     showCta: builderData.products.banner.showCta,
     showText: builderData.products.banner.showText,
     textAlignment: builderData.products.banner.textAlignment,

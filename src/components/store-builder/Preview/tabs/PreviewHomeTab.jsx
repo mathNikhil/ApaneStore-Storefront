@@ -68,6 +68,7 @@ const PreviewHomeTab = ({ data, onAddToCart, device = 'desktop' }) => {
         showCta={banner.showCta}
         textAlignment={banner.textAlignment}
         textColor={banner.textColor}
+        textShadow={banner.textShadow !== undefined ? banner.textShadow : true}
         primaryColor={brand.colors.primary}
         device={device}
         fonts={brand.fonts}

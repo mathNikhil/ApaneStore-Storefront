@@ -11,6 +11,7 @@ const PreviewBanner = ({
   showCta = true,
   textAlignment = 'center',
   textColor = '#FFFFFF',
+  textShadow = true,
   primaryColor = '#25D366',
   device = 'desktop',
   fonts = { body: 'Inter' },
@@ -54,21 +55,23 @@ const PreviewBanner = ({
             alt="Store Banner" 
             className="w-full h-full object-cover"
           />
-          <div className={`absolute inset-0 bg-black/30 flex flex-col justify-center p-6 ${getAlignmentClass()}`}>
+          <div className={`absolute inset-0 flex flex-col justify-center p-6 ${getAlignmentClass()}`}>
             {showText && (
-              <div className="max-w-2xl">
+              <div className="max-w-2xl" style={{ textShadow: (image && textShadow) ? '0 1px 2px rgba(0,0,0,0.8)' : 'none' }}>
                 <h1 
-                  className={`${headingSizeClass} font-bold drop-shadow-lg mb-2`}
+                  className={`${headingSizeClass} font-bold mb-2`}
                   style={{ color: textColor || '#FFFFFF', fontFamily: fonts?.body || 'Inter' }}
                 >
-                  {tagline || 'Fresh, Organic & Delivered'}
+                  {tagline}
                 </h1>
+                {subtitle && subtitle.trim() && (
                 <p 
-                  className={`${subtitleSizeClass} drop-shadow-md`}
+                  className={`${subtitleSizeClass}`}
                   style={{ color: textColor || '#FFFFFF', opacity: 0.9 }}
                 >
-                  {subtitle || '100% Natural Stone-Ground Flour'}
+                  {subtitle.trim()}
                 </p>
+                )}
               </div>
             )}
             {showCta && (
@@ -86,17 +89,19 @@ const PreviewBanner = ({
           {showText && (
             <div className="max-w-2xl">
               <h1 
-                className={`${headingSizeClass} font-bold drop-shadow-lg mb-2`}
+                className={`${headingSizeClass} font-bold mb-2`}
                 style={{ color: textColor || '#FFFFFF', fontFamily: fonts?.body || 'Inter' }}
               >
-                {tagline || 'Fresh, Organic & Delivered'}
+                {tagline}
               </h1>
+              {subtitle && subtitle.trim() && (
               <p 
-                className={`${subtitleSizeClass} drop-shadow-md`}
+                className={`${subtitleSizeClass}`}
                 style={{ color: textColor || '#FFFFFF', opacity: 0.9 }}
               >
-                {subtitle || '100% Natural Stone-Ground Flour'}
+                {subtitle && subtitle.trim()}
               </p>
+              )}
             </div>
           )}
           {showCta && (
