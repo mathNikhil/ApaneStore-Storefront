@@ -2,15 +2,6 @@ import React, { useState, useEffect } from 'react';
 import StorefrontApp from './components/store-builder/Preview/StorefrontApp';
 import { publicStoreAPI } from './services/api';
 
-// ✅ The backend saves brand fields as storeName/logoUrl/brandColors, but
-// StorefrontApp expects brandName/logo/colors — this mismatch meant every
-// real published store silently fell back to hardcoded defaults (green
-// #25D366, no logo, wrong name) instead of what the tenant actually
-// configured. FinalStorePreview.jsx (the builder's own preview) already
-// does this same mapping correctly for its live in-memory state; this is
-// the equivalent for data loaded fresh from the backend. Every other
-// section (products/cart/payment/address/order/profile) already matches
-// what StorefrontApp expects, so only brand needs remapping.
 const mapConfigToBuilderData = (config) => ({
   ...config,
   brand: {
@@ -40,49 +31,43 @@ const mapConfigToBuilderData = (config) => ({
   },
 });
 
-// Phase 1 (local dev, no real hosting yet): which store to render comes from
-// a ?store=<subdomain> query param, e.g. http://localhost:3001/?store=blue-star-4821
-// Phase 2 will replace this with real subdomain/custom-domain DNS routing —
-// at that point this becomes "whichever subdomain the request arrived on"
-// instead of a query param, but everything below stays the same.
 function App() {
-  const [status, setStatus] = useState('loading'); // loading | ready | not-found | error
+  const [status, setStatus] = useState('loading');
   const [store, setStore] = useState(null);
 
   useEffect(() => {
-    // Real production: the tenant's subdomain is the actual hostname the
-    // browser connected to (e.g. redhouse.aapnaestore.com -> "redhouse").
-    // Local dev fallback: ?store=<subdomain> query param, since localhost
-    // has no real subdomain to read.
     const hostname = window.location.hostname;
     const isLocalDev = hostname === 'localhost' || hostname === '127.0.0.1';
 
-    let subdomain;
+    let lookup; // what we'll pass to getBySubdomain
+
     if (isLocalDev) {
+      // Local dev: ?store=<subdomain>
       const params = new URLSearchParams(window.location.search);
-      subdomain = params.get('store');
+      lookup = params.get('store');
+    } else if (hostname.endsWith('.aapnaestore.com')) {
+      // Aapna eStore subdomain: e.g. test2.aapnaestore.com → 'test2'
+      lookup = hostname.split('.')[0];
     } else {
-      // First label of the hostname, e.g. "redhouse" from
-      // "redhouse.aapnaestore.com" — everything before the first dot.
-      subdomain = hostname.split('.')[0];
+      // Custom domain: e.g. apanestore.com or www.apanestore.com
+      // Pass the full hostname — backend will match against store_domain_config
+      lookup = hostname;
     }
 
-    if (!subdomain) {
+    if (!lookup) {
       setStatus('not-found');
       return;
     }
 
     (async () => {
       try {
-        const result = await publicStoreAPI.getBySubdomain(subdomain);
+        const result = await publicStoreAPI.getBySubdomain(lookup);
         if (result.success && result.data) {
-            // Inject store brand colors as CSS variables for focus rings etc
-            const colors = result.data.config?.brand?.brandColors || {};
-            const prodConfig = result.data.config?.products || {};
-            const primary = colors.primary || '#25D366';
-            const secondary = colors.secondary || '#E0E3E6';
-            document.documentElement.style.setProperty('--store-primary', primary);
-            document.documentElement.style.setProperty('--store-secondary', secondary);
+          const colors = result.data.config?.brand?.brandColors || {};
+          const primary = colors.primary || '#25D366';
+          const secondary = colors.secondary || '#E0E3E6';
+          document.documentElement.style.setProperty('--store-primary', primary);
+          document.documentElement.style.setProperty('--store-secondary', secondary);
           setStore(result.data);
           setStatus('ready');
         } else {
