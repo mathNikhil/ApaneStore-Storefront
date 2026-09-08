@@ -207,7 +207,7 @@ const PreviewProductCard = ({
                       const swatchImg = (v.imageIndex !== undefined && v.imageIndex !== null)
                         ? images[v.imageIndex]
                         : v.image?.url;
-                      return swatchImg ? <img src={swatchImg} alt={v.name} className="w-6 h-6 rounded-full object-cover flex-shrink-0" /> : null;
+                      return swatchImg ? <img src={swatchImg} alt={v.name} className="w-8 h-8 rounded-full object-cover flex-shrink-0" /> : null;
                     })()}
                     {v.name}
                   </button>
