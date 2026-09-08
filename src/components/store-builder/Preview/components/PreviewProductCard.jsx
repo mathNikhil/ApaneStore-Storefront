@@ -18,7 +18,10 @@ const PreviewProductCard = ({
     product.variations?.[0]?.sizes?.[0] || null
   );
 
-  const images = product.images || [];
+  // Normalize images to URL strings (images can be objects {id, url} or plain strings)
+  const images = (product.images || []).map(img => 
+    typeof img === 'string' ? img : (img?.url || img?.preview || '')
+  ).filter(Boolean);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [quickViewOpen, setQuickViewOpen] = useState(false);
   const deviceFrameNode = useDeviceFrame();
@@ -201,8 +204,8 @@ const PreviewProductCard = ({
                     }
                   >
                     {(() => {
-                      const swatchImg = (v.imageIndex !== undefined && v.imageIndex !== null && images[v.imageIndex])
-                        ? (typeof images[v.imageIndex] === 'string' ? images[v.imageIndex] : images[v.imageIndex]?.url || images[v.imageIndex]?.preview)
+                      const swatchImg = (v.imageIndex !== undefined && v.imageIndex !== null)
+                        ? images[v.imageIndex]
                         : v.image?.url;
                       return swatchImg ? <img src={swatchImg} alt={v.name} className="w-6 h-6 rounded-full object-cover flex-shrink-0" /> : null;
                     })()}
