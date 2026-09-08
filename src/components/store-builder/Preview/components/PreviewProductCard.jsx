@@ -106,7 +106,7 @@ const PreviewProductCard = ({
               {images.map((img, idx) => (
                 <img
                   key={img.id || idx}
-                  src={img.url}
+                  src={typeof img === "string" ? img : img?.url}
                   alt={product.name}
                   className="absolute inset-0 w-full h-full object-contain transition-opacity duration-500"
                   style={{ opacity: idx === activeImageIndex ? 1 : 0 }}
@@ -263,7 +263,7 @@ const PreviewProductCard = ({
             {images.map((img, idx) => (
               <img
                 key={img.id || idx}
-                src={img.url}
+                src={typeof img === "string" ? img : img?.url}
                 alt={product.name}
                 className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
                 style={{ opacity: idx === activeImageIndex ? 1 : 0 }}
