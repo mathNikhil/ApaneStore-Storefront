@@ -35,6 +35,7 @@ const adaptProductForPreview = (builderProduct) => {
       id: v.id,
       name: v.name,
       image: v.image || null,
+      imageIndex: v.imageIndex !== undefined ? v.imageIndex : null,
       sizes: (v.sizes || []).map(s => ({
         id: s.id,
         label: `${s.size}${s.unit}`,
