@@ -181,14 +181,25 @@ const PreviewProductCard = ({
                 {product.variations.map((v) => (
                   <button
                     key={v.id}
-                    onClick={() => { setSelectedVariation(v); setSelectedSize(v.sizes?.[0] || null); }}
+                    onClick={() => {
+                      setSelectedVariation(v);
+                      setSelectedSize(v.sizes?.[0] || null);
+                      // Switch main image to variant image
+                      if (v.imageIndex !== undefined && v.imageIndex !== null) {
+                        setActiveImageIndex(v.imageIndex);
+                      } else if (v.image?.url) {
+                        const idx = images.findIndex(img => img === v.image.url || img?.url === v.image.url);
+                        if (idx !== -1) setActiveImageIndex(idx);
+                        else setActiveImageIndex(0);
+                      }
+                    }}
                     className="flex items-center gap-1 pl-1 pr-2 py-1 text-xs rounded-full transition-colors border-2 bg-transparent"
                     style={selectedVariation?.id === v.id
                       ? { borderColor: primaryColor, color: primaryColor }
                       : { borderColor: secondaryColor, color: fontBodyColor, fontFamily: bodyFont }
                     }
                   >
-                    {v.image && <img src={v.image.url} alt={v.name} className="w-4 h-4 rounded-full object-cover flex-shrink-0" />}
+                    {v.image && <img src={v.image.url} alt={v.name} className="w-6 h-6 rounded-full object-cover flex-shrink-0" />}
                     {v.name}
                   </button>
                 ))}
