@@ -184,13 +184,14 @@ const PreviewProductCard = ({
                     onClick={() => {
                       setSelectedVariation(v);
                       setSelectedSize(v.sizes?.[0] || null);
-                      // Switch main image to variant image
-                      if (v.imageIndex !== undefined && v.imageIndex !== null) {
+                      // Switch main image using imageIndex first, fallback to image.url
+                      if (v.imageIndex !== undefined && v.imageIndex !== null && v.imageIndex < images.length) {
                         setActiveImageIndex(v.imageIndex);
                       } else if (v.image?.url) {
                         const idx = images.findIndex(img => img === v.image.url || img?.url === v.image.url);
-                        if (idx !== -1) setActiveImageIndex(idx);
-                        else setActiveImageIndex(0);
+                        setActiveImageIndex(idx !== -1 ? idx : 0);
+                      } else {
+                        setActiveImageIndex(0);
                       }
                     }}
                     className="flex items-center gap-1 pl-1 pr-2 py-1 text-xs rounded-full transition-colors border-2 bg-transparent"
@@ -199,7 +200,12 @@ const PreviewProductCard = ({
                       : { borderColor: secondaryColor, color: fontBodyColor, fontFamily: bodyFont }
                     }
                   >
-                    {v.image && <img src={v.image.url} alt={v.name} className="w-6 h-6 rounded-full object-cover flex-shrink-0" />}
+                    {(() => {
+                      const swatchImg = (v.imageIndex !== undefined && v.imageIndex !== null && images[v.imageIndex])
+                        ? (typeof images[v.imageIndex] === 'string' ? images[v.imageIndex] : images[v.imageIndex]?.url || images[v.imageIndex]?.preview)
+                        : v.image?.url;
+                      return swatchImg ? <img src={swatchImg} alt={v.name} className="w-6 h-6 rounded-full object-cover flex-shrink-0" /> : null;
+                    })()}
                     {v.name}
                   </button>
                 ))}
