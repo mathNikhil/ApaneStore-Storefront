@@ -9,22 +9,17 @@ import PreviewProfileTab from './tabs/PreviewProfileTab';
 import { usePreviewData } from './hooks/usePreviewData';
 import { DeviceFrameContext } from './DeviceFrameContext';
 
-// The actual storefront — login gate, header, tabs, footer. Shared by BOTH
-// the builder's simulated preview (wrapped in a device frame) AND the real
-// published storefront (full page, no chrome). This is deliberately the
-// exact same component in both places: what the tenant tests is what their
-// customers get, byte for byte.
-const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '', style = {} }) => {
+const StorefrontApp = ({
+  builderData,
+  storeId,
+  device = 'desktop',
+  className = '',
+  style = {},
+  initialProductId = null,
+}) => {
   const [activeTab, setActiveTab] = useState('home');
-  // ✅ Real customer session (was just the phone string before, from a fake
-  // login). Persisted per-store in localStorage so a returning customer
-  // within the token's validity doesn't have to re-verify every visit —
-  // scoped by storeId since the same browser might shop at multiple
-  // different stores, each with its own separate customer identity there.
   const [customer, setCustomer] = useState(null);
   const [customerToken, setCustomerToken] = useState(null);
-  // Only set while the auth screen was triggered mid-shopping (checkout) —
-  // lets the person dismiss it and keep browsing instead of being stuck.
   const [checkoutNeedsAuth, setCheckoutNeedsAuth] = useState(false);
 
   useEffect(() => {
@@ -52,12 +47,6 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
     }
   };
 
-  // ✅ Pulls real, current order status whenever the customer opens the
-  // Orders tab — without this, a status change made in Store Admin would
-  // never actually show up here; the storefront would keep showing
-  // whatever the order looked like the moment it was placed. Also polls
-  // every 30 seconds while the tab stays open, so a customer watching an
-  // active delivery sees status changes without manually refreshing.
   useEffect(() => {
     if (activeTab !== 'orders' || !customer) return;
     refreshOrders();
@@ -66,24 +55,16 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, customer]);
 
-  // ✅ Loads the customer's real name/email/address book right after
-  // login — replaces the hardcoded "Amit Sharma" sample data every
-  // customer used to see regardless of who they actually were.
   useEffect(() => {
     if (!customer) return;
     refreshProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customer]);
 
-  // Any modal (product quick-view, etc.) portals into this root, so it stays
-  // contained within whatever box this component is rendered inside —
-  // the simulated device frame in the builder, or the whole page when live.
   const rootRef = useRef(null);
   const [rootNode, setRootNode] = useState(null);
   useEffect(() => { setRootNode(rootRef.current); }, []);
 
-
-  // Load Google Fonts for heading and body fonts
   useEffect(() => {
     const heading = builderData?.brand?.fonts?.heading || 'Inter';
     const body = builderData?.brand?.fonts?.body || 'Inter';
@@ -97,8 +78,6 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
       document.head.appendChild(link);
     }
     link.href = `https://fonts.googleapis.com/css2?family=${fonts}&display=swap`;
-
-
   }, [builderData?.brand?.fonts?.heading, builderData?.brand?.fonts?.body]);
 
   const flattenedData = useMemo(() => ({
@@ -109,7 +88,6 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
     headingFont: builderData.brand.fonts.heading,
     bodyFont: builderData.brand.fonts.body,
     baseFontSize: builderData.brand.baseFontSize,
-
     categories: builderData.products.categories,
     enableImageZoom: builderData.products.enableImageZoom,
     enableProductSearch: builderData.products.enableProductSearch,
@@ -129,7 +107,6 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
     showText: builderData.products.banner.showText,
     textAlignment: builderData.products.banner.textAlignment,
     textColor: builderData.products.banner.textColor,
-
     freeDelivery: builderData.cart.freeDelivery,
     freeDeliveryThreshold: builderData.cart.freeDeliveryThreshold,
     deliveryCharge: builderData.cart.deliveryCharge,
@@ -140,7 +117,6 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
     taxLabel: builderData.cart.taxLabel,
     showGSTBreakdownCart: builderData.cart.showGSTBreakdownCart,
     showGSTBreakdownCheckout: builderData.cart.showGSTBreakdownCheckout,
-
     codEnabled: builderData.payment.codEnabled,
     upiEnabled: builderData.payment.upiEnabled,
     cardEnabled: builderData.payment.cardEnabled,
@@ -153,30 +129,26 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
     cashfreeEnabled: builderData.payment.cashfreeEnabled,
     addToCartLabel: builderData.products?.addToCartLabel || builderData.addToCartLabel || 'Add to Cart',
     stripeEnabled: builderData.payment.stripeEnabled,
-
-    // ✅ payment as nested object for PreviewCartTab which reads data.payment
     payment: {
-        codEnabled: builderData.payment.codEnabled,
-        upiEnabled: builderData.payment.upiEnabled,
-        cardEnabled: builderData.payment.cardEnabled,
-        netBankingEnabled: builderData.payment.netBankingEnabled,
-        cashfreeEnabled: builderData.payment.cashfreeEnabled,
-    addToCartLabel: builderData.products?.addToCartLabel || builderData.addToCartLabel || 'Add to Cart',
-        stripeEnabled: builderData.payment.stripeEnabled,
-        upiId: builderData.payment.upiId,
-        upiAppName: builderData.payment.upiAppName,
-        showQRCode: builderData.payment.showQRCode,
-        showUPIId: builderData.payment.showUPIId,
-        defaultPayment: builderData.payment.defaultPayment,
+      codEnabled: builderData.payment.codEnabled,
+      upiEnabled: builderData.payment.upiEnabled,
+      cardEnabled: builderData.payment.cardEnabled,
+      netBankingEnabled: builderData.payment.netBankingEnabled,
+      cashfreeEnabled: builderData.payment.cashfreeEnabled,
+      addToCartLabel: builderData.products?.addToCartLabel || builderData.addToCartLabel || 'Add to Cart',
+      stripeEnabled: builderData.payment.stripeEnabled,
+      upiId: builderData.payment.upiId,
+      upiAppName: builderData.payment.upiAppName,
+      showQRCode: builderData.payment.showQRCode,
+      showUPIId: builderData.payment.showUPIId,
+      defaultPayment: builderData.payment.defaultPayment,
     },
-
     maxAddresses: builderData.address.maxAddresses,
     allowDefaultAddress: builderData.address.allowDefaultAddress,
     showAddressLabels: builderData.address.showAddressLabels,
     allowAddressEditing: builderData.address.allowAddressEditing,
     allowAddressDeletion: builderData.address.allowAddressDeletion,
     addressFields: builderData.address.fields,
-
     enableCancellation: builderData.order.enableCancellation,
     cancellationWindow: builderData.order.cancellationWindow,
     cancelOnlyConfirmed: builderData.order.cancelOnlyConfirmed,
@@ -184,18 +156,12 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
     sendCancelEmail: builderData.order.sendCancelEmail,
     showStatusTimeline: builderData.order.showStatusTimeline,
     showEstimatedDelivery: builderData.order.showEstimatedDelivery,
-
     officeNumber: builderData.profile.officeNumber,
     supportTime: builderData.profile.supportTime,
     supportEmail: builderData.profile.supportEmail,
     aboutUs: builderData.profile.aboutUs,
     socialLinks: builderData.profile.socialLinks,
     feedbackLinks: builderData.profile.feedbackLinks,
-
-    // ✅ Was missing entirely — Step 8's return policy never reached
-    // usePreviewData at all, regardless of what usePreviewData itself did
-    // with it. This is why every store showed the same hardcoded default
-    // (returns always enabled, 7-day window) no matter what a tenant set.
     return: builderData.return,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [builderData]);
@@ -249,7 +215,14 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
     }
     switch (activeTab) {
       case 'home':
-        return <PreviewHomeTab data={storeData} onAddToCart={handleAddToCart} device={device} />;
+        return (
+          <PreviewHomeTab
+            data={storeData}
+            onAddToCart={handleAddToCart}
+            device={device}
+            initialProductId={initialProductId}
+          />
+        );
       case 'cart':
         return checkoutNeedsAuth ? (
           <PreviewCustomerAuth
@@ -270,7 +243,16 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
           />
         );
       case 'orders':
-        return <PreviewOrdersTab data={storeData} cancelOrder={cancelOrder} addToCart={addToCart} onGoToCart={() => setActiveTab('cart')} storeId={storeId} customerToken={customerToken} />;
+        return (
+          <PreviewOrdersTab
+            data={storeData}
+            cancelOrder={cancelOrder}
+            addToCart={addToCart}
+            onGoToCart={() => setActiveTab('cart')}
+            storeId={storeId}
+            customerToken={customerToken}
+          />
+        );
       case 'profile':
         return (
           <PreviewProfileTab
@@ -285,19 +267,30 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
           />
         );
       default:
-        return <PreviewHomeTab data={storeData} onAddToCart={handleAddToCart} device={device} />;
+        return (
+          <PreviewHomeTab
+            data={storeData}
+            onAddToCart={handleAddToCart}
+            device={device}
+            initialProductId={initialProductId}
+          />
+        );
     }
   };
 
   return (
-    <div ref={rootRef} className={`store-root flex flex-col relative ${className}`}  style={{
-      ...style,
-      '--font-heading': builderData?.brand?.fonts?.heading || 'Inter',
-      '--font-body': builderData?.brand?.fonts?.body || 'Inter',
-      '--color-font-header': builderData?.brand?.colors?.fontHeader || '#191C1E',
-      '--color-font-body': builderData?.brand?.colors?.fontBody || '#556067',
-      fontFamily: `'${builderData?.brand?.fonts?.body || 'Inter'}', sans-serif`,
-    }}>
+    <div
+      ref={rootRef}
+      className={`store-root flex flex-col relative ${className}`}
+      style={{
+        ...style,
+        '--font-heading': builderData?.brand?.fonts?.heading || 'Inter',
+        '--font-body': builderData?.brand?.fonts?.body || 'Inter',
+        '--color-font-header': builderData?.brand?.colors?.fontHeader || '#191C1E',
+        '--color-font-body': builderData?.brand?.colors?.fontBody || '#556067',
+        fontFamily: `'${builderData?.brand?.fonts?.body || 'Inter'}', sans-serif`,
+      }}
+    >
       <DeviceFrameContext.Provider value={rootNode}>
         <PreviewHeader brand={storeData.brand || {}} cartCount={getCartItemCount()} />
         <div className="flex-1 overflow-y-auto pb-20">

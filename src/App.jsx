@@ -23,7 +23,8 @@ const mapConfigToBuilderData = (config) => ({
   products: {
     ...config?.products,
     addToCartLabel: config?.products?.addToCartLabel || 'Add to Cart',
-    textShadow: config?.products?.banner?.textShadow !== undefined ? config.products.banner.textShadow : true,
+    textShadow: config?.products?.banner?.textShadow !== undefined
+      ? config.products.banner.textShadow : true,
     categoryImageShape: config?.products?.categoryImageShape || 'circle',
     categoryImageSize: config?.products?.categoryImageSize || 'S',
     autoSlideProductImages: config?.products?.autoSlideProductImages || false,
@@ -31,33 +32,32 @@ const mapConfigToBuilderData = (config) => ({
   },
 });
 
+function getProductIdFromPath() {
+  const match = window.location.pathname.match(/^\/product\/([^/]+)/);
+  return match ? match[1] : null;
+}
+
 function App() {
   const [status, setStatus] = useState('loading');
   const [store, setStore] = useState(null);
+
+  const initialProductId = getProductIdFromPath();
 
   useEffect(() => {
     const hostname = window.location.hostname;
     const isLocalDev = hostname === 'localhost' || hostname === '127.0.0.1';
 
-    let lookup; // what we'll pass to getBySubdomain
-
+    let lookup;
     if (isLocalDev) {
-      // Local dev: ?store=<subdomain>
       const params = new URLSearchParams(window.location.search);
       lookup = params.get('store');
     } else if (hostname.endsWith('.aapnaestore.com')) {
-      // Aapna eStore subdomain: e.g. test2.aapnaestore.com → 'test2'
       lookup = hostname.split('.')[0];
     } else {
-      // Custom domain: e.g. apanestore.com or www.apanestore.com
-      // Pass the full hostname — backend will match against store_domain_config
       lookup = hostname;
     }
 
-    if (!lookup) {
-      setStatus('not-found');
-      return;
-    }
+    if (!lookup) { setStatus('not-found'); return; }
 
     (async () => {
       try {
@@ -83,7 +83,9 @@ function App() {
   if (status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#f7f9fc]">
-        <span className="material-symbols-outlined animate-spin text-4xl text-[#556067]">progress_activity</span>
+        <span className="material-symbols-outlined animate-spin text-4xl text-[#556067]">
+          progress_activity
+        </span>
       </div>
     );
   }
@@ -119,6 +121,7 @@ function App() {
       device="desktop"
       className="min-h-screen"
       style={{ minHeight: '100vh', backgroundColor: builderData.brand.colors.background }}
+      initialProductId={initialProductId}
     />
   );
 }

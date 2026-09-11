@@ -2,7 +2,12 @@ import React, { useState } from 'react';
 import PreviewBanner from '../components/PreviewBanner';
 import PreviewProductCard from '../components/PreviewProductCard';
 
-const PreviewHomeTab = ({ data, onAddToCart, device = 'desktop' }) => {
+const PreviewHomeTab = ({
+  data,
+  onAddToCart,
+  device = 'desktop',
+  initialProductId = null,
+}) => {
   const { banner, categories, brand, products, enableProductSearch, settings = {} } = data;
   const brandFonts = brand.fonts || { heading: 'Inter', body: 'Inter' };
   const imgSize = settings.categoryImageSize || 'S';
@@ -48,9 +53,7 @@ const PreviewHomeTab = ({ data, onAddToCart, device = 'desktop' }) => {
   const handleSearchChange = (e) => {
     const value = e.target.value;
     setSearchQuery(value);
-    if (value.trim().length > 0) {
-      setSelectedCategory('all');
-    }
+    if (value.trim().length > 0) setSelectedCategory('all');
   };
 
   const clearSearch = () => setSearchQuery('');
@@ -80,7 +83,7 @@ const PreviewHomeTab = ({ data, onAddToCart, device = 'desktop' }) => {
             className="relative flex items-center rounded-full border-2 px-4 py-2"
             style={{ borderColor: isSearching ? brand.colors.primary : brand.colors.secondary }}
           >
-            <span className="material-symbols-outlined text-lg mr-2" style={{ color: brand.colors.fontBody}}>
+            <span className="material-symbols-outlined text-lg mr-2" style={{ color: brand.colors.fontBody }}>
               search
             </span>
             <input
@@ -95,7 +98,7 @@ const PreviewHomeTab = ({ data, onAddToCart, device = 'desktop' }) => {
               <button
                 onClick={clearSearch}
                 className="ml-2 opacity-60 hover:opacity-100 transition-opacity"
-                style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}
+                style={{ color: brand.colors.fontBody }}
                 aria-label="Clear search"
               >
                 <span className="material-symbols-outlined text-lg">close</span>
@@ -108,8 +111,6 @@ const PreviewHomeTab = ({ data, onAddToCart, device = 'desktop' }) => {
       {allCategories.length > 0 && (
         <div className="mb-6 pt-4 pb-6 border-b border-[#e0e3e6] overflow-x-auto hide-scrollbar">
           <div className="flex gap-3 min-w-max items-end">
-
-            {/* All pill — always simple text pill */}
             <button
               onClick={() => { setSelectedCategory('all'); clearSearch(); }}
               className="flex items-center gap-1.5 px-4 py-2 rounded-full font-medium text-sm transition-colors whitespace-nowrap border-2 hover:opacity-80 flex-shrink-0"
@@ -118,109 +119,112 @@ const PreviewHomeTab = ({ data, onAddToCart, device = 'desktop' }) => {
                 : { borderColor: brand.colors.secondary, backgroundColor: 'transparent', color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }
               }
             >
-              All ({allProducts.length})
+              All
             </button>
 
-            {allCategories.map((category) => {
-              const isSelected = selectedCategory === category.id && !isSearching;
-              const hasImage = !!category.image?.url;
-              const selectedStyle = { borderColor: brand.colors.primary, backgroundColor: brand.colors.primary, color: '#fff', fontFamily: brand.fonts?.body || 'Inter' };
-              const defaultStyle = { borderColor: brand.colors.secondary, backgroundColor: 'transparent', color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' };
+            {allCategories.map((cat) => {
+              const isSelected = selectedCategory === cat.id && !isSearching;
+              const hasCatImage = cat.image?.url || cat.image?.preview;
 
-              // No image → always simple pill
-              if (!hasImage) {
-                return (
-                  <button
-                    key={category.id}
-                    onClick={() => { setSelectedCategory(category.id); clearSearch(); }}
-                    className="flex items-center px-4 py-2 rounded-full font-medium text-sm transition-colors whitespace-nowrap border-2 hover:opacity-80 flex-shrink-0"
-                    style={isSelected ? selectedStyle : defaultStyle}
-                  >
-                    {category.name} ({category.products?.length || 0})
-                  </button>
-                );
-              }
-
-              // S size → horizontal pill: image left, text right
               if (imgSize === 'S') {
                 return (
                   <button
-                    key={category.id}
-                    onClick={() => { setSelectedCategory(category.id); clearSearch(); }}
-                    className="flex items-center gap-2 pl-1.5 pr-4 py-1.5 rounded-full font-medium text-sm transition-colors whitespace-nowrap border-2 hover:opacity-80 flex-shrink-0"
-                    style={isSelected ? selectedStyle : defaultStyle}
+                    key={cat.id}
+                    onClick={() => { setSelectedCategory(cat.id); clearSearch(); }}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-full font-medium text-sm transition-colors whitespace-nowrap border-2 hover:opacity-80 flex-shrink-0"
+                    style={isSelected
+                      ? { borderColor: brand.colors.primary, backgroundColor: brand.colors.primary, color: '#fff', fontFamily: brand.fonts?.body || 'Inter' }
+                      : { borderColor: brand.colors.secondary, backgroundColor: 'transparent', color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }
+                    }
                   >
-                    <img src={category.image.url} alt={category.name} className={`w-6 h-6 ${imgShapeClass} object-cover flex-shrink-0`} />
-                    {category.name} ({category.products?.length || 0})
+                    {hasCatImage && (
+                      <img src={cat.image.url || cat.image.preview} alt={cat.name} className={`object-cover flex-shrink-0 w-6 h-6 ${imgShapeClass}`} />
+                    )}
+                    {cat.name}
                   </button>
                 );
               }
 
-              // M size → vertical card: image top, text below
               if (imgSize === 'M') {
                 return (
                   <button
-                    key={category.id}
-                    onClick={() => { setSelectedCategory(category.id); clearSearch(); }}
-                    className="flex flex-col items-center gap-1.5 p-2 font-medium text-sm transition-colors border-2 hover:opacity-80 flex-shrink-0 rounded-xl"
-                    style={{ ...(isSelected ? selectedStyle : defaultStyle), width: '80px' }}
+                    key={cat.id}
+                    onClick={() => { setSelectedCategory(cat.id); clearSearch(); }}
+                    className="flex flex-col items-center gap-1 flex-shrink-0 hover:opacity-80 transition-opacity"
+                    style={{ width: '80px' }}
                   >
-                    <img src={category.image.url} alt={category.name} className={`w-14 h-14 ${imgShapeClass} object-cover flex-shrink-0`} />
-                    <span className="text-xs text-center leading-tight">{category.name} ({category.products?.length || 0})</span>
-                  </button>
-                );
-              }
-
-              // L size → overlay card: image fills, text overlaid
-              if (imgSize === 'L') {
-                return (
-                  <button
-                    key={category.id}
-                    onClick={() => { setSelectedCategory(category.id); clearSearch(); }}
-                    className={`relative flex items-end justify-center overflow-hidden font-medium text-sm transition-colors border-2 hover:opacity-80 flex-shrink-0 ${imgShapeClass}`}
-                    style={{ width: '110px', height: '110px', borderColor: isSelected ? brand.colors.primary : brand.colors.secondary }}
-                  >
-                    <img src={category.image.url} alt={category.name} className="absolute inset-0 w-full h-full object-cover" />
-                    <div className="absolute inset-0" style={{ background: isSelected ? `${brand.colors.primary}99` : 'linear-gradient(to top, rgba(0,0,0,0.6) 40%, transparent 100%)' }} />
-                    <span className="relative z-10 text-white text-xs text-center pb-2 px-1 leading-tight font-semibold drop-shadow">
-                      {category.name} ({category.products?.length || 0})
+                    {hasCatImage ? (
+                      <img
+                        src={cat.image.url || cat.image.preview}
+                        alt={cat.name}
+                        className={`object-cover w-16 h-16 ${imgShapeClass} border-2 transition-colors`}
+                        style={{ borderColor: isSelected ? brand.colors.primary : 'transparent' }}
+                      />
+                    ) : (
+                      <div
+                        className={`w-16 h-16 ${imgShapeClass} border-2 flex items-center justify-center text-xs font-semibold`}
+                        style={isSelected
+                          ? { borderColor: brand.colors.primary, backgroundColor: brand.colors.primary, color: '#fff' }
+                          : { borderColor: brand.colors.secondary, backgroundColor: 'transparent', color: brand.colors.fontBody }
+                        }
+                      >
+                        {cat.name?.charAt(0)}
+                      </div>
+                    )}
+                    <span className="text-xs font-medium text-center leading-tight" style={{ color: isSelected ? brand.colors.primary : brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>
+                      {cat.name}
                     </span>
                   </button>
                 );
               }
+
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => { setSelectedCategory(cat.id); clearSearch(); }}
+                  className={`relative flex-shrink-0 overflow-hidden hover:opacity-90 transition-opacity border-2 ${imgShapeClass}`}
+                  style={{ width: '110px', height: '110px', borderColor: isSelected ? brand.colors.primary : 'transparent' }}
+                >
+                  {hasCatImage ? (
+                    <img src={cat.image.url || cat.image.preview} alt={cat.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full" style={{ backgroundColor: brand.colors.secondary }} />
+                  )}
+                  <div className="absolute inset-0 flex items-end p-2" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 60%)' }}>
+                    <span className="text-white text-xs font-semibold leading-tight text-left w-full">{cat.name}</span>
+                  </div>
+                </button>
+              );
             })}
           </div>
         </div>
       )}
 
       {!hasProducts ? (
-        <div className="text-center py-12" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>
-          <span className="material-symbols-outlined text-6xl block mb-4 opacity-30">storefront</span>
-          <p>No products added yet. Add some products to see preview.</p>
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <span className="material-symbols-outlined text-5xl text-[#bbcbb9] mb-3">inventory_2</span>
+          <p className="text-sm font-medium" style={{ color: brand.colors.fontBody, fontFamily: brandFonts.body }}>No products yet</p>
         </div>
       ) : filteredProducts.length === 0 ? (
-        <div className="text-center py-10" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>
-          {isSearching ? (
-            <>
-              <span className="material-symbols-outlined text-5xl block mb-3 opacity-30">search_off</span>
-              <p>No products found for "{trimmedQuery}"</p>
-            </>
-          ) : (
-            <p>No products in this category</p>
-          )}
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <span className="material-symbols-outlined text-5xl text-[#bbcbb9] mb-3">search_off</span>
+          <p className="text-sm font-medium" style={{ color: brand.colors.fontBody, fontFamily: brandFonts.body }}>
+            {isSearching ? `No results for "${trimmedQuery}"` : 'No products in this category'}
+          </p>
         </div>
       ) : (
-        <div className={`grid ${gridColsClass} gap-4`}>
+        <div className={`grid ${gridColsClass} gap-3`}>
           {filteredProducts.map((product) => (
             <PreviewProductCard
               key={product.id}
               product={product}
-              brandColors={brand.colors}
-              brandFonts={brand.fonts}
               onAddToCart={onAddToCart}
-              autoSlide={settings?.autoSlideProductImages || false}
-              addToCartLabel={data?.addToCartLabel || 'Add to Cart'}
-              // debug
+              brandColors={brand.colors}
+              brandFonts={brandFonts}
+              zoomEnabled={data.enableImageZoom !== false}
+              autoSlide={settings.autoSlideProductImages || false}
+              addToCartLabel={data.addToCartLabel || 'Add to Cart'}
+              autoOpen={initialProductId !== null && String(product.id) === String(initialProductId)}
             />
           ))}
         </div>

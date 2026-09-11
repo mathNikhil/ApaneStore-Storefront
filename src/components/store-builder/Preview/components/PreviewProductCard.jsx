@@ -10,18 +10,15 @@ const PreviewProductCard = ({
   autoSlide = false,
   brandFonts = { heading: 'Inter', body: 'Inter' },
   addToCartLabel = 'Add to Cart',
+  autoOpen = false,
 }) => {
-  const [selectedVariation, setSelectedVariation] = useState(
-    product.variations?.[0] || null
-  );
-  const [selectedSize, setSelectedSize] = useState(
-    product.variations?.[0]?.sizes?.[0] || null
-  );
+  const [selectedVariation, setSelectedVariation] = useState(product.variations?.[0] || null);
+  const [selectedSize, setSelectedSize] = useState(product.variations?.[0]?.sizes?.[0] || null);
 
-  // Normalize images to URL strings (images can be objects {id, url} or plain strings)
-  const images = (product.images || []).map(img => 
+  const images = (product.images || []).map(img =>
     typeof img === 'string' ? img : (img?.url || img?.preview || '')
   ).filter(Boolean);
+
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [quickViewOpen, setQuickViewOpen] = useState(false);
   const deviceFrameNode = useDeviceFrame();
@@ -29,8 +26,11 @@ const PreviewProductCard = ({
   const hasMultipleOptions = (product.variations?.length || 0) > 1 ||
     (product.variations?.[0]?.sizes?.length || 0) > 1;
 
-  // Auto-slide through all uploaded product images so customers see every shot,
-  // not just the first one.
+  // Auto-open quick-view when this is the shared product link target
+  useEffect(() => {
+    if (autoOpen) setQuickViewOpen(true);
+  }, [autoOpen]);
+
   useEffect(() => {
     if (images.length <= 1 || !autoSlide) return;
     const interval = setInterval(() => {
@@ -46,15 +46,8 @@ const PreviewProductCard = ({
   };
 
   const handleAddToCart = () => {
-    // With zoom enabled and more than one option, force selection through the
-    // quick-view modal rather than guessing which variant/size the customer wants.
-    if (zoomEnabled && hasMultipleOptions) {
-      setQuickViewOpen(true);
-      return;
-    }
-    if (selectedVariation && selectedSize) {
-      onAddToCart(product.id, selectedVariation.id, selectedSize.id);
-    }
+    if (zoomEnabled && hasMultipleOptions) { setQuickViewOpen(true); return; }
+    if (selectedVariation && selectedSize) onAddToCart(product.id, selectedVariation.id, selectedSize.id);
   };
 
   const handleAddToCartFromModal = () => {
@@ -64,13 +57,9 @@ const PreviewProductCard = ({
     }
   };
 
-  // Card always shows the FIRST variant/size price — full picking happens in
-  // the quick-view modal, per the store's design.
   const cardPrice = parseFloat(product.variations?.[0]?.sizes?.[0]?.price) || 0;
   const discount = product.discount || 0;
   const cardOriginalPrice = discount > 0 ? cardPrice / (1 - discount / 100) : cardPrice;
-
-  // Modal shows the price for whatever variant/size is currently selected there.
   const selectedPrice = parseFloat(selectedSize?.price) || 0;
   const selectedOriginalPrice = discount > 0 ? selectedPrice / (1 - discount / 100) : selectedPrice;
 
@@ -92,7 +81,6 @@ const PreviewProductCard = ({
         style={{ backgroundColor: brandColors.background || '#FFFFFF' }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Image carousel */}
         <div className="relative aspect-square" style={{ backgroundColor: brandColors.background || '#FFFFFF' }}>
           <button
             onClick={() => setQuickViewOpen(false)}
@@ -100,13 +88,12 @@ const PreviewProductCard = ({
           >
             <span className="material-symbols-outlined text-lg leading-none">close</span>
           </button>
-
           {images.length > 0 ? (
             <>
               {images.map((img, idx) => (
                 <img
                   key={img.id || idx}
-                  src={typeof img === "string" ? img : img?.url}
+                  src={typeof img === 'string' ? img : img?.url}
                   alt={product.name}
                   className="absolute inset-0 w-full h-full object-contain transition-opacity duration-500"
                   style={{ opacity: idx === activeImageIndex ? 1 : 0 }}
@@ -114,26 +101,15 @@ const PreviewProductCard = ({
               ))}
               {images.length > 1 && (
                 <>
-                  <button
-                    onClick={() => goToImage(activeImageIndex - 1)}
-                    className="absolute left-1 top-1/2 -translate-y-1/2 text-white bg-black/30 hover:bg-black/50 rounded-full p-1 transition-colors"
-                  >
+                  <button onClick={() => goToImage(activeImageIndex - 1)} className="absolute left-1 top-1/2 -translate-y-1/2 text-white bg-black/30 hover:bg-black/50 rounded-full p-1 transition-colors">
                     <span className="material-symbols-outlined text-lg">chevron_left</span>
                   </button>
-                  <button
-                    onClick={() => goToImage(activeImageIndex + 1)}
-                    className="absolute right-1 top-1/2 -translate-y-1/2 text-white bg-black/30 hover:bg-black/50 rounded-full p-1 transition-colors"
-                  >
+                  <button onClick={() => goToImage(activeImageIndex + 1)} className="absolute right-1 top-1/2 -translate-y-1/2 text-white bg-black/30 hover:bg-black/50 rounded-full p-1 transition-colors">
                     <span className="material-symbols-outlined text-lg">chevron_right</span>
                   </button>
                   <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5">
                     {images.map((_, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => setActiveImageIndex(idx)}
-                        className="w-1.5 h-1.5 rounded-full transition-colors"
-                        style={{ backgroundColor: idx === activeImageIndex ? primaryColor : 'rgba(0,0,0,0.2)' }}
-                      />
+                      <button key={idx} onClick={() => setActiveImageIndex(idx)} className="w-1.5 h-1.5 rounded-full transition-colors" style={{ backgroundColor: idx === activeImageIndex ? primaryColor : 'rgba(0,0,0,0.2)' }} />
                     ))}
                   </div>
                 </>
@@ -146,35 +122,25 @@ const PreviewProductCard = ({
           )}
         </div>
 
-        {/* Details */}
         <div className="p-4">
           <h3 className="font-semibold text-base" style={{ color: fontColor, fontFamily: headingFont }}>{product.name}</h3>
           {product.description && (
             <p className="text-xs mt-1" style={{ color: fontBodyColor, fontFamily: bodyFont }}>{product.description}</p>
           )}
-
-          {/* Price for currently selected combination */}
           <div className="mt-3 flex items-center gap-2">
             <span className="text-xl font-bold" style={{ color: primaryColor }}>₹{selectedPrice.toFixed(2)}</span>
             {discount > 0 && (
               <>
-                <span className="text-sm line-through opacity-60" style={{ color: fontBodyColor, fontFamily: bodyFont }}>
-                  ₹{selectedOriginalPrice.toFixed(2)}
-                </span>
-                <span className="text-xs font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor: `${primaryColor}20`, color: primaryColor, fontFamily: bodyFont }}>
-                  {Math.round(discount)}% OFF
-                </span>
+                <span className="text-sm line-through opacity-60" style={{ color: fontBodyColor, fontFamily: bodyFont }}>₹{selectedOriginalPrice.toFixed(2)}</span>
+                <span className="text-xs font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor: `${primaryColor}20`, color: primaryColor, fontFamily: bodyFont }}>{Math.round(discount)}% OFF</span>
               </>
             )}
           </div>
-
           {product.bulkPricing && (
             <div className="mt-2 rounded-lg px-2 py-1 text-center" style={{ backgroundColor: `${primaryColor}1a` }}>
               <p className="text-xs font-medium" style={{ color: buttonLabelColor }}>✓ Same price for all sizes</p>
             </div>
           )}
-
-          {/* Variant selector, with thumbnail if uploaded */}
           {product.variations && product.variations.length > 0 && (
             <div className="mt-3">
               <p className="text-xs font-medium uppercase tracking-wider mb-1" style={{ color: fontBodyColor, fontFamily: bodyFont }}>
@@ -187,7 +153,6 @@ const PreviewProductCard = ({
                     onClick={() => {
                       setSelectedVariation(v);
                       setSelectedSize(v.sizes?.[0] || null);
-                      // Switch main image using imageIndex first, fallback to image.url
                       if (v.imageIndex !== undefined && v.imageIndex !== null && v.imageIndex < images.length) {
                         setActiveImageIndex(v.imageIndex);
                       } else if (v.image?.url) {
@@ -204,9 +169,7 @@ const PreviewProductCard = ({
                     }
                   >
                     {(() => {
-                      const swatchImg = (v.imageIndex !== undefined && v.imageIndex !== null)
-                        ? images[v.imageIndex]
-                        : v.image?.url;
+                      const swatchImg = (v.imageIndex !== undefined && v.imageIndex !== null) ? images[v.imageIndex] : v.image?.url;
                       return swatchImg ? <img src={swatchImg} alt={v.name} className="w-8 h-8 rounded-full object-cover flex-shrink-0" /> : null;
                     })()}
                     {v.name}
@@ -215,8 +178,6 @@ const PreviewProductCard = ({
               </div>
             </div>
           )}
-
-          {/* Size selector */}
           {selectedVariation?.sizes?.length > 0 && (
             <div className="mt-3">
               <p className="text-xs font-medium uppercase tracking-wider mb-1" style={{ color: fontBodyColor, fontFamily: bodyFont }}>Size</p>
@@ -231,16 +192,16 @@ const PreviewProductCard = ({
                       : { borderColor: secondaryColor, color: fontBodyColor, fontFamily: bodyFont }
                     }
                   >
-                    {s.label}
+                    {s.label || s.size}{s.unit ? ` ${s.unit}` : ''}
                   </button>
                 ))}
               </div>
             </div>
           )}
-
           <button
             onClick={handleAddToCartFromModal}
-            className="w-full mt-4 py-2.5 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90"
+            disabled={!selectedVariation || !selectedSize}
+            className="w-full mt-4 py-2.5 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
             style={{ backgroundColor: brandColors.button || primaryColor, color: buttonLabelColor }}
           >
             {addToCartLabel}
@@ -252,7 +213,6 @@ const PreviewProductCard = ({
 
   return (
     <div className="rounded-lg border overflow-hidden hover:shadow-md transition-shadow flex flex-col" style={{ backgroundColor: brandColors.background || '#FFFFFF' }}>
-      {/* Product Image — auto-slides through all uploaded images */}
       <div
         className={`aspect-square relative overflow-hidden ${zoomEnabled && images.length > 0 ? 'cursor-zoom-in' : ''}`}
         style={{ backgroundColor: brandColors.background || '#FFFFFF' }}
@@ -263,7 +223,7 @@ const PreviewProductCard = ({
             {images.map((img, idx) => (
               <img
                 key={img.id || idx}
-                src={typeof img === "string" ? img : img?.url}
+                src={typeof img === 'string' ? img : img?.url}
                 alt={product.name}
                 className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
                 style={{ opacity: idx === activeImageIndex ? 1 : 0 }}
@@ -277,11 +237,7 @@ const PreviewProductCard = ({
             {images.length > 1 && (
               <div className="absolute bottom-1.5 left-0 right-0 flex justify-center gap-1">
                 {images.map((_, idx) => (
-                  <span
-                    key={idx}
-                    className="w-1.5 h-1.5 rounded-full transition-colors"
-                    style={{ backgroundColor: idx === activeImageIndex ? primaryColor : 'rgba(255,255,255,0.7)' }}
-                  />
+                  <span key={idx} className="w-1.5 h-1.5 rounded-full transition-colors" style={{ backgroundColor: idx === activeImageIndex ? primaryColor : 'rgba(255,255,255,0.7)' }} />
                 ))}
               </div>
             )}
@@ -293,43 +249,24 @@ const PreviewProductCard = ({
         )}
       </div>
 
-      {/* Portal the quick-view modal into the device frame, so it stays visually
-          contained within the simulated device instead of the whole browser. */}
       {deviceFrameNode && ReactDOM.createPortal(quickViewModal, deviceFrameNode)}
 
       <div className="p-3 flex-1 flex flex-col">
-        <h4 className="font-semibold text-sm line-clamp-2" style={{ color: fontColor, fontFamily: headingFont }}>
-          {product.name}
-        </h4>
-
-        {/* Price — always the first variant/size on the card; full picker lives in quick view */}
+        <h4 className="font-semibold text-sm line-clamp-2" style={{ color: fontColor, fontFamily: headingFont }}>{product.name}</h4>
         <div className="mt-1.5 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
-          <span className="text-base font-bold" style={{ color: primaryColor }}>
-            ₹{cardPrice.toFixed(2)}
-          </span>
+          <span className="text-base font-bold" style={{ color: primaryColor }}>₹{cardPrice.toFixed(2)}</span>
           {discount > 0 && (
             <>
-              <span className="text-xs line-through opacity-60" style={{ color: fontBodyColor, fontFamily: bodyFont }}>
-                ₹{cardOriginalPrice.toFixed(2)}
-              </span>
-              <span className="text-[10px] font-bold px-1 py-0.5 rounded whitespace-nowrap" style={{ backgroundColor: `${primaryColor}20`, color: primaryColor, fontFamily: bodyFont }}>
-                {Math.round(discount)}% OFF
-              </span>
+              <span className="text-xs line-through opacity-60" style={{ color: fontBodyColor, fontFamily: bodyFont }}>₹{cardOriginalPrice.toFixed(2)}</span>
+              <span className="text-[10px] font-bold px-1 py-0.5 rounded whitespace-nowrap" style={{ backgroundColor: `${primaryColor}20`, color: primaryColor, fontFamily: bodyFont }}>{Math.round(discount)}% OFF</span>
             </>
           )}
         </div>
-
         {hasMultipleOptions && (
-          <button
-            onClick={() => setQuickViewOpen(true)}
-            className="text-xs mt-1 text-left underline decoration-dotted"
-            style={{ color: fontBodyColor, fontFamily: bodyFont }}
-          >
+          <button onClick={() => setQuickViewOpen(true)} className="text-xs mt-1 text-left underline decoration-dotted" style={{ color: fontBodyColor, fontFamily: bodyFont }}>
             {product.variations.length > 1 ? `${product.variations.length} options` : `${product.variations[0].sizes.length} sizes`} available
           </button>
         )}
-
-        {/* Add to Cart Button */}
         <button
           onClick={handleAddToCart}
           className="w-full mt-auto pt-2 py-1.5 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90"
