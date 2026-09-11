@@ -4,6 +4,21 @@ import { customerAuthAPI } from '../../../services/api';
 // Real customer login + OTP verification, backed by the actual backend
 // (same OTP mechanism the main tenant dashboard uses, scoped to this
 // specific store — a phone number is a separate customer at every store).
+const getDeviceFingerprint = () => {
+  const raw = [
+    navigator.userAgent,
+    screen.width + 'x' + screen.height,
+    Intl.DateTimeFormat().resolvedOptions().timeZone,
+    navigator.language,
+  ].join('|');
+  let hash = 0;
+  for (let i = 0; i < raw.length; i++) {
+    hash = ((hash << 5) - hash) + raw.charCodeAt(i);
+    hash |= 0;
+  }
+  return String(Math.abs(hash));
+};
+
 const PreviewCustomerAuth = ({ brand, storeId, onAuthenticated, onCancel }) => {
   const headingFont = brand?.fonts?.heading || 'Inter';
   const bodyFont = brand?.fonts?.body || 'Inter';
@@ -63,6 +78,25 @@ const PreviewCustomerAuth = ({ brand, storeId, onAuthenticated, onCancel }) => {
       setError('Please enter a valid 10-digit mobile number');
       return;
     }
+
+    // 12-hour same-device skip — no OTP needed
+    const key = `customer_12hr_${storeId}`;
+    const saved = JSON.parse(localStorage.getItem(key) || '{}');
+    const currentFingerprint = getDeviceFingerprint();
+    const twelveHours = 12 * 60 * 60 * 1000;
+
+    if (
+      saved.mobile === mobile &&
+      saved.fingerprint === currentFingerprint &&
+      saved.loginTime &&
+      Date.now() - saved.loginTime < twelveHours &&
+      saved.token
+    ) {
+      // Same mobile, same device, within 12 hours — skip OTP
+      onAuthenticated(saved.customer, saved.token);
+      return;
+    }
+
     sendOtp();
   };
 
@@ -91,6 +125,15 @@ const PreviewCustomerAuth = ({ brand, storeId, onAuthenticated, onCancel }) => {
     try {
       const result = await customerAuthAPI.verifyOTP(storeId, mobile, otp.join(''));
       if (result.success) {
+        // Save 12-hr session for this store + device
+        const key = `customer_12hr_${storeId}`;
+        localStorage.setItem(key, JSON.stringify({
+          mobile,
+          fingerprint: getDeviceFingerprint(),
+          loginTime: Date.now(),
+          token: result.data.token,
+          customer: result.data.customer,
+        }));
         onAuthenticated(result.data.customer, result.data.token);
       } else {
         setError(result.error || result.message || 'Invalid OTP');

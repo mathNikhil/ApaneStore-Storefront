@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { customerOrderAPI, customerProfileAPI } from '../../../../services/api';
+import { customerOrderAPI, customerProfileAPI, customerCartAPI } from '../../../../services/api';
 
 // Helper function to adapt product for preview
 const adaptProductForPreview = (builderProduct) => {
@@ -347,6 +347,21 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
   }, [builderData]);
 
   // ============================================
+  // AUTO-SAVE CART — persists cart to backend on every change
+  // Only saves when customer is logged in (token exists)
+  // Cart expires after 12 hours matching session expiry
+  // ============================================
+  useEffect(() => {
+    if (!storeId || !customerToken) return;
+    const items = storeData.cart?.items || [];
+    // Debounce — wait 800ms after last change before saving
+    const timer = setTimeout(() => {
+      customerCartAPI.saveCart(storeId, customerToken, items).catch(() => {});
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [storeData.cart?.items, storeId, customerToken]);
+
+  // ============================================
   // CART FUNCTIONS
   // ============================================
   const addToCart = (product, variationId, sizeId) => {
@@ -388,7 +403,14 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
               unit: size?.unit || '',
               price: parseFloat(size?.price) || 0,
               quantity: 1,
-              image: product.images?.[0]?.url || null,
+              image: (() => {
+                // Use variation's imageIndex to show correct variant image
+                const images = product.images || [];
+                if (variation?.imageIndex != null && images[variation.imageIndex]?.url) {
+                  return images[variation.imageIndex].url;
+                }
+                return images[0]?.url || null;
+              })(),
               discount: product.discount || 0,
               variationId: variationId,
               sizeId: sizeId,
@@ -674,6 +696,9 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
         orders: [newOrder, ...prev.orders],
         cart: { ...prev.cart, items: [] },
       }));
+
+      // Clear cart from backend after successful order
+      customerCartAPI.clearCart(storeId, customerToken).catch(() => {});
 
       return { success: true, order: newOrder };
     } catch (err) {

@@ -7,6 +7,7 @@ import PreviewCartTab from './tabs/PreviewCartTab';
 import PreviewOrdersTab from './tabs/PreviewOrdersTab';
 import PreviewProfileTab from './tabs/PreviewProfileTab';
 import { usePreviewData } from './hooks/usePreviewData';
+import { customerCartAPI } from '../../../services/api';
 import { DeviceFrameContext } from './DeviceFrameContext';
 
 const StorefrontApp = ({
@@ -25,7 +26,7 @@ const StorefrontApp = ({
   useEffect(() => {
     if (!storeId) return;
     try {
-      const raw = localStorage.getItem(`customer_session_${storeId}`);
+      const raw = sessionStorage.getItem(`customer_session_${storeId}`);
       if (raw) {
         const saved = JSON.parse(raw);
         setCustomer(saved.customer);
@@ -36,14 +37,35 @@ const StorefrontApp = ({
     }
   }, [storeId]);
 
-  const handleAuthenticated = (customerData, token) => {
+  const handleAuthenticated = async (customerData, token) => {
     setCustomer(customerData);
     setCustomerToken(token);
     setCheckoutNeedsAuth(false);
     try {
-      localStorage.setItem(`customer_session_${storeId}`, JSON.stringify({ customer: customerData, token }));
+      sessionStorage.setItem(`customer_session_${storeId}`, JSON.stringify({ customer: customerData, token }));
     } catch (e) {
       console.error('Failed to persist customer session:', e);
+    }
+    // Restore saved cart from backend
+    try {
+      const cartResult = await customerCartAPI.getCart(storeId, token);
+      if (cartResult.success && cartResult.data?.items?.length > 0) {
+        cartResult.data.items.forEach(item => {
+          addToCart({ 
+            id: item.productId, 
+            name: item.productName,
+            images: item.image ? [{ url: item.image }] : [],
+            discount: item.discount || 0,
+            variations: [{
+              id: item.variationId,
+              name: item.variationName,
+              sizes: [{ id: item.sizeId, size: item.size, unit: item.unit, price: String(item.price), label: item.sizeLabel }]
+            }]
+          }, item.variationId, item.sizeId);
+        });
+      }
+    } catch (e) {
+      console.error('Failed to restore cart:', e);
     }
   };
 
@@ -193,7 +215,8 @@ const StorefrontApp = ({
     setCustomer(null);
     setCustomerToken(null);
     try {
-      localStorage.removeItem(`customer_session_${storeId}`);
+      sessionStorage.removeItem(`customer_session_${storeId}`);
+      localStorage.removeItem(`customer_12hr_${storeId}`);
     } catch (e) {
       console.error('Failed to clear customer session:', e);
     }

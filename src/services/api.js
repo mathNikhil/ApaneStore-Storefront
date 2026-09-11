@@ -136,3 +136,33 @@ export const customerOrderAPI = {
         return response.json();
     },
 };
+
+export const customerCartAPI = {
+    getCart: async (storeId, token) => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/store/${storeId}/cart`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            return await res.json();
+        } catch (e) { return { success: false, error: e.message }; }
+    },
+    saveCart: async (storeId, token, items) => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/store/${storeId}/cart`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ items })
+            });
+            return await res.json();
+        } catch (e) { return { success: false, error: e.message }; }
+    },
+    clearCart: async (storeId, token) => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/store/${storeId}/cart`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            return await res.json();
+        } catch (e) { return { success: false, error: e.message }; }
+    },
+};
