@@ -139,6 +139,7 @@ const StorefrontApp = ({
     taxLabel: builderData.cart.taxLabel,
     showGSTBreakdownCart: builderData.cart.showGSTBreakdownCart,
     showGSTBreakdownCheckout: builderData.cart.showGSTBreakdownCheckout,
+    gstNumber: builderData.cart.gstNumber || '',
     codEnabled: builderData.payment.codEnabled,
     upiEnabled: builderData.payment.upiEnabled,
     cardEnabled: builderData.payment.cardEnabled,

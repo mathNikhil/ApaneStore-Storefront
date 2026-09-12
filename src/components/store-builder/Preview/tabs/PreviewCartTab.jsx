@@ -23,7 +23,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
   const [upiIdConfirmed, setUpiIdConfirmed] = useState(false);
   const [cashfreeLoading, setCashfreeLoading] = useState(false);
 
-  const { items, freeDelivery, freeDeliveryThreshold, deliveryCharge, showProgressBar, enableGST, gstRate, taxLabel, showGSTBreakdownCart, showGSTBreakdownCheckout } = cart;
+  const { items, freeDelivery, freeDeliveryThreshold, deliveryCharge, showProgressBar, enableGST, gstRate, taxLabel, showGSTBreakdownCart, showGSTBreakdownCheckout, gstNumber } = cart;
 
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const gst = enableGST ? subtotal * (gstRate / 100) : 0;

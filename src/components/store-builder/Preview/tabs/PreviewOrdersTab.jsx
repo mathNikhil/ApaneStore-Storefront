@@ -30,7 +30,11 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart, storeId, c
   const orders = data && data.orders ? data.orders : [];
   const brandColors = data && data.brand && data.brand.colors ? data.brand.colors : {};
   const storeName = data && data.brand && data.brand.storeName ? data.brand.storeName : 'Store';
-  const storePhone = data && data.brand && data.brand.contactPhone ? data.brand.contactPhone : '';
+  const storePhone = data && data.profile && data.profile.officeNumber ? data.profile.officeNumber : '';
+  const storeEmail = data && data.profile && data.profile.supportEmail ? data.profile.supportEmail : '';
+  const storeAddress = data && data.profile && data.profile.storeAddress ? data.profile.storeAddress : '';
+  const storeLogo = data && data.brand && data.brand.logo ? data.brand.logo : null;
+  const storeGST = data && data.cart && data.cart.gstNumber ? data.cart.gstNumber : '';
   const returnConfig = data && data.return ? data.return : {};
 
   // Check if returns are enabled
@@ -427,8 +431,12 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart, storeId, c
                           @media print{@page{size:A4;margin:10mm;}}
                         </style></head><body>
                         <div class="header">
+                          ${storeLogo ? '<img src="'+storeLogo+'" style="height:60px;object-fit:contain;margin-bottom:8px;" />' : ''}
                           <div class="store-name">${storeName}</div>
+                          ${storeAddress ? '<div class="small">📍 '+storeAddress+'</div>' : ''}
                           ${storePhone ? '<div class="small">📞 '+storePhone+'</div>' : ''}
+                          ${storeEmail ? '<div class="small">✉ '+storeEmail+'</div>' : ''}
+                          ${storeGST ? '<div class="small">GSTIN: '+storeGST+'</div>' : ''}
                         </div>
                         <div class="divider"></div>
                         <div class="bill-title">ORDER INVOICE</div>

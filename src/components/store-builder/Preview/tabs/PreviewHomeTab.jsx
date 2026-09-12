@@ -221,7 +221,7 @@ const PreviewHomeTab = ({
               onAddToCart={onAddToCart}
               brandColors={brand.colors}
               brandFonts={brandFonts}
-              zoomEnabled={data.enableImageZoom !== false}
+              zoomEnabled={data.settings?.enableImageZoom !== false}
               autoSlide={settings.autoSlideProductImages || false}
               addToCartLabel={data.addToCartLabel || 'Add to Cart'}
               autoOpen={initialProductId !== null && String(product.id) === String(initialProductId)}
