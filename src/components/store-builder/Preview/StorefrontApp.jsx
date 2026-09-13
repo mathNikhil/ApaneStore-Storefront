@@ -138,6 +138,7 @@ const StorefrontApp = ({
     gstRate: builderData.cart.gstRate,
     taxLabel: builderData.cart.taxLabel,
     showGSTBreakdownCart: builderData.cart.showGSTBreakdownCart,
+    tabName: builderData.cart.tabName || 'Cart',
     showGSTBreakdownCheckout: builderData.cart.showGSTBreakdownCheckout,
     gstNumber: builderData.cart.gstNumber || '',
     codEnabled: builderData.payment.codEnabled,
@@ -179,6 +180,7 @@ const StorefrontApp = ({
     sendCancelEmail: builderData.order.sendCancelEmail,
     showStatusTimeline: builderData.order.showStatusTimeline,
     showEstimatedDelivery: builderData.order.showEstimatedDelivery,
+    ordersTabName: builderData.order?.ordersTabName || 'Orders',
     officeNumber: builderData.profile.officeNumber,
     supportTime: builderData.profile.supportTime,
     supportEmail: builderData.profile.supportEmail,
@@ -326,6 +328,8 @@ const StorefrontApp = ({
             onChange={setActiveTab}
             brandColors={storeData.brand?.colors || {}}
             brandFonts={storeData.brand?.fonts || { heading: 'Inter', body: 'Inter' }}
+            cartTabName={storeData.cart?.tabName || 'Cart'}
+            ordersTabName={storeData.cart?.ordersTabName || 'Orders'}
           />
         </div>
       </DeviceFrameContext.Provider>

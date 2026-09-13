@@ -28,7 +28,7 @@ const PreviewHomeTab = ({
     mobile: 'grid-cols-2',
     tablet: 'grid-cols-2',
     desktop: 'grid-cols-3',
-  }[device] || 'grid-cols-3';
+  }[device] || 'grid-cols-2 sm:grid-cols-3';
 
   const getSearchResults = () => {
     const words = trimmedQuery.toLowerCase().split(/\s+/).filter(Boolean);

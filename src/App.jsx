@@ -43,6 +43,21 @@ function App() {
 
   const initialProductId = getProductIdFromPath();
 
+  // Detect device type based on screen width
+  const getDevice = () => {
+    const w = window.innerWidth;
+    if (w < 640) return 'mobile';
+    if (w < 1024) return 'tablet';
+    return 'desktop';
+  };
+  const [device, setDevice] = React.useState(getDevice());
+
+  React.useEffect(() => {
+    const handleResize = () => setDevice(getDevice());
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   useEffect(() => {
     const hostname = window.location.hostname;
     const isLocalDev = hostname === 'localhost' || hostname === '127.0.0.1';
@@ -118,7 +133,7 @@ function App() {
     <StorefrontApp
       builderData={builderData}
       storeId={store.id}
-      device="desktop"
+      device={device}
       className="min-h-screen"
       style={{ minHeight: '100vh', backgroundColor: builderData.brand.colors.background }}
       initialProductId={initialProductId}
