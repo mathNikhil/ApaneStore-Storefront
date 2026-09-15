@@ -110,7 +110,7 @@ const PreviewHomeTab = ({
 
       {allCategories.length > 0 && (
         <div className="mb-6 pt-4 pb-6 border-b border-[#e0e3e6] overflow-x-auto hide-scrollbar">
-          <div className="flex gap-3 min-w-max items-end">
+          <div className="flex gap-3 min-w-max items-center">
             <button
               onClick={() => { setSelectedCategory('all'); clearSearch(); }}
               className="flex items-center gap-1.5 px-4 py-2 rounded-full font-medium text-sm transition-colors whitespace-nowrap border-2 hover:opacity-80 flex-shrink-0"
@@ -171,7 +171,7 @@ const PreviewHomeTab = ({
                         {cat.name?.charAt(0)}
                       </div>
                     )}
-                    <span className="text-xs font-medium text-center leading-tight" style={{ color: isSelected ? brand.colors.primary : brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>
+                    <span style={{ color: isSelected ? brand.colors.primary : brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter', fontSize: '11px', fontWeight: '500', textAlign: 'center', lineHeight: '1.2', display: 'block', width: '100%', wordBreak: 'break-word' }}>
                       {cat.name}
                     </span>
                   </button>
@@ -191,7 +191,7 @@ const PreviewHomeTab = ({
                     <div className="w-full h-full" style={{ backgroundColor: brand.colors.secondary }} />
                   )}
                   <div className="absolute inset-0 flex items-end p-2" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 60%)' }}>
-                    <span className="text-white text-xs font-semibold leading-tight text-left w-full">{cat.name}</span>
+                    <span className="text-white text-xs font-semibold leading-tight text-center w-full">{cat.name}</span>
                   </div>
                 </button>
               );
