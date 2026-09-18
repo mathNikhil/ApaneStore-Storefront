@@ -504,8 +504,12 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart, storeId, c
                   <div className="mt-3 pt-3 border-t border-[#f2f4f7] space-y-3">
                     {/* Delivery Address */}
                     <div>
-                      <p className="text-xs font-semibold mb-1" style={{ color: getFontHeaderColor() }}>📍 Delivery Address</p>
-                      {order.deliveryAddress ? (
+                      <p className="text-xs font-semibold mb-1" style={{ color: getFontHeaderColor() }}>{order.order_type === 'dine_in' ? '🍽️ Order Type' : '📍 Delivery Address'}</p>
+                      {order.order_type === 'dine_in' ? (
+                        <div className="text-sm p-3 rounded-lg bg-[#fff8e1]" style={{ color: getFontBodyColor() }}>
+                          <p className="font-medium">🍽️ Dine In</p>
+                        </div>
+                      ) : order.deliveryAddress ? (
                         <div className="text-sm p-3 rounded-lg bg-[#f7f9fc]" style={{ color: getFontBodyColor() }}>
                           <p className="font-medium">{order.recipientName} | {order.recipientMobile || ''}</p>
                           <p>{order.deliveryAddress}</p>
