@@ -120,6 +120,7 @@ const PreviewProfileTab = ({
       label: 'Home',
       recipientName: '',
       recipientMobile: '',
+      recipientMobileCode: '+91',
       addressLine1: '',
       addressLine2: '',
       city: '',
@@ -137,6 +138,7 @@ const PreviewProfileTab = ({
       label: addr.label || 'Home',
       recipientName: addr.recipientName || '',
       recipientMobile: addr.recipientMobile || '',
+      recipientMobileCode: addr.recipientMobileCode || '+91',
       addressLine1: addr.addressLine1 || '',
       addressLine2: addr.addressLine2 || '',
       city: addr.city || '',
@@ -443,14 +445,36 @@ const PreviewProfileTab = ({
                 <label className="block text-xs font-medium mb-1" style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>
                   Recipient Mobile <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="tel"
-                  value={addressForm.recipientMobile}
-                  onChange={(e) => handleAddressChange('recipientMobile', e.target.value)}
-                  placeholder="Enter mobile number"
-                  className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
-                  style={{ borderColor: brandColors.secondary }}
-                />
+                <div className="flex gap-2">
+                  <select
+                    value={addressForm.recipientMobileCode || '+91'}
+                    onChange={(e) => handleAddressChange('recipientMobileCode', e.target.value)}
+                    className="px-2 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                    style={{ borderColor: brandColors.secondary, width: '80px', flexShrink: 0 }}
+                  >
+                    <option value="+91">🇮🇳 +91</option>
+                    <option value="+1">🇺🇸 +1</option>
+                    <option value="+44">🇬🇧 +44</option>
+                    <option value="+971">🇦🇪 +971</option>
+                    <option value="+65">🇸🇬 +65</option>
+                    <option value="+60">🇲🇾 +60</option>
+                    <option value="+61">🇦🇺 +61</option>
+                  </select>
+                  <input
+                    type="tel"
+                    value={addressForm.recipientMobile?.replace(/^\+\d+\s?/, '') || ''}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, '').slice(0, 10);
+                      const code = addressForm.recipientMobileCode || '+91';
+                      handleAddressChange('recipientMobile', `${code} ${digits}`);
+                      handleAddressChange('recipientMobileCode', code);
+                    }}
+                    placeholder="10-digit mobile"
+                    maxLength={10}
+                    className="flex-1 px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                    style={{ borderColor: brandColors.secondary }}
+                  />
+                </div>
               </div>
             )}
 
