@@ -139,6 +139,8 @@ const StorefrontApp = ({
     taxLabel: builderData.cart.taxLabel,
     showGSTBreakdownCart: builderData.cart.showGSTBreakdownCart,
     tabName: builderData.cart.tabName || 'Cart',
+    enableDineIn: builderData.cart.enableDineIn || false,
+    dineInLabel: builderData.cart.dineInLabel || 'Dine In',
     showGSTBreakdownCheckout: builderData.cart.showGSTBreakdownCheckout,
     gstNumber: builderData.cart.gstNumber || '',
     codEnabled: builderData.payment.codEnabled,

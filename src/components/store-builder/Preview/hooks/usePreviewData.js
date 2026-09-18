@@ -123,6 +123,8 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
     },
     cart: {
       items: [],
+      enableDineIn: false,
+      dineInLabel: 'Dine In',
       freeDelivery: true,
       freeDeliveryThreshold: 500,
       deliveryCharge: 40,
@@ -266,6 +268,8 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
         },
         cart: {
           ...prev.cart,
+          enableDineIn: builderData.enableDineIn ?? prev.cart.enableDineIn,
+          dineInLabel: builderData.dineInLabel || prev.cart.dineInLabel,
           freeDelivery: builderData.freeDelivery ?? prev.cart.freeDelivery,
           freeDeliveryThreshold: Number(builderData.freeDeliveryThreshold) || prev.cart.freeDeliveryThreshold,
           deliveryCharge: Number(builderData.deliveryCharge) || prev.cart.deliveryCharge,
