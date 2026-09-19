@@ -460,13 +460,13 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
     }));
   };
 
-  const getCartTotal = () => {
+  const getCartTotal = (orderType) => {
     const items = storeData.cart.items;
     const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const gst = storeData.cart.enableGST ? subtotal * (storeData.cart.gstRate / 100) : 0;
-    const delivery = storeData.cart.freeDelivery
+    const delivery = (orderType === 'dine_in') ? 0 : (storeData.cart.freeDelivery
       ? (subtotal >= storeData.cart.freeDeliveryThreshold ? 0 : storeData.cart.deliveryCharge)
-      : storeData.cart.deliveryCharge;
+      : storeData.cart.deliveryCharge);
     return {
       subtotal: subtotal.toFixed(2),
       gst: gst.toFixed(2),
@@ -652,7 +652,7 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
       return { success: false, error: 'Please log in to place an order' };
     }
 
-    const totals = getCartTotal();
+    const totals = getCartTotal(orderType);
     const orderItems = items.map(item => ({
       name: item.productName,
       weight: `${item.size}${item.unit}`,
@@ -740,6 +740,7 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
         delivery: parseFloat(o.delivery_charge || 0),
         total: parseFloat(o.total_amount),
         paymentMethodId: o.payment_method,
+        order_type: o.order_type || 'delivery',
         deliveryAddress: formatAddressLine(o.delivery_address),
         recipientName: o.delivery_address?.recipientName || '',
         recipientMobile: o.delivery_address?.recipientMobile || '',

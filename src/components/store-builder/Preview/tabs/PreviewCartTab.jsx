@@ -28,9 +28,9 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
 
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const gst = enableGST ? subtotal * (gstRate / 100) : 0;
-  const delivery = freeDelivery
+  const delivery = orderType === 'dine_in' ? 0 : (freeDelivery
     ? (subtotal >= freeDeliveryThreshold ? 0 : deliveryCharge)
-    : deliveryCharge;
+    : deliveryCharge);
   const total = subtotal + gst + delivery;
   const remainingForFree = freeDeliveryThreshold - subtotal;
 
@@ -145,7 +145,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
         items: cart,
         deliveryAddress: orderType === 'dine_in' ? {} : currentAddress,
         subtotal: subtotal,
-        deliveryCharge: deliveryCharge,
+        deliveryCharge: orderType === 'dine_in' ? 0 : deliveryCharge,
         taxAmount: gst,
         totalAmount: total,
         orderType: orderType,
@@ -220,10 +220,10 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                       <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>₹{gst.toFixed(2)}</span>
                     </div>
                   )}
-                  <div className="flex justify-between text-sm">
+                  {orderType !== 'dine_in' && <div className="flex justify-between text-sm">
                     <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>Delivery</span>
                     <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>{delivery === 0 ? 'FREE' : `₹${delivery.toFixed(2)}`}</span>
-                  </div>
+                  </div>}
                 </>
               ) : null}
               <div className="flex justify-between font-bold mt-2 pt-2 border-t">
@@ -580,12 +580,12 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                     <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>Subtotal</span>
                     <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>₹{subtotal.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
+                  {orderType !== 'dine_in' && <div className="flex justify-between text-sm">
                     <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>Delivery</span>
                     <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>
                       {delivery === 0 ? 'FREE' : `₹${delivery.toFixed(2)}`}
                     </span>
-                  </div>
+                  </div>}
                   {enableGST && (
                     <div className="flex justify-between text-sm">
                       <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>{taxLabel} ({gstRate}%)</span>

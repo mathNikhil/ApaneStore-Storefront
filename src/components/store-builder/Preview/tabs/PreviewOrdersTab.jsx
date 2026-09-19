@@ -29,12 +29,13 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart, storeId, c
   // SAFE: No optional chaining
   const orders = data && data.orders ? data.orders : [];
   const brandColors = data && data.brand && data.brand.colors ? data.brand.colors : {};
-  const storeName = data && data.brand && data.brand.storeName ? data.brand.storeName : 'Store';
+  const storeName = data?.brand?.name || data?.brand?.storeName || data?.brand?.brandName || 'Store';
   const storePhone = data && data.profile && data.profile.officeNumber ? data.profile.officeNumber : '';
   const storeEmail = data && data.profile && data.profile.supportEmail ? data.profile.supportEmail : '';
   const storeAddress = data && data.profile && data.profile.storeAddress ? data.profile.storeAddress : '';
   const storeLogo = data && data.brand && data.brand.logo ? data.brand.logo : null;
   const storeGST = data && data.cart && data.cart.gstNumber ? data.cart.gstNumber : '';
+  const dineInLabel = data?.cart?.dineInLabel || 'Dine In';
   const returnConfig = data && data.return ? data.return : {};
 
   // Check if returns are enabled
@@ -306,6 +307,11 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart, storeId, c
                       {order.id}
                     </p>
                   </div>
+                  {order.order_type === 'dine_in' && (
+                    <span className="px-2 py-1 rounded-full text-xs font-medium" style={{ background: '#f59e0b', color: '#fff' }}>
+                      🍽️ {dineInLabel}
+                    </span>
+                  )}
                   <span className={'px-2 py-1 rounded-full text-xs font-medium ' + statusColor}>
                     <span className="material-symbols-outlined text-xs align-middle mr-1">
                       {statusIcon}
@@ -449,7 +455,7 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart, storeId, c
                         <div class="divider"></div>
                         <div class="grid">
                           <div><div class="label">Customer</div><div class="value">${order.customerName || 'Customer'}</div>${order.customerPhone ? '<div class="small">📞 '+order.customerPhone+'</div>' : ''}</div>
-                          ${addr.addressLine1 ? '<div style="text-align:right"><div class="label">Deliver To</div><div class="value">'+(addr.recipientName||'')+'</div><div class="small">'+addr.addressLine1+(addr.addressLine2?', '+addr.addressLine2:'')+'</div><div class="small">'+addr.city+', '+addr.state+' - '+addr.pincode+'</div></div>' : ''}
+                          ${order.order_type === 'dine_in' ? '<div style="text-align:right"><div class="label">Order Type</div><div class="value">🍽️ '+dineInLabel+'</div></div>' : addr.addressLine1 ? '<div style="text-align:right"><div class="label">Deliver To</div><div class="value">'+(addr.recipientName||'')+'</div><div class="small">'+addr.addressLine1+(addr.addressLine2?', '+addr.addressLine2:'')+'</div><div class="small">'+addr.city+', '+addr.state+' - '+addr.pincode+'</div></div>' : ''}
                         </div>
                         <div class="divider"></div>
                         <table>
@@ -507,7 +513,7 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart, storeId, c
                       <p className="text-xs font-semibold mb-1" style={{ color: getFontHeaderColor() }}>{order.order_type === 'dine_in' ? '🍽️ Order Type' : '📍 Delivery Address'}</p>
                       {order.order_type === 'dine_in' ? (
                         <div className="text-sm p-3 rounded-lg bg-[#fff8e1]" style={{ color: getFontBodyColor() }}>
-                          <p className="font-medium">🍽️ Dine In</p>
+                          <p className="font-medium">🍽️ {dineInLabel}</p>
                         </div>
                       ) : order.deliveryAddress ? (
                         <div className="text-sm p-3 rounded-lg bg-[#f7f9fc]" style={{ color: getFontBodyColor() }}>
