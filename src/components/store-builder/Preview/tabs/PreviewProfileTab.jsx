@@ -32,6 +32,8 @@ const PreviewProfileTab = ({
   setDefaultAddress,
   updateProfileInfo,
   onLogout,
+  isFirstTime,
+  onProfileSaved,
 }) => {
   const { profile, brand, address } = data || {};
   const brandColors = brand?.colors || {};
@@ -77,6 +79,7 @@ const PreviewProfileTab = ({
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [editingAddressId, setEditingAddressId] = useState(null);
   const [editingProfile, setEditingProfile] = useState(false);
+  React.useEffect(() => { if (isFirstTime) setEditingProfile(true); }, [isFirstTime]);
   const [profileNameInput, setProfileNameInput] = useState(profile?.name || '');
   const [profileEmailInput, setProfileEmailInput] = useState(profile?.email || '');
   const [savingProfile, setSavingProfile] = useState(false);
@@ -103,6 +106,7 @@ const PreviewProfileTab = ({
       const result = await updateProfileInfo({ name: profileNameInput.trim(), email: profileEmailInput.trim() });
       if (result.success) {
         setEditingProfile(false);
+        if (isFirstTime && onProfileSaved) onProfileSaved();
       } else {
         alert(result.error || 'Failed to save. Please try again.');
       }

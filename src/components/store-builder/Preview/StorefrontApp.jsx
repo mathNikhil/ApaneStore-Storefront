@@ -19,6 +19,7 @@ const StorefrontApp = ({
   initialProductId = null,
 }) => {
   const [activeTab, setActiveTab] = useState('home');
+  const [isFirstTimeCustomer, setIsFirstTimeCustomer] = useState(false);
   const [customer, setCustomer] = useState(null);
   const [customerToken, setCustomerToken] = useState(null);
   const [checkoutNeedsAuth, setCheckoutNeedsAuth] = useState(false);
@@ -41,6 +42,11 @@ const StorefrontApp = ({
     setCustomer(customerData);
     setCustomerToken(token);
     setCheckoutNeedsAuth(false);
+    // First time customer — no name yet → send to profile to fill details
+    if (!customerData.name) {
+      setIsFirstTimeCustomer(true);
+      setTimeout(() => setActiveTab('profile'), 100);
+    }
     try {
       sessionStorage.setItem(`customer_session_${storeId}`, JSON.stringify({ customer: customerData, token }));
     } catch (e) {
@@ -292,6 +298,8 @@ const StorefrontApp = ({
             setDefaultAddress={setDefaultAddress}
             updateProfileInfo={updateProfileInfo}
             onLogout={handleLogout}
+            isFirstTime={isFirstTimeCustomer}
+            onProfileSaved={() => { setIsFirstTimeCustomer(false); setActiveTab('home'); }}
           />
         );
       default:
