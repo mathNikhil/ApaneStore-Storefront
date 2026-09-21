@@ -101,6 +101,10 @@ const PreviewProfileTab = ({
 
   const handleSaveProfile = async () => {
     if (!updateProfileInfo) return;
+    if (!profileNameInput.trim()) {
+      alert('Please enter your name');
+      return;
+    }
     setSavingProfile(true);
     try {
       const result = await updateProfileInfo({ name: profileNameInput.trim(), email: profileEmailInput.trim() });
