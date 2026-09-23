@@ -137,6 +137,7 @@ function App() {
       className="min-h-screen"
       style={{ minHeight: '100vh', backgroundColor: builderData.brand.colors.background }}
       initialProductId={initialProductId}
+      stockMap={store.stockMap || {}}
     />
   );
 }

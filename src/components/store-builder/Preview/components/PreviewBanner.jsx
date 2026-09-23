@@ -41,11 +41,10 @@ const PreviewBanner = ({
 
   return (
     <div 
-      className="relative w-full overflow-hidden rounded-xl mb-6"
+      className="relative overflow-hidden mb-6"
       style={{ 
         height: `${height || 400}px`,
         backgroundColor: bgColor || '#25D366',
-        minHeight: '200px'
       }}
     >
       {image ? (
@@ -53,7 +52,7 @@ const PreviewBanner = ({
           <img 
             src={image} 
             alt="Store Banner" 
-            className="w-full h-full object-cover"
+            style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center" }}
           />
           <div className={`absolute inset-0 flex flex-col justify-center p-6 ${getAlignmentClass()}`}>
             {showText && (

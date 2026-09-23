@@ -12,6 +12,7 @@ import { DeviceFrameContext } from './DeviceFrameContext';
 
 const StorefrontApp = ({
   builderData,
+  stockMap = {},
   storeId,
   device = 'desktop',
   className = '',
@@ -254,6 +255,7 @@ const StorefrontApp = ({
             data={storeData}
             onAddToCart={handleAddToCart}
             device={device}
+            stockMap={stockMap}
             initialProductId={initialProductId}
           />
         );
@@ -308,6 +310,7 @@ const StorefrontApp = ({
             data={storeData}
             onAddToCart={handleAddToCart}
             device={device}
+            stockMap={stockMap}
             initialProductId={initialProductId}
           />
         );

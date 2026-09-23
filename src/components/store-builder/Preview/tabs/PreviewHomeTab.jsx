@@ -7,6 +7,7 @@ const PreviewHomeTab = ({
   onAddToCart,
   device = 'desktop',
   initialProductId = null,
+  stockMap = {},
 }) => {
   const { banner, categories, brand, products, enableProductSearch, settings = {} } = data;
   const brandFonts = brand.fonts || { heading: 'Inter', body: 'Inter' };
@@ -150,15 +151,14 @@ const PreviewHomeTab = ({
                   <button
                     key={cat.id}
                     onClick={() => { setSelectedCategory(cat.id); clearSearch(); }}
-                    className="flex flex-col items-center gap-1 flex-shrink-0 hover:opacity-80 transition-opacity"
+                    className="flex flex-col items-center gap-1 flex-shrink-0 hover:opacity-80 transition-opacity outline-none focus:outline-none border-0 bg-transparent p-0 appearance-none"
                     style={{ width: '80px' }}
                   >
                     {hasCatImage ? (
                       <img
                         src={cat.image.url || cat.image.preview}
                         alt={cat.name}
-                        className={`object-cover w-16 h-16 ${imgShapeClass} border-2 transition-colors`}
-                        style={{ borderColor: isSelected ? brand.colors.primary : 'transparent' }}
+                        className={`object-cover w-16 h-16 ${imgShapeClass}`}
                       />
                     ) : (
                       <div
@@ -190,8 +190,8 @@ const PreviewHomeTab = ({
                   ) : (
                     <div className="w-full h-full" style={{ backgroundColor: brand.colors.secondary }} />
                   )}
-                  <div className="absolute inset-0 flex items-end p-2" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 60%)' }}>
-                    <span className="text-white text-xs font-semibold leading-tight text-center w-full">{cat.name}</span>
+                  <div className="absolute bottom-0 left-0 right-0 flex items-end p-1.5" style={{ background: `linear-gradient(to top, ${brand.colors.secondary}EE 0%, ${brand.colors.secondary}22 60%, transparent 100%)`, height: '35%' }}>
+                    <span className="text-xs font-semibold leading-tight text-center w-full drop-shadow" style={{ color: isSelected ? brand.colors.primary : brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter', textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}>{cat.name}</span>
                   </div>
                 </button>
               );
@@ -224,6 +224,7 @@ const PreviewHomeTab = ({
               zoomEnabled={data.settings?.enableImageZoom !== false}
               autoSlide={settings.autoSlideProductImages || false}
               addToCartLabel={data.addToCartLabel || 'Add to Cart'}
+              stockMap={stockMap}
               autoOpen={initialProductId !== null && String(product.id) === String(initialProductId)}
             />
           ))}
