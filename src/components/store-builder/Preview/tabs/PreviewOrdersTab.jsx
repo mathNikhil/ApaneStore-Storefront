@@ -35,6 +35,30 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart, storeId, c
   const storeAddress = data && data.profile && data.profile.storeAddress ? data.profile.storeAddress : '';
   const storeLogo = data && data.brand && data.brand.logo ? data.brand.logo : null;
   const storeGST = data && data.cart && data.cart.gstNumber ? data.cart.gstNumber : '';
+  const storePAN = data?.cart?.panNumber || '';
+  const storeState = data?.cart?.storeState || '';
+  const hsnCode = data?.cart?.hsnCode || '';
+  const enableGST = data?.cart?.enableGST || false;
+  const gstRate = parseFloat(data?.cart?.gstRate || 0);
+  const cgstRate = gstRate / 2;
+  const sgstRate = gstRate / 2;
+
+  const amountInWords = (num) => {
+    const ones = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+    const tens = ['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+    if (num === 0) return 'Zero';
+    const convert = (n) => {
+      if (n < 20) return ones[n];
+      if (n < 100) return tens[Math.floor(n/10)] + (n%10 ? ' ' + ones[n%10] : '');
+      if (n < 1000) return ones[Math.floor(n/100)] + ' Hundred' + (n%100 ? ' ' + convert(n%100) : '');
+      if (n < 100000) return convert(Math.floor(n/1000)) + ' Thousand' + (n%1000 ? ' ' + convert(n%1000) : '');
+      if (n < 10000000) return convert(Math.floor(n/100000)) + ' Lakh' + (n%100000 ? ' ' + convert(n%100000) : '');
+      return convert(Math.floor(n/10000000)) + ' Crore' + (n%10000000 ? ' ' + convert(n%10000000) : '');
+    };
+    const rupees = Math.floor(num);
+    const paise = Math.round((num - rupees) * 100);
+    return convert(rupees) + ' Rupees' + (paise ? ' and ' + convert(paise) + ' Paise' : '') + ' Only';
+  };
   const dineInLabel = data?.cart?.dineInLabel || 'Dine In';
   const returnConfig = data && data.return ? data.return : {};
 
@@ -418,12 +442,17 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart, storeId, c
                       onClick={function() {
                         // Generate printable bill in new window
                         const addr = order.deliveryAddress || {};
-                        const html = `<!DOCTYPE html><html><head><title>Order Bill - ${order.id}</title><style>
+                        const invoiceNo = 'INV-' + (order.id || '').slice(-10).toUpperCase();
+                        const taxableAmt = enableGST && gstRate > 0 ? (order.total / (1 + gstRate/100)).toFixed(2) : order.subtotal.toFixed(2);
+                        const cgstAmt = enableGST && order.gst > 0 ? (order.gst / 2).toFixed(2) : '0.00';
+                        const sgstAmt = cgstAmt;
+                        const html = `<!DOCTYPE html><html><head><title>Tax Invoice - ${invoiceNo}</title><style>
                           body{font-family:Arial,sans-serif;max-width:700px;margin:24px auto;padding:24px;color:#191c1e;}
                           .header{text-align:center;margin-bottom:16px;}
                           .store-name{font-size:22px;font-weight:800;}
                           .divider{border-top:1px solid #e0e3e6;margin:14px 0;}
-                          .bill-title{text-align:center;font-size:13px;font-weight:700;letter-spacing:3px;color:#556067;margin-bottom:14px;}
+                          .bill-title{text-align:center;font-size:13px;font-weight:700;letter-spacing:3px;color:#556067;margin-bottom:4px;}
+                          .original{text-align:center;font-size:11px;color:#556067;margin-bottom:14px;}
                           .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:8px;}
                           .label{font-size:10px;color:#8e9eab;font-weight:700;text-transform:uppercase;margin-bottom:3px;}
                           .value{font-size:13px;font-weight:600;}
@@ -434,6 +463,9 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart, storeId, c
                           .total-row{display:flex;justify-content:space-between;font-size:12px;color:#556067;margin-bottom:3px;}
                           .grand-total{display:flex;justify-content:space-between;font-size:15px;font-weight:800;color:#006d2f;margin-top:6px;}
                           .footer{text-align:center;font-size:11px;color:#8e9eab;margin-top:16px;}
+                          .words{font-size:12px;color:#556067;font-style:italic;border-top:1px dashed #e0e3e6;padding-top:8px;margin-top:8px;}
+                          .signatory{display:flex;justify-content:flex-end;margin-top:24px;}
+                          .sign-box{text-align:center;border-top:1px solid #556067;padding-top:4px;font-size:11px;color:#556067;width:160px;}
                           @media print{@page{size:A4;margin:10mm;}}
                         </style></head><body>
                         <div class="header">
@@ -443,36 +475,46 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart, storeId, c
                           ${storePhone ? '<div class="small">📞 '+storePhone+'</div>' : ''}
                           ${storeEmail ? '<div class="small">✉ '+storeEmail+'</div>' : ''}
                           ${storeGST ? '<div class="small">GSTIN: '+storeGST+'</div>' : ''}
+                          ${storePAN ? '<div class="small">PAN: '+storePAN+'</div>' : ''}
                         </div>
                         <div class="divider"></div>
-                        <div class="bill-title">ORDER INVOICE</div>
+                        <div class="bill-title">TAX INVOICE</div>
+                        <div class="original">Original for Recipient</div>
                         <div class="grid">
-                          <div><div class="label">Order ID</div><div class="value">#${order.id}</div></div>
+                          <div><div class="label">Invoice No.</div><div class="value">${invoiceNo}</div><div class="small">Order: #${(order.id||'').slice(-8)}</div></div>
                           <div style="text-align:right"><div class="label">Date</div><div class="value">${order.date}</div></div>
-                          <div><div class="label">Payment</div><div class="value">${order.paymentMethod === 'cod' ? 'Cash on Delivery' : order.paymentMethod === 'upi' ? 'UPI' : order.paymentMethod || 'N/A'}</div></div>
+                          <div><div class="label">Payment</div><div class="value">${order.paymentMethodId === 'cod' || order.paymentMethod === 'cod' ? 'Cash on Delivery' : order.paymentMethodId === 'upi' || order.paymentMethod === 'upi' ? 'UPI' : order.paymentMethodId || order.paymentMethod || 'N/A'}</div></div>
                           <div style="text-align:right"><div class="label">Status</div><div class="value">${order.statusText || order.status}</div></div>
+                          <div><div class="label">Place of Supply</div><div class="value">${storeState || 'N/A'}</div></div>
+                          <div style="text-align:right"><div class="label">Reverse Charge</div><div class="value">No</div></div>
                         </div>
                         <div class="divider"></div>
                         <div class="grid">
-                          <div><div class="label">Customer</div><div class="value">${order.customerName || 'Customer'}</div>${order.customerPhone ? '<div class="small">📞 '+order.customerPhone+'</div>' : ''}</div>
-                          ${order.order_type === 'dine_in' ? '<div style="text-align:right"><div class="label">Order Type</div><div class="value">🍽️ '+dineInLabel+'</div></div>' : addr.addressLine1 ? '<div style="text-align:right"><div class="label">Deliver To</div><div class="value">'+(addr.recipientName||'')+'</div><div class="small">'+addr.addressLine1+(addr.addressLine2?', '+addr.addressLine2:'')+'</div><div class="small">'+addr.city+', '+addr.state+' - '+addr.pincode+'</div></div>' : ''}
+                          <div><div class="label">Bill To</div><div class="value">${order.customerName || 'Customer'}</div>${order.customerPhone ? '<div class="small">📞 '+order.customerPhone+'</div>' : ''}</div>
+                          ${order.order_type === 'dine_in' ? '<div style="text-align:right"><div class="label">Order Type</div><div class="value">🍽️ '+dineInLabel+'</div></div>' : addr.addressLine1 ? '<div style="text-align:right"><div class="label">Ship To</div><div class="value">'+(addr.recipientName||order.customerName||'')+'</div><div class="small">'+addr.addressLine1+(addr.addressLine2?', '+addr.addressLine2:'')+'</div><div class="small">'+addr.city+', '+addr.state+' - '+addr.pincode+'</div></div>' : ''}
                         </div>
                         <div class="divider"></div>
                         <table>
-                          <thead><tr><th>Item</th><th>Variant</th><th style="text-align:center">Qty</th><th style="text-align:right">Price</th><th style="text-align:right">Subtotal</th></tr></thead>
-                          <tbody>${order.items.map(item => '<tr><td><div style="display:flex;align-items:center;gap:10px">'+(item.image ? '<img src="'+item.image+'" style="width:40px;height:40px;object-fit:cover;border-radius:6px;flex-shrink:0" />' : '<div style="width:40px;height:40px;background:#f2f4f7;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:18px">📦</div>')+'<span>'+item.name+'</span></div></td><td style="color:#8e9eab;font-size:11px">'+(item.weight||item.variant||'—')+'</td><td style="text-align:center">'+item.quantity+'</td><td style="text-align:right">₹'+item.price.toFixed(2)+'</td><td style="text-align:right;font-weight:600">₹'+item.total.toFixed(2)+'</td></tr>').join('')}</tbody>
+                          <thead><tr><th>Item</th><th>HSN/SAC</th><th>Variant</th><th style="text-align:right">Taxable Value</th><th style="text-align:center">Qty</th><th style="text-align:right">Price</th><th style="text-align:right">Subtotal</th></tr></thead>
+                          <tbody>${order.items.map(item => {
+                            const itemTotal = item.price * item.quantity;
+                            const itemTaxable = enableGST && gstRate > 0 ? (itemTotal / (1 + gstRate/100)).toFixed(2) : itemTotal.toFixed(2);
+                            return '<tr><td><div style="display:flex;align-items:center;gap:10px">'+(item.image ? '<img src="'+item.image+'" style="width:40px;height:40px;object-fit:cover;border-radius:6px;flex-shrink:0" />' : '<div style="width:40px;height:40px;background:#f2f4f7;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:18px">📦</div>')+'<span>'+item.name+'</span></div></td><td style="color:#8e9eab;font-size:11px">'+(hsnCode||'—')+'</td><td style="color:#8e9eab;font-size:11px">'+(item.weight||item.variant||'—')+'</td><td style="text-align:right">₹'+itemTaxable+'</td><td style="text-align:center">'+item.quantity+'</td><td style="text-align:right">₹'+item.price.toFixed(2)+'</td><td style="text-align:right;font-weight:600">₹'+item.total.toFixed(2)+'</td></tr>';
+                          }).join('')}</tbody>
                         </table>
-                        <div style="margin-left:auto;width:260px;margin-top:8px;">
-                          ${order.subtotal > 0 ? '<div class="total-row"><span>Subtotal</span><span>₹'+order.subtotal.toFixed(2)+'</span></div>' : ''}
-                          ${order.gst > 0 ? '<div class="total-row"><span>GST</span><span>₹'+order.gst.toFixed(2)+'</span></div>' : ''}
-                          <div class="total-row"><span>Delivery</span><span>${order.delivery === 0 ? 'FREE' : '₹'+order.delivery.toFixed(2)}</span></div>
+                        <div style="margin-left:auto;width:280px;margin-top:8px;">
+                          ${enableGST && order.gst > 0 ? '<div class="total-row"><span>Taxable Amount</span><span>₹'+taxableAmt+'</span></div><div class="total-row"><span>CGST @ '+cgstRate+'%</span><span>₹'+cgstAmt+'</span></div><div class="total-row"><span>SGST @ '+sgstRate+'%</span><span>₹'+sgstAmt+'</span></div>' : order.gst > 0 ? '<div class="total-row"><span>GST</span><span>₹'+order.gst.toFixed(2)+'</span></div>' : ''}
+                          ${order.delivery > 0 ? '<div class="total-row"><span>Delivery</span><span>₹'+order.delivery.toFixed(2)+'</span></div>' : '<div class="total-row"><span>Delivery</span><span>FREE</span></div>'}
                           <div class="divider"></div>
                           <div class="grand-total"><span>TOTAL</span><span>₹${order.total.toFixed(2)}</span></div>
                         </div>
+                        <div class="words"><strong>Amount in Words:</strong> ${amountInWords(order.total)}</div>
+                        <div class="signatory"><div class="sign-box">Authorized Signatory<br/>${storeName}</div></div>
                         <div class="divider"></div>
                         <div class="footer">
                           <div>Thank you for your order! 🎉</div>
-                          <div style="margin-top:4px">Powered by AapnaEstore · aapnaestore.com</div>
+                          <div style="margin-top:4px">This is a computer generated invoice.</div>
+                          <div style="margin-top:2px">Powered by AapnaEstore · aapnaestore.com</div>
                         </div>
                         </body></html>`;
                         const w = window.open('', '_blank');
