@@ -1,5 +1,36 @@
 import React, { useState } from 'react';
 
+const INDIAN_STATES = ['Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa','Gujarat','Haryana','Himachal Pradesh','Jharkhand','Karnataka','Kerala','Madhya Pradesh','Maharashtra','Manipur','Meghalaya','Mizoram','Nagaland','Odisha','Punjab','Rajasthan','Sikkim','Tamil Nadu','Telangana','Tripura','Uttar Pradesh','Uttarakhand','West Bengal','Delhi','Jammu and Kashmir','Ladakh','Puducherry','Chandigarh','Andaman and Nicobar Islands','Dadra and Nagar Haveli and Daman and Diu','Lakshadweep'];
+
+const CITIES_BY_STATE = {
+  'Delhi': ['New Delhi','Delhi','Dwarka','Rohini','Pitam Pura','Janakpuri','Laxmi Nagar','Saket','Noida Extension'],
+  'Maharashtra': ['Mumbai','Pune','Nagpur','Nashik','Aurangabad','Solapur','Kolhapur','Amravati','Thane','Navi Mumbai'],
+  'Karnataka': ['Bengaluru','Mysuru','Hubli','Mangaluru','Belagavi','Kalaburagi','Davanagere','Ballari','Vijayapura'],
+  'Tamil Nadu': ['Chennai','Coimbatore','Madurai','Tiruchirappalli','Salem','Tirunelveli','Vellore','Erode','Thoothukudi'],
+  'Gujarat': ['Ahmedabad','Surat','Vadodara','Rajkot','Bhavnagar','Jamnagar','Junagadh','Gandhinagar','Anand'],
+  'Uttar Pradesh': ['Lucknow','Kanpur','Agra','Varanasi','Meerut','Allahabad','Ghaziabad','Bareilly','Aligarh','Noida'],
+  'Rajasthan': ['Jaipur','Jodhpur','Udaipur','Kota','Bikaner','Ajmer','Alwar','Bhilwara','Sikar'],
+  'West Bengal': ['Kolkata','Howrah','Durgapur','Asansol','Siliguri','Bardhaman','Malda','Baharampur'],
+  'Andhra Pradesh': ['Visakhapatnam','Vijayawada','Guntur','Nellore','Kurnool','Rajahmundry','Tirupati','Kakinada'],
+  'Telangana': ['Hyderabad','Warangal','Karimnagar','Nizamabad','Khammam','Secunderabad','Ramagundam'],
+  'Kerala': ['Thiruvananthapuram','Kochi','Kozhikode','Thrissur','Kannur','Kollam','Palakkad','Alappuzha'],
+  'Madhya Pradesh': ['Bhopal','Indore','Jabalpur','Gwalior','Ujjain','Sagar','Dewas','Satna'],
+  'Bihar': ['Patna','Gaya','Bhagalpur','Muzaffarpur','Purnia','Darbhanga','Bihar Sharif','Arrah'],
+  'Punjab': ['Ludhiana','Amritsar','Jalandhar','Patiala','Bathinda','Mohali','Hoshiarpur','Firozpur'],
+  'Haryana': ['Gurugram','Faridabad','Panipat','Ambala','Rohtak','Hisar','Karnal','Sonipat'],
+  'Odisha': ['Bhubaneswar','Cuttack','Rourkela','Brahmapur','Sambalpur','Puri','Balasore'],
+  'Jharkhand': ['Ranchi','Jamshedpur','Dhanbad','Bokaro','Deoghar','Hazaribagh','Giridih'],
+  'Chhattisgarh': ['Raipur','Bhilai','Bilaspur','Korba','Durg','Rajnandgaon','Jagdalpur'],
+  'Uttarakhand': ['Dehradun','Haridwar','Roorkee','Haldwani','Rudrapur','Kashipur','Rishikesh'],
+  'Himachal Pradesh': ['Shimla','Dharamsala','Solan','Mandi','Palampur','Baddi','Nahan'],
+  'Assam': ['Guwahati','Silchar','Dibrugarh','Jorhat','Nagaon','Tinsukia','Tezpur'],
+  'Goa': ['Panaji','Margao','Mapusa','Ponda','Bicholim','Sanquelim'],
+  'Puducherry': ['Puducherry','Karaikal','Mahe','Yanam'],
+  'Chandigarh': ['Chandigarh'],
+  'Jammu and Kashmir': ['Srinagar','Jammu','Anantnag','Baramulla','Sopore','Udhampur'],
+  'Ladakh': ['Leh','Kargil'],
+};
+
 // Minimal inline brand icons — avoids depending on Material Symbols, which
 // doesn't include social platform logos.
 const FacebookIcon = (props) => (
