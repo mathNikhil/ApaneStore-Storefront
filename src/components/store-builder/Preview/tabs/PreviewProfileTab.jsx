@@ -585,18 +585,26 @@ const PreviewProfileTab = ({
                 <label className="block text-xs font-medium mb-1" style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>
                   City <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="text"
+                <select
                   value={addressForm.city}
                   onChange={(e) => handleAddressChange('city', e.target.value)}
-                  placeholder="Search city"
-                  list="city-options"
-                  className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                  className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10 bg-white"
                   style={{ borderColor: brandColors.secondary }}
-                />
-                <datalist id="city-options">
-                  {(CITIES_BY_STATE[addressForm.state] || []).map(c => <option key={c} value={c} />)}
-                </datalist>
+                >
+                  <option value="">Select city</option>
+                  {(CITIES_BY_STATE[addressForm.state] || []).map(c => <option key={c} value={c}>{c}</option>)}
+                  <option value={addressForm.city && !( CITIES_BY_STATE[addressForm.state] || []).includes(addressForm.city) ? addressForm.city : '__other__'}>Other</option>
+                </select>
+                {(addressForm.city === '__other__' || (addressForm.city && !(CITIES_BY_STATE[addressForm.state] || []).includes(addressForm.city))) && (
+                  <input
+                    type="text"
+                    value={addressForm.city === '__other__' ? '' : addressForm.city}
+                    onChange={(e) => handleAddressChange('city', e.target.value)}
+                    placeholder="Enter city name"
+                    className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10 mt-2"
+                    style={{ borderColor: brandColors.secondary }}
+                  />
+                )}
               </div>
             )}
 
