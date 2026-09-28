@@ -549,6 +549,37 @@ const PreviewProfileTab = ({
               </div>
             )}
 
+            {/* Country — always shown */}
+            <div>
+              <label className="block text-xs font-medium mb-1" style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>
+                Country
+              </label>
+              <input
+                type="text"
+                value="India"
+                disabled
+                className="w-full px-3 py-2 border rounded-lg text-sm bg-gray-50 text-gray-500"
+                style={{ borderColor: brandColors.secondary }}
+              />
+            </div>
+
+            {addressFields.state && (
+              <div>
+                <label className="block text-xs font-medium mb-1" style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>
+                  State <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={addressForm.state}
+                  onChange={(e) => handleAddressChange('state', e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10 bg-white"
+                  style={{ borderColor: brandColors.secondary }}
+                >
+                  <option value="">Select state</option>
+                  {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+            )}
+
             {addressFields.city && (
               <div>
                 <label className="block text-xs font-medium mb-1" style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>
@@ -566,23 +597,6 @@ const PreviewProfileTab = ({
                 <datalist id="city-options">
                   {(CITIES_BY_STATE[addressForm.state] || []).map(c => <option key={c} value={c} />)}
                 </datalist>
-              </div>
-            )}
-
-            {addressFields.state && (
-              <div>
-                <label className="block text-xs font-medium mb-1" style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>
-                  State <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={addressForm.state}
-                  onChange={(e) => handleAddressChange('state', e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10 bg-white"
-                  style={{ borderColor: brandColors.secondary }}
-                >
-                  <option value="">Select state</option>
-                  {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
               </div>
             )}
 
