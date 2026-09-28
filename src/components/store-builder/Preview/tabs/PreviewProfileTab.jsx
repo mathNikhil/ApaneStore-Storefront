@@ -115,7 +115,9 @@ const PreviewProfileTab = ({
   const [profileEmailInput, setProfileEmailInput] = useState(profile?.email || '');
   const [savingProfile, setSavingProfile] = useState(false);
 
+  const [isInternational, setIsInternational] = useState(false);
   const [addressForm, setAddressForm] = useState({
+    country: 'India',
     label: 'Home',
     recipientName: '',
     recipientMobile: '',
@@ -549,18 +551,49 @@ const PreviewProfileTab = ({
               </div>
             )}
 
-            {/* Country — always shown */}
+            {/* Country with International toggle */}
             <div>
-              <label className="block text-xs font-medium mb-1" style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>
-                Country
-              </label>
-              <input
-                type="text"
-                value="India"
-                disabled
-                className="w-full px-3 py-2 border rounded-lg text-sm bg-gray-50 text-gray-500"
-                style={{ borderColor: brandColors.secondary }}
-              />
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-medium" style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>
+                  Country
+                </label>
+                <div className="flex gap-1">
+                <button
+                  type="button"
+                  onClick={() => { setIsInternational(false); handleAddressChange('country', 'India'); }}
+                  className="text-xs font-medium px-2 py-1 rounded-full transition-all"
+                  style={{ background: !isInternational ? brandColors.primary : '#f0f0f0', color: !isInternational ? '#fff' : '#556067' }}
+                >
+                  🇮🇳 India
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setIsInternational(true); handleAddressChange('country', ''); }}
+                  className="text-xs font-medium px-2 py-1 rounded-full transition-all"
+                  style={{ background: isInternational ? brandColors.primary : '#f0f0f0', color: isInternational ? '#fff' : '#556067' }}
+                >
+                  🌍 International
+                </button>
+              </div>
+              </div>
+              {isInternational ? (
+                <input
+                  type="text"
+                  value={addressForm.country || ''}
+                  onChange={(e) => handleAddressChange('country', e.target.value)}
+                  placeholder="Enter country"
+                  className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                  style={{ borderColor: brandColors.secondary }}
+                />
+              ) : (
+                <input
+                  type="text"
+                  value="India"
+                  disabled
+                  className="w-full px-3 py-2 border rounded-lg text-sm bg-gray-50 text-gray-500"
+                  style={{ borderColor: brandColors.secondary }}
+                />
+              )}
             </div>
 
             {addressFields.state && (
@@ -568,15 +601,26 @@ const PreviewProfileTab = ({
                 <label className="block text-xs font-medium mb-1" style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>
                   State <span className="text-red-500">*</span>
                 </label>
-                <select
-                  value={addressForm.state}
-                  onChange={(e) => handleAddressChange('state', e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10 bg-white"
-                  style={{ borderColor: brandColors.secondary }}
-                >
-                  <option value="">Select state</option>
-                  {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
+                {isInternational ? (
+                  <input
+                    type="text"
+                    value={addressForm.state}
+                    onChange={(e) => handleAddressChange('state', e.target.value)}
+                    placeholder="Enter state / province"
+                    className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                    style={{ borderColor: brandColors.secondary }}
+                  />
+                ) : (
+                  <select
+                    value={addressForm.state}
+                    onChange={(e) => handleAddressChange('state', e.target.value)}
+                    className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10 bg-white"
+                    style={{ borderColor: brandColors.secondary }}
+                  >
+                    <option value="">Select state</option>
+                    {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                )}
               </div>
             )}
 
@@ -585,25 +629,38 @@ const PreviewProfileTab = ({
                 <label className="block text-xs font-medium mb-1" style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>
                   City <span className="text-red-500">*</span>
                 </label>
-                <select
-                  value={addressForm.city}
-                  onChange={(e) => handleAddressChange('city', e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10 bg-white"
-                  style={{ borderColor: brandColors.secondary }}
-                >
-                  <option value="">Select city</option>
-                  {(CITIES_BY_STATE[addressForm.state] || []).map(c => <option key={c} value={c}>{c}</option>)}
-                  <option value={addressForm.city && !( CITIES_BY_STATE[addressForm.state] || []).includes(addressForm.city) ? addressForm.city : '__other__'}>Other</option>
-                </select>
-                {(addressForm.city === '__other__' || (addressForm.city && !(CITIES_BY_STATE[addressForm.state] || []).includes(addressForm.city))) && (
+                {isInternational ? (
                   <input
                     type="text"
-                    value={addressForm.city === '__other__' ? '' : addressForm.city}
+                    value={addressForm.city}
                     onChange={(e) => handleAddressChange('city', e.target.value)}
-                    placeholder="Enter city name"
-                    className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10 mt-2"
+                    placeholder="Enter city"
+                    className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
                     style={{ borderColor: brandColors.secondary }}
                   />
+                ) : (
+                  <>
+                    <select
+                      value={addressForm.city}
+                      onChange={(e) => handleAddressChange('city', e.target.value)}
+                      className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10 bg-white"
+                      style={{ borderColor: brandColors.secondary }}
+                    >
+                      <option value="">Select city</option>
+                      {(CITIES_BY_STATE[addressForm.state] || []).map(c => <option key={c} value={c}>{c}</option>)}
+                      <option value="__other__">Other</option>
+                    </select>
+                    {(addressForm.city === '__other__' || (addressForm.city && !(CITIES_BY_STATE[addressForm.state] || []).includes(addressForm.city) && addressForm.city !== '')) && (
+                      <input
+                        type="text"
+                        value={addressForm.city === '__other__' ? '' : addressForm.city}
+                        onChange={(e) => handleAddressChange('city', e.target.value)}
+                        placeholder="Enter city name"
+                        className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10 mt-2"
+                        style={{ borderColor: brandColors.secondary }}
+                      />
+                    )}
+                  </>
                 )}
               </div>
             )}
