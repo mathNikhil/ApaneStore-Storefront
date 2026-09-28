@@ -558,10 +558,14 @@ const PreviewProfileTab = ({
                   type="text"
                   value={addressForm.city}
                   onChange={(e) => handleAddressChange('city', e.target.value)}
-                  placeholder="Enter city"
+                  placeholder="Search city"
+                  list="city-options"
                   className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
                   style={{ borderColor: brandColors.secondary }}
                 />
+                <datalist id="city-options">
+                  {(CITIES_BY_STATE[addressForm.state] || []).map(c => <option key={c} value={c} />)}
+                </datalist>
               </div>
             )}
 
@@ -570,14 +574,15 @@ const PreviewProfileTab = ({
                 <label className="block text-xs font-medium mb-1" style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>
                   State <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="text"
+                <select
                   value={addressForm.state}
                   onChange={(e) => handleAddressChange('state', e.target.value)}
-                  placeholder="Enter state"
-                  className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                  className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10 bg-white"
                   style={{ borderColor: brandColors.secondary }}
-                />
+                >
+                  <option value="">Select state</option>
+                  {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
               </div>
             )}
 
