@@ -188,7 +188,7 @@ const PreviewCustomerAuth = ({ brand, storeId, onAuthenticated, onCancel }) => {
               <div className="flex items-center border border-[#bbcbb9] rounded-lg overflow-hidden">
                 <span className="px-3 py-3 bg-[#f2f4f7] text-sm text-[#556067]">+91</span>
                 <input
-                  type="tel"
+                  type="tel" inputMode="numeric" pattern="[0-9]*"
                   maxLength={10}
                   placeholder="9876543210"
                   value={mobile}
@@ -242,7 +242,7 @@ const PreviewCustomerAuth = ({ brand, storeId, onAuthenticated, onCancel }) => {
               <input
                 key={index}
                 ref={(el) => (inputRefs.current[index] = el)}
-                type="text"
+                type="text" inputMode="numeric" pattern="[0-9]*"
                 maxLength={1}
                 value={digit}
                 onChange={(e) => handleOtpChange(index, e.target.value)}
