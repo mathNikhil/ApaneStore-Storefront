@@ -289,17 +289,23 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
         // ============================================
         profile: {
           ...prev.profile,
-          officeNumber: builderData.officeNumber || prev.profile.officeNumber,
-          supportTime: builderData.supportTime || prev.profile.supportTime,
-          supportEmail: builderData.supportEmail || prev.profile.supportEmail,
-          aboutUs: builderData.aboutUs || prev.profile.aboutUs,
+          officeNumber: builderData.profileSettings?.officeNumber || builderData.officeNumber || prev.profile.officeNumber,
+          supportTime: builderData.profileSettings?.supportTime || builderData.supportTime || prev.profile.supportTime,
+          supportEmail: builderData.profileSettings?.supportEmail || builderData.supportEmail || prev.profile.supportEmail,
+          aboutUs: builderData.profileSettings?.aboutUs || builderData.aboutUs || prev.profile.aboutUs,
+          storeAddress: builderData.profileSettings?.storeAddress || builderData.storeAddress || prev.profile.storeAddress || '',
+          storeState: builderData.profileSettings?.storeState || builderData.storeState || prev.profile.storeState || '',
+          storeCity: builderData.profileSettings?.storeCity || builderData.storeCity || prev.profile.storeCity || '',
+          storePincode: builderData.profileSettings?.storePincode || builderData.storePincode || prev.profile.storePincode || '',
+          returnPolicy: builderData.profileSettings?.returnPolicy || builderData.returnPolicy || prev.profile.returnPolicy || '',
+          storeLocations: builderData.profileSettings?.storeLocations || builderData.storeLocations || prev.profile.storeLocations || [],
           socialLinks: {
             ...prev.profile.socialLinks,
-            ...(builderData.socialLinks || {}),
+            ...(builderData.profileSettings?.socialLinks || builderData.socialLinks || {}),
           },
           feedbackLinks: {
             ...prev.profile.feedbackLinks,
-            ...(builderData.feedbackLinks || {}),
+            ...(builderData.profileSettings?.feedbackLinks || builderData.feedbackLinks || {}),
           },
         },
         // ============================================
