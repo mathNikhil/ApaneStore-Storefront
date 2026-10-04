@@ -738,6 +738,18 @@ const PreviewProfileTab = ({
         </p>
       </div>
 
+      {/* RETURN POLICY */}
+      {profile?.returnPolicy && (
+        <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brandColors.background || '#FFFFFF' }}>
+          <h3 className="font-semibold text-sm mb-2" style={{ color: brandColors.fontHeader, fontFamily: brandFonts?.body || 'Inter' }}>
+            Return Policy
+          </h3>
+          <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>
+            {profile.returnPolicy}
+          </p>
+        </div>
+      )}
+
       {/* SUPPORT DETAILS - From Step 7 */}
       <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brandColors.background || '#FFFFFF' }}>
         <h3 className="font-semibold text-sm mb-3" style={{ color: brandColors.fontHeader, fontFamily: brandFonts?.body || 'Inter' }}>
@@ -758,6 +770,46 @@ const PreviewProfileTab = ({
           </div>
         </div>
       </div>
+
+      {/* MAIN STORE ADDRESS */}
+      {profile?.storeAddress && (
+        <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brandColors.background || '#FFFFFF' }}>
+          <h3 className="font-semibold text-sm mb-3" style={{ color: brandColors.fontHeader, fontFamily: brandFonts?.body || 'Inter' }}>
+            Our Location
+          </h3>
+          <div className="flex items-start gap-2">
+            <span className="material-symbols-outlined text-base mt-0.5" style={{ color: brandColors.primary }}>location_on</span>
+            <div>
+              <p className="text-sm font-semibold" style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>
+                Main Store
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>
+                {profile.storeAddress}{profile.storeCity ? ', ' + profile.storeCity : ''}{profile.storeState ? ', ' + profile.storeState : ''}{profile.storePincode ? ' - ' + profile.storePincode : ''}
+              </p>
+            </div>
+          </div>
+
+          {/* Additional Locations */}
+          {(profile?.storeLocations || []).filter(loc => loc.name && loc.address).map(function(loc) {
+            return (
+              <div key={loc.id} className="flex items-start gap-2 mt-3 pt-3 border-t border-[#e0e3e6]">
+                <span className="material-symbols-outlined text-base mt-0.5" style={{ color: brandColors.primary }}>store</span>
+                <div>
+                  <p className="text-sm font-semibold" style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>
+                    {loc.name}
+                  </p>
+                  <p className="text-xs mt-0.5" style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>
+                    {loc.address}{loc.city ? ', ' + loc.city : ''}{loc.state ? ', ' + loc.state : ''}{loc.pincode ? ' - ' + loc.pincode : ''}
+                  </p>
+                  {loc.phone && (
+                    <p className="text-xs mt-0.5" style={{ color: brandColors.primary }}>📞 {loc.phone}</p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* SOCIAL MEDIA - From Step 7, clickable icons linking to the tenant's pages */}
       {socialEntries.length > 0 && (
