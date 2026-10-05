@@ -32,8 +32,8 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const gst = enableGST ? subtotal * (gstRate / 100) : 0;
   const delivery = orderType === 'dine_in' ? 0 : (freeDelivery
-    ? (subtotal >= freeDeliveryThreshold ? 0 : deliveryCharge)
-    : deliveryCharge);
+    ? (subtotal >= freeDeliveryThreshold ? 0 : (deliveryZoneInfo?.deliveryCost ?? deliveryCharge))
+    : (deliveryZoneInfo?.deliveryCost ?? deliveryCharge));
   const total = subtotal + gst + delivery;
   const remainingForFree = freeDeliveryThreshold - subtotal;
 
@@ -197,7 +197,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
         items: cart,
         deliveryAddress: orderType === 'dine_in' ? {} : currentAddress,
         subtotal: subtotal,
-        deliveryCharge: orderType === 'dine_in' ? 0 : deliveryCharge,
+        deliveryCharge: orderType === 'dine_in' ? 0 : (deliveryZoneInfo?.deliveryCost ?? deliveryCharge),
         taxAmount: gst,
         totalAmount: total,
         orderType: orderType,
