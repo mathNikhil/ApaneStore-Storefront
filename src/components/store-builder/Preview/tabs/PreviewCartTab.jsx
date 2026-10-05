@@ -57,8 +57,8 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
   };
 
   const paymentMethods = getPaymentMethods();
-  const deliveryZones = data?.deliveryZones || [];
-  const dineInLocations = data?.dineInLocations || [];
+  const deliveryZones = data?.cart?.deliveryZones || data?.deliveryZones || [];
+  const dineInLocations = data?.cart?.dineInLocations || data?.dineInLocations || [];
   const storeLocations = data?.profile?.storeLocations || [];
   const mainStore = { id: 'main', name: 'Main Store', address: data?.profile?.storeAddress || '' };
   const allLocations = [mainStore, ...storeLocations.filter(l => l.name && l.address)];

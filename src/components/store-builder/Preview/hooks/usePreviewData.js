@@ -138,6 +138,8 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
       taxLabel: 'GST',
       showGSTBreakdownCart: true,
       showGSTBreakdownCheckout: true,
+      deliveryZones: [],
+      dineInLocations: [],
     },
     // Real orders placed during this preview session (starts empty on purpose —
     // no mock/random orders, so the tenant sees exactly what a customer would).
@@ -283,6 +285,8 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
           taxLabel: builderData.taxLabel || prev.cart.taxLabel,
           showGSTBreakdownCart: builderData.showGSTBreakdownCart ?? prev.cart.showGSTBreakdownCart,
           showGSTBreakdownCheckout: builderData.showGSTBreakdownCheckout ?? prev.cart.showGSTBreakdownCheckout,
+          deliveryZones: builderData.deliveryZones || builderData.cart?.deliveryZones || prev.cart.deliveryZones || [],
+          dineInLocations: builderData.dineInLocations || builderData.cart?.dineInLocations || prev.cart.dineInLocations || [],
         },
         // ============================================
         // STEP 7: PROFILE DATA (About Us / Support Details)
