@@ -78,6 +78,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
     }
     for (const address of deliveryZones) {
       for (const zone of (address.zones || [])) {
+        if (!zone.pincode || !zone.pincode.trim()) continue; // skip empty zones
         if (pincode.startsWith(zone.pincode)) {
           return { allowed: true, storeAddressId: address.storeAddressId, storeAddressName: address.storeAddressName, deliveryZone: zone.area, deliveryCost: zone.deliveryCost || 0, flatRate: false };
         }
