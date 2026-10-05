@@ -74,7 +74,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
   // Resolve delivery zone by pincode
   const resolveDeliveryZone = (pincode) => {
     if (!pincode || deliveryZones.length === 0) {
-      return { allowed: true, storeAddressId: null, storeAddressName: null, deliveryZone: null, deliveryCost: data?.deliveryCharge || 0, flatRate: true };
+      return { allowed: true, storeAddressId: null, storeAddressName: null, deliveryZone: null, deliveryCost: deliveryCharge || 0, flatRate: true };
     }
     for (const address of deliveryZones) {
       for (const zone of (address.zones || [])) {
