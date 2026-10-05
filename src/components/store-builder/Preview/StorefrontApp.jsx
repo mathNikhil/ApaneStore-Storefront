@@ -203,6 +203,8 @@ const StorefrontApp = ({
     socialLinks: builderData.profile.socialLinks,
     feedbackLinks: builderData.profile.feedbackLinks,
     profile: builderData.profile,
+    deliveryZones: builderData.cart?.deliveryZones || builderData.deliveryZones || [],
+    dineInLocations: builderData.cart?.dineInLocations || builderData.dineInLocations || [],
     return: builderData.return,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [builderData]);

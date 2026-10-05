@@ -25,6 +25,9 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
 
   const { items, freeDelivery, freeDeliveryThreshold, deliveryCharge, showProgressBar, enableGST, gstRate, taxLabel, showGSTBreakdownCart, showGSTBreakdownCheckout, gstNumber, enableDineIn, dineInLabel } = cart;
   const [orderType, setOrderType] = useState('delivery'); // 'dine_in' or 'delivery'
+  const [selectedLocation, setSelectedLocation] = useState(null); // for dine-in location selection
+  const [deliveryZoneInfo, setDeliveryZoneInfo] = useState(null); // { allowed, storeAddressId, storeAddressName, deliveryZone, deliveryCost }
+  const [pincodeChecked, setPincodeChecked] = useState(false);
 
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const gst = enableGST ? subtotal * (gstRate / 100) : 0;
@@ -54,6 +57,46 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
   };
 
   const paymentMethods = getPaymentMethods();
+  const deliveryZones = data?.deliveryZones || [];
+  const dineInLocations = data?.dineInLocations || [];
+  const storeLocations = data?.profile?.storeLocations || [];
+  const mainStore = { id: 'main', name: 'Main Store', address: data?.profile?.storeAddress || '' };
+  const allLocations = [mainStore, ...storeLocations.filter(l => l.name && l.address)];
+  const hasMultipleLocations = allLocations.length > 1;
+
+  // Get dine-in enabled locations
+  const dineInEnabledLocations = allLocations.filter(loc => {
+    if (!dineInLocations.length) return true; // default all enabled
+    const found = dineInLocations.find(l => l.id === loc.id);
+    return found ? found.dineInEnabled !== false : true;
+  });
+
+  // Resolve delivery zone by pincode
+  const resolveDeliveryZone = (pincode) => {
+    if (!pincode || deliveryZones.length === 0) {
+      return { allowed: true, storeAddressId: null, storeAddressName: null, deliveryZone: null, deliveryCost: data?.deliveryCharge || 0, flatRate: true };
+    }
+    for (const address of deliveryZones) {
+      for (const zone of (address.zones || [])) {
+        if (pincode.startsWith(zone.pincode)) {
+          return { allowed: true, storeAddressId: address.storeAddressId, storeAddressName: address.storeAddressName, deliveryZone: zone.area, deliveryCost: zone.deliveryCost || 0, flatRate: false };
+        }
+      }
+    }
+    return { allowed: false, storeAddressId: null, storeAddressName: null, deliveryZone: null, deliveryCost: null, flatRate: false };
+  };
+
+  // Check pincode when address selected
+  React.useEffect(() => {
+    if (orderType === 'delivery' && currentAddress?.pincode) {
+      const zone = resolveDeliveryZone(currentAddress.pincode);
+      setDeliveryZoneInfo(zone);
+      setPincodeChecked(true);
+    } else {
+      setDeliveryZoneInfo(null);
+      setPincodeChecked(false);
+    }
+  }, [currentAddress, orderType, deliveryZones]);
 
   const handleCheckout = () => {
     if (items.length === 0) {
@@ -64,8 +107,16 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
       onRequireAuth?.();
       return;
     }
+    if (orderType === 'dine_in' && hasMultipleLocations && !selectedLocation) {
+      alert('Please select a location for dine-in');
+      return;
+    }
     if (orderType !== 'dine_in' && !currentAddress) {
       alert('Please add a delivery address from the Profile tab before checking out');
+      return;
+    }
+    if (orderType !== 'dine_in' && currentAddress?.pincode && deliveryZones.length > 0 && deliveryZoneInfo && !deliveryZoneInfo.allowed) {
+      alert('Sorry, we don\'t deliver to your area. Please check our delivery zones.');
       return;
     }
     setShowCheckout(true);
@@ -158,12 +209,31 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
     }
 
     setPlacingOrder(true);
+    // Determine branch info
+    let branchId = null;
+    let branchName = null;
+    let deliveryZoneName = null;
+    let finalDeliveryCost = orderType === 'dine_in' ? 0 : (deliveryZoneInfo?.deliveryCost ?? deliveryCharge);
+
+    if (orderType === 'dine_in' && selectedLocation) {
+      branchId = selectedLocation.id;
+      branchName = selectedLocation.name;
+    } else if (orderType === 'delivery' && deliveryZoneInfo) {
+      branchId = deliveryZoneInfo.storeAddressId;
+      branchName = deliveryZoneInfo.storeAddressName;
+      deliveryZoneName = deliveryZoneInfo.deliveryZone;
+    }
+
     const result = await placeOrder({
       address: orderType === 'dine_in' ? {} : currentAddress,
       paymentMethodId: selectedPayment,
       paymentMethodLabel: methodLabel,
       customerUpiId: selectedPayment === 'upi' ? customerUpiId.trim() : undefined,
       orderType: orderType,
+      branchId,
+      branchName,
+      deliveryZone: deliveryZoneName,
+      deliveryCost: finalDeliveryCost,
     });
     setPlacingOrder(false);
 
@@ -246,6 +316,16 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
             </p>
           ) : (
             <p className="text-sm text-[#ba1a1a]">No address selected</p>
+          )}
+
+          {/* Delivery zone validation */}
+          {currentAddress?.pincode && pincodeChecked && deliveryZones.length > 0 && (
+            <div className={`mt-2 px-3 py-2 rounded-lg text-xs font-semibold ${deliveryZoneInfo?.allowed ? 'bg-[#e8f5e9] text-[#006d2f]' : 'bg-[#ffdad6] text-[#ba1a1a]'}`}>
+              {deliveryZoneInfo?.allowed
+                ? `✅ Delivering from: ${deliveryZoneInfo.storeAddressName || 'Main Store'}${deliveryZoneInfo.deliveryZone ? ' · ' + deliveryZoneInfo.deliveryZone : ''} · ₹${deliveryZoneInfo.deliveryCost} delivery`
+                : `❌ Sorry, we don't deliver to pincode ${currentAddress.pincode}. We deliver to select areas only.`
+              }
+            </div>
           )}
         </div>
 
@@ -456,9 +536,9 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
               <p className="text-sm font-semibold mb-3" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>
                 How would you like your order?
               </p>
-              <div className="flex gap-3">
+              <div className="flex gap-3 mb-3">
                 <button
-                  onClick={() => setOrderType('dine_in')}
+                  onClick={() => { setOrderType('dine_in'); setSelectedLocation(hasMultipleLocations ? null : mainStore); }}
                   className="flex-1 py-2 px-4 rounded-lg border-2 text-sm font-semibold transition-colors"
                   style={{
                     borderColor: orderType === 'dine_in' ? brand.colors.primary : brand.colors.secondary,
@@ -470,7 +550,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                   🍽️ {dineInLabel || 'Dine In'}
                 </button>
                 <button
-                  onClick={() => setOrderType('delivery')}
+                  onClick={() => { setOrderType('delivery'); setSelectedLocation(null); }}
                   className="flex-1 py-2 px-4 rounded-lg border-2 text-sm font-semibold transition-colors"
                   style={{
                     borderColor: orderType === 'delivery' ? brand.colors.primary : brand.colors.secondary,
@@ -482,6 +562,27 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                   🚚 Delivery
                 </button>
               </div>
+
+              {/* Location selector for dine-in with multiple locations */}
+              {orderType === 'dine_in' && hasMultipleLocations && dineInEnabledLocations.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold mb-2" style={{ color: brand.colors.fontBody }}>Select Location</p>
+                  <div className="space-y-2">
+                    {dineInEnabledLocations.map(loc => (
+                      <button key={loc.id} onClick={() => setSelectedLocation(loc)}
+                        className="w-full text-left px-3 py-2 rounded-lg border-2 text-sm transition-colors"
+                        style={{
+                          borderColor: selectedLocation?.id === loc.id ? brand.colors.primary : brand.colors.secondary,
+                          background: selectedLocation?.id === loc.id ? brand.colors.primary + '15' : 'transparent',
+                          color: brand.colors.fontBody
+                        }}>
+                        <span className="font-semibold">{loc.name}</span>
+                        {loc.address && <span className="text-xs block opacity-70">{loc.address}</span>}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
