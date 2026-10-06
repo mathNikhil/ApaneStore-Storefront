@@ -261,8 +261,11 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
           textColor: builderData.textColor || prev.banner.textColor,
           textShadow: builderData.textShadow !== undefined ? builderData.textShadow : prev.banner.textShadow,
         },
-        categories: builderData.categories ? builderData.categories.map(adaptCategoryForPreview) : prev.categories,
-        products: builderData.categories ? builderData.categories.flatMap(cat => cat.products || []).map(adaptProductForPreview) : prev.products,
+        categories: builderData.categories ? builderData.categories.map(cat => ({
+            ...adaptCategoryForPreview(cat),
+            products: (cat.products || []).filter(p => !p._archived).map(adaptProductForPreview)
+          })).filter(cat => cat.products.length > 0) : prev.categories,
+        products: builderData.categories ? builderData.categories.flatMap(cat => (cat.products || []).filter(p => !p._archived)).map(adaptProductForPreview) : prev.products,
         addToCartLabel: builderData.addToCartLabel || builderData.products?.addToCartLabel || prev.addToCartLabel || 'Add to Cart',
         settings: {
           ...prev.settings,
