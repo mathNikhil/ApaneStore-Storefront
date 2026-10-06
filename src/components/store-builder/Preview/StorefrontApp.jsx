@@ -299,6 +299,16 @@ const StorefrontApp = ({
           />
         );
       case 'profile':
+        if (checkoutNeedsAuth && !customer) {
+          return (
+            <PreviewCustomerAuth
+              brand={storeData.brand}
+              storeId={storeId}
+              onAuthenticated={(data) => { handleAuthenticated(data); setCheckoutNeedsAuth(false); }}
+              onCancel={() => setCheckoutNeedsAuth(false)}
+            />
+          );
+        }
         return (
           <PreviewProfileTab
             data={storeData}
