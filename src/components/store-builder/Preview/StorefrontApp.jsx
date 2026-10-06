@@ -304,7 +304,12 @@ const StorefrontApp = ({
             <PreviewCustomerAuth
               brand={storeData.brand}
               storeId={storeId}
-              onAuthenticated={(data, token) => { handleAuthenticated(data, token); setCheckoutNeedsAuth(false); }}
+              onAuthenticated={(data, token) => { 
+                handleAuthenticated(data, token); 
+                setCheckoutNeedsAuth(false);
+                // Small delay to let token propagate before showing profile
+                setTimeout(() => setActiveTab('profile'), 100);
+              }}
               onCancel={() => setCheckoutNeedsAuth(false)}
             />
           );
