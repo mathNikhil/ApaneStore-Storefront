@@ -302,6 +302,7 @@ const StorefrontApp = ({
         return (
           <PreviewProfileTab
             data={storeData}
+            isAuthenticated={!!customer}
             customerMobile={customer?.phone}
             addAddress={addAddress}
             updateAddress={updateAddress}

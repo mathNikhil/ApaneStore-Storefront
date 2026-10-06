@@ -56,6 +56,7 @@ const YoutubeIcon = (props) => (
 
 const PreviewProfileTab = ({
   data,
+  isAuthenticated,
   customerMobile,
   addAddress,
   updateAddress,
@@ -238,7 +239,11 @@ const PreviewProfileTab = ({
   return (
     <div className="p-4 max-w-3xl mx-auto pb-24">
 
+
       {/* PROFILE HEADER */}
+      {/* PRIVATE SECTION */}
+      {isAuthenticated ? (
+        <div>
       <div className="rounded-lg border p-6 mb-6" style={{ backgroundColor: brandColors.background || '#FFFFFF' }}>
         <div className="flex items-center gap-4">
           <div
@@ -728,6 +733,17 @@ const PreviewProfileTab = ({
         </div>
       )}
 
+
+
+        </div>
+      ) : (
+        <div className="rounded-lg border p-4 mb-6 text-center" style={{ backgroundColor: brandColors.background || '#FFFFFF' }}>
+          <span className="material-symbols-outlined text-4xl mb-2 block" style={{ color: brandColors.primary }}>account_circle</span>
+          <p className="text-sm font-semibold mb-1" style={{ color: brandColors.fontHeader }}>Sign in to manage your profile</p>
+          <p className="text-xs" style={{ color: brandColors.fontBody }}>View your orders, manage addresses and more</p>
+        </div>
+      )}
+
       {/* ABOUT US - From Step 7 */}
       <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brandColors.background || '#FFFFFF' }}>
         <h3 className="font-semibold text-sm mb-2" style={{ color: brandColors.fontHeader, fontFamily: brandFonts?.body || 'Inter' }}>
@@ -835,13 +851,15 @@ const PreviewProfileTab = ({
         </div>
       )}
 
-      {/* LOGOUT BUTTON */}
+      {/* LOGOUT BUTTON — only when logged in */}
+      {isAuthenticated && (
       <button
         onClick={onLogout}
         className="w-full mt-2 py-3 rounded-lg font-semibold text-[#ba1a1a] border-2 border-[#ba1a1a]/20 hover:bg-[#ffdad6]/50 transition-colors"
       >
         Logout
       </button>
+      )}
     </div>
   );
 };
