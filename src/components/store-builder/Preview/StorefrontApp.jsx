@@ -304,7 +304,7 @@ const StorefrontApp = ({
             <PreviewCustomerAuth
               brand={storeData.brand}
               storeId={storeId}
-              onAuthenticated={(data) => { handleAuthenticated(data); setCheckoutNeedsAuth(false); }}
+              onAuthenticated={(data, token) => { handleAuthenticated(data, token); setCheckoutNeedsAuth(false); }}
               onCancel={() => setCheckoutNeedsAuth(false)}
             />
           );
@@ -322,7 +322,7 @@ const StorefrontApp = ({
             updateProfileInfo={updateProfileInfo}
             onLogout={handleLogout}
             isFirstTime={isFirstTimeCustomer}
-            onProfileSaved={() => { setIsFirstTimeCustomer(false); setActiveTab('home'); }}
+            onProfileSaved={() => { setIsFirstTimeCustomer(false); }}
           />
         );
       default:
