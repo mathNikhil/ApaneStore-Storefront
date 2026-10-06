@@ -244,7 +244,7 @@ const StorefrontApp = ({
     setActiveTab('home');
   };
 
-  const AUTH_REQUIRED_TABS = ['orders', 'profile'];
+  const AUTH_REQUIRED_TABS = ['orders']; // profile is now public
 
   const renderTab = () => {
     if (AUTH_REQUIRED_TABS.includes(activeTab) && !customer) {
