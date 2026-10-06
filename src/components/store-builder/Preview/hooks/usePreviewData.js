@@ -152,9 +152,9 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
       // once the customer logs in, and saved to the backend from here on.
       addresses: [],
       // Step 7 fields
-      officeNumber: '+91 8800244169',
-      supportTime: '9:00 AM - 6:00 PM',
-      supportEmail: 'support@chakki.com',
+      officeNumber: '',
+      supportTime: '',
+      supportEmail: '',
       aboutUs: 'We help small businesses create their own e-commerce stores easily.',
       socialLinks: {
         facebook: '',

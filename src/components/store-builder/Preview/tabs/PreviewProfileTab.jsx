@@ -92,9 +92,9 @@ const PreviewProfileTab = ({
   // About Us / Support Details — from Step 7
   const aboutUs = profile?.aboutUs || 'We help small businesses create their own e-commerce stores easily.';
   const supportDetails = {
-    officeNumber: profile?.officeNumber || '+91 8800244169',
-    supportTime: profile?.supportTime || '9:00 AM - 6:00 PM',
-    supportEmail: profile?.supportEmail || 'support@chakki.com',
+    officeNumber: profile?.officeNumber || '',
+    supportTime: profile?.supportTime || '',
+    supportEmail: profile?.supportEmail || '',
   };
 
   // Social links — from Step 7, only show icons for platforms the tenant filled in
@@ -773,7 +773,7 @@ const PreviewProfileTab = ({
       )}
 
       {/* SUPPORT DETAILS - From Step 7 */}
-      <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brandColors.background || '#FFFFFF' }}>
+      {(supportDetails.officeNumber || supportDetails.supportEmail || supportDetails.supportTime) && <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brandColors.background || '#FFFFFF' }}>
         <h3 className="font-semibold text-sm mb-3" style={{ color: brandColors.fontHeader, fontFamily: brandFonts?.body || 'Inter' }}>
           Support Details
         </h3>
@@ -791,7 +791,7 @@ const PreviewProfileTab = ({
             <span style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>{supportDetails.supportTime}</span>
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* MAIN STORE ADDRESS */}
       {profile?.storeAddress && (
