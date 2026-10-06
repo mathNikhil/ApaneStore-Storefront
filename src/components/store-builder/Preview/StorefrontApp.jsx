@@ -303,6 +303,7 @@ const StorefrontApp = ({
           <PreviewProfileTab
             data={storeData}
             isAuthenticated={!!customer}
+            onRequireAuth={() => setCheckoutNeedsAuth(true)}
             customerMobile={customer?.phone}
             addAddress={addAddress}
             updateAddress={updateAddress}

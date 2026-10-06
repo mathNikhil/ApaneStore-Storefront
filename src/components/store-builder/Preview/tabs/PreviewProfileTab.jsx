@@ -64,6 +64,7 @@ const PreviewProfileTab = ({
   setDefaultAddress,
   updateProfileInfo,
   onLogout,
+  onRequireAuth,
   isFirstTime,
   onProfileSaved,
 }) => {
@@ -740,7 +741,12 @@ const PreviewProfileTab = ({
         <div className="rounded-lg border p-4 mb-6 text-center" style={{ backgroundColor: brandColors.background || '#FFFFFF' }}>
           <span className="material-symbols-outlined text-4xl mb-2 block" style={{ color: brandColors.primary }}>account_circle</span>
           <p className="text-sm font-semibold mb-1" style={{ color: brandColors.fontHeader }}>Sign in to manage your profile</p>
-          <p className="text-xs" style={{ color: brandColors.fontBody }}>View your orders, manage addresses and more</p>
+          <p className="text-xs mb-3" style={{ color: brandColors.fontBody }}>View your orders, manage addresses and more</p>
+          <button onClick={onRequireAuth}
+            className="px-6 py-2 rounded-full text-sm font-semibold text-white"
+            style={{ background: brandColors.primary }}>
+            Sign In
+          </button>
         </div>
       )}
 
