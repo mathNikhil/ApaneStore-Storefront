@@ -764,10 +764,22 @@ const PreviewProfileTab = ({
       {profile?.returnPolicy && (
         <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brandColors.background || '#FFFFFF' }}>
           <h3 className="font-semibold text-sm mb-2" style={{ color: brandColors.fontHeader, fontFamily: brandFonts?.body || 'Inter' }}>
-            Return Policy
+            Return & Exchange Policy
           </h3>
           <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>
             {profile.returnPolicy}
+          </p>
+        </div>
+      )}
+
+      {/* SHIPPING INFO */}
+      {profile?.shippingInfo && (
+        <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brandColors.background || '#FFFFFF' }}>
+          <h3 className="font-semibold text-sm mb-2" style={{ color: brandColors.fontHeader, fontFamily: brandFonts?.body || 'Inter' }}>
+            Shipping Information
+          </h3>
+          <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: brandColors.fontBody, fontFamily: brandFonts?.body || 'Inter' }}>
+            {profile.shippingInfo}
           </p>
         </div>
       )}

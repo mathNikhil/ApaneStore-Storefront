@@ -305,6 +305,7 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
           storeCity: builderData.profile?.storeCity || builderData.profileSettings?.storeCity || builderData.storeCity || prev.profile.storeCity || '',
           storePincode: builderData.profile?.storePincode || builderData.profileSettings?.storePincode || builderData.storePincode || prev.profile.storePincode || '',
           returnPolicy: builderData.profile?.returnPolicy || builderData.profileSettings?.returnPolicy || builderData.returnPolicy || prev.profile.returnPolicy || '',
+          shippingInfo: builderData.profile?.shippingInfo || builderData.profileSettings?.shippingInfo || builderData.shippingInfo || prev.profile.shippingInfo || '',
           storeLocations: builderData.profile?.storeLocations || builderData.profileSettings?.storeLocations || builderData.storeLocations || prev.profile.storeLocations || [],
           socialLinks: {
             ...prev.profile.socialLinks,
