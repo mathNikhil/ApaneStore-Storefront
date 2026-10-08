@@ -84,11 +84,6 @@ const PreviewCustomerAuth = ({ brand, storeId, onAuthenticated, onCancel }) => {
       setError('Please enter a valid 10-digit mobile number');
       return;
     }
-    if (!consentGiven) {
-      setError('Please agree to the Terms & Privacy Policy to continue');
-      return;
-    }
-
     // 12-hour same-device skip — no OTP needed
     const key = `customer_12hr_${storeId}`;
     const saved = JSON.parse(localStorage.getItem(key) || '{}');
