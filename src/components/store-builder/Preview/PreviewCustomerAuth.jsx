@@ -21,7 +21,7 @@ const getDeviceFingerprint = () => {
 
 const PreviewCustomerAuth = ({ brand, storeId, onAuthenticated, onCancel }) => {
   const headingFont = brand?.fonts?.heading || 'Inter';
-  const storeName = brand?.storeName || brand?.name || 'This Store';
+  const storeName = brand?.brandName || brand?.storeName || brand?.name || 'This Store';
   const bodyFont = brand?.fonts?.body || 'Inter';
   const primaryColor = brand?.colors?.primary || '#25D366';
   const fontHeader = brand?.colors?.fontHeader || '#191C1E';
