@@ -20,11 +20,11 @@ export const customerAuthAPI = {
         });
         return response.json();
     },
-    verifyOTP: async (storeId, phone, otp) => {
+    verifyOTP: async (storeId, phone, otp, consentGiven = false) => {
         const response = await fetch(`${API_BASE_URL}/api/store/${storeId}/auth/otp/verify`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ phone, otp }),
+            body: JSON.stringify({ phone, otp, consentGiven }),
         });
         return response.json();
     },
