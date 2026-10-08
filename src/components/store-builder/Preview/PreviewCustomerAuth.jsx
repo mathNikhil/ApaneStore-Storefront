@@ -130,7 +130,7 @@ const PreviewCustomerAuth = ({ brand, storeId, onAuthenticated, onCancel }) => {
     setError('');
     setLoading(true);
     try {
-      const result = await customerAuthAPI.verifyOTP(storeId, mobile, otp.join(''));
+      const result = await customerAuthAPI.verifyOTP(storeId, mobile, otp.join(''), consentGiven);
       if (result.success) {
         // Save 12-hr session for this store + device
         const key = `customer_12hr_${storeId}`;
