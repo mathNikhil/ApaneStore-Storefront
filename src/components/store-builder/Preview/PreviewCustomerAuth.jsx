@@ -33,6 +33,7 @@ const PreviewCustomerAuth = ({ brand, storeId, onAuthenticated, onCancel }) => {
   const [timeLeft, setTimeLeft] = useState(30);
   const [canResend, setCanResend] = useState(false);
   const [devOtpHint, setDevOtpHint] = useState('');
+  const [consentGiven, setConsentGiven] = useState(false);
   const inputRefs = useRef([]);
 
   const primary = brand?.colors?.primary || '#25D366';
@@ -76,6 +77,10 @@ const PreviewCustomerAuth = ({ brand, storeId, onAuthenticated, onCancel }) => {
     e.preventDefault();
     if (mobile.length !== 10) {
       setError('Please enter a valid 10-digit mobile number');
+      return;
+    }
+    if (!consentGiven) {
+      setError('Please agree to the Terms & Privacy Policy to continue');
       return;
     }
 
@@ -199,9 +204,18 @@ const PreviewCustomerAuth = ({ brand, storeId, onAuthenticated, onCancel }) => {
               {error && <p className="text-[#ba1a1a] text-xs mt-1">{error}</p>}
             </div>
 
+            <div className="flex items-start gap-2">
+              <input type="checkbox" id="consent" checked={consentGiven}
+                onChange={e => setConsentGiven(e.target.checked)}
+                className="mt-1 cursor-pointer" />
+              <label htmlFor="consent" className="text-xs text-gray-500 cursor-pointer">
+                I agree to the <a href="/profile/terms" target="_blank" style={{ color: primaryColor }} className="underline">Terms & Conditions</a> and <a href="/profile/privacy" target="_blank" style={{ color: primaryColor }} className="underline">Privacy Policy</a>
+              </label>
+            </div>
+
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !consentGiven}
               className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 font-bold text-base rounded-xl hover:brightness-105 active:scale-[0.98] transition-all disabled:opacity-50"
               style={{ backgroundColor: primary, color: buttonLabel }}
             >
