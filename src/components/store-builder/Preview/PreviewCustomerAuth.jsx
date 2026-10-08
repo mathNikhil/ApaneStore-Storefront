@@ -34,7 +34,7 @@ const PreviewCustomerAuth = ({ brand, storeId, onAuthenticated, onCancel }) => {
   const [timeLeft, setTimeLeft] = useState(30);
   const [canResend, setCanResend] = useState(false);
   const [devOtpHint, setDevOtpHint] = useState('');
-  const [consentGiven, setConsentGiven] = useState(false);
+  const [consentGiven, setConsentGiven] = useState(() => !!localStorage.getItem(`consent_${storeId}`));
   const [showTermsModal, setShowTermsModal] = useState(false);
   const inputRefs = useRef([]);
 
@@ -222,7 +222,7 @@ const PreviewCustomerAuth = ({ brand, storeId, onAuthenticated, onCancel }) => {
                     <p style={{ marginBottom:'12px' }}>You have the right to access, correct, and delete your personal data at any time from your Profile page.</p>
                     <p style={{ color:'#94a3b8', fontSize:'12px' }}>For queries: contact {storeName} support directly.</p>
                   </div>
-                  <button onClick={() => { setConsentGiven(true); setShowTermsModal(false); }}
+                  <button onClick={() => { setConsentGiven(true); localStorage.setItem(`consent_${storeId}`, '1'); setShowTermsModal(false); }}
                     style={{ width:'100%', marginTop:'16px', padding:'12px', borderRadius:'12px', fontWeight:'bold', fontSize:'14px', border:'none', cursor:'pointer', backgroundColor: primaryColor, color: buttonLabel }}>
                     I Agree & Close
                   </button>
@@ -232,7 +232,7 @@ const PreviewCustomerAuth = ({ brand, storeId, onAuthenticated, onCancel }) => {
 
             <div className="flex items-start gap-2">
               <input type="checkbox" id="consent" checked={consentGiven}
-                onChange={e => setConsentGiven(e.target.checked)}
+                onChange={e => { setConsentGiven(e.target.checked); if (e.target.checked) localStorage.setItem(`consent_${storeId}`, '1'); else localStorage.removeItem(`consent_${storeId}`); }}
                 className="mt-1 cursor-pointer" />
               <label htmlFor="consent" className="text-xs text-gray-500 cursor-pointer">
                 I agree to the{' '}
