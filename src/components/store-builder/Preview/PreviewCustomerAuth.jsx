@@ -36,6 +36,7 @@ const PreviewCustomerAuth = ({ brand, storeId, onAuthenticated, onCancel }) => {
   const [devOtpHint, setDevOtpHint] = useState('');
   const [consentGiven, setConsentGiven] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
+  const [isNewCustomer, setIsNewCustomer] = useState(false);
   const inputRefs = useRef([]);
 
   const primary = brand?.colors?.primary || '#25D366';
@@ -65,6 +66,8 @@ const PreviewCustomerAuth = ({ brand, storeId, onAuthenticated, onCancel }) => {
         // Dev mode: backend echoes the OTP when no real SMS gateway is
         // configured yet, same as the tenant dashboard's login screen.
         setDevOtpHint(result.test_otp || '');
+        setIsNewCustomer(!!result.isNewCustomer);
+        if (result.hasConsented) setConsentGiven(true);
       } else {
         setError(result.error || result.message || 'Failed to send OTP');
       }
@@ -312,9 +315,47 @@ const PreviewCustomerAuth = ({ brand, storeId, onAuthenticated, onCancel }) => {
 
           {error && <p className="text-[#ba1a1a] text-sm text-center">{error}</p>}
 
+          {showTermsModal && (
+            <div style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.5)', display:'flex', alignItems:'center', justifyContent:'center', padding:'16px' }}>
+              <div style={{ background:'#fff', borderRadius:'16px', maxWidth:'400px', width:'100%', maxHeight:'80vh', overflowY:'auto', padding:'24px' }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px' }}>
+                  <strong style={{ fontSize:'15px' }}>{storeName} — Terms & Privacy</strong>
+                  <button onClick={() => setShowTermsModal(false)} style={{ background:'none', border:'none', cursor:'pointer', fontSize:'20px' }}>✕</button>
+                </div>
+                <div style={{ fontSize:'13px', color:'#556067', lineHeight:'1.6' }}>
+                  <p><strong>Terms of Use</strong></p>
+                  <p style={{ marginBottom:'12px' }}>By using {storeName}, you agree to provide accurate information, use the platform lawfully, and not misuse any features.</p>
+                  <p><strong>Privacy Policy</strong></p>
+                  <p style={{ marginBottom:'12px' }}>We collect your mobile number and name to process your orders. Your data is stored securely and never sold to third parties.</p>
+                  <p><strong>Your Rights (DPDP Act, 2023)</strong></p>
+                  <p style={{ marginBottom:'12px' }}>You have the right to access, correct, and delete your personal data at any time from your Profile page.</p>
+                  <p style={{ color:'#94a3b8', fontSize:'12px' }}>For queries: contact {storeName} support directly.</p>
+                </div>
+                <button onClick={() => { setConsentGiven(true); localStorage.setItem('consent_'+storeId, '1'); setShowTermsModal(false); }}
+                  style={{ width:'100%', marginTop:'16px', padding:'12px', borderRadius:'12px', fontWeight:'bold', fontSize:'14px', border:'none', cursor:'pointer', backgroundColor: primaryColor, color: buttonLabel }}>
+                  I Agree & Close
+                </button>
+              </div>
+            </div>
+          )}
+
+          {isNewCustomer && !consentGiven && (
+            <div className="flex items-start gap-2 mb-2">
+              <input type="checkbox" id="consent" checked={consentGiven}
+                onChange={e => { setConsentGiven(e.target.checked); if (e.target.checked) localStorage.setItem('consent_'+storeId, '1'); }}
+                className="mt-1 cursor-pointer" />
+              <label htmlFor="consent" className="text-xs text-gray-500 cursor-pointer">
+                I agree to the{' '}
+                <span onClick={() => setShowTermsModal(true)} style={{ color: primaryColor, textDecoration:'underline', cursor:'pointer' }}>
+                  Terms & Privacy Policy
+                </span>
+              </label>
+            </div>
+          )}
+
           <button
             onClick={handleVerify}
-            disabled={loading}
+            disabled={loading || (isNewCustomer && !consentGiven)}
             className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 font-bold text-base rounded-xl hover:brightness-105 active:scale-[0.98] transition-all disabled:opacity-50"
             style={{ backgroundColor: primary, color: buttonLabel }}
           >
