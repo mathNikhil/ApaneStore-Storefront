@@ -233,6 +233,19 @@ const StorefrontApp = ({
     if (product) addToCart(product, variationId, sizeId);
   };
 
+  const handleDeleteAccount = async () => {
+    try {
+      const token = customerToken;
+      if (token) {
+        await fetch(`https://api.aapnaestore.com/api/store/${storeId}/customers/delete-account`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+      }
+    } catch(e) { console.error('Delete account failed:', e); }
+    handleLogout();
+  };
+
   const handleLogout = () => {
     setCustomer(null);
     setCustomerToken(null);
@@ -327,6 +340,7 @@ const StorefrontApp = ({
             setDefaultAddress={setDefaultAddress}
             updateProfileInfo={updateProfileInfo}
             onLogout={handleLogout}
+            onDeleteAccount={handleDeleteAccount}
             isFirstTime={isFirstTimeCustomer}
             onProfileSaved={() => { setIsFirstTimeCustomer(false); }}
           />

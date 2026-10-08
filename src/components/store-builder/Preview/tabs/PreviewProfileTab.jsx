@@ -65,6 +65,7 @@ const PreviewProfileTab = ({
   updateProfileInfo,
   onLogout,
   onRequireAuth,
+  onDeleteAccount,
   isFirstTime,
   onProfileSaved,
 }) => {
@@ -876,6 +877,17 @@ const PreviewProfileTab = ({
         className="w-full mt-2 py-3 rounded-lg font-semibold text-[#ba1a1a] border-2 border-[#ba1a1a]/20 hover:bg-[#ffdad6]/50 transition-colors"
       >
         Logout
+      </button>
+      <button
+        onClick={() => {
+          if (window.confirm('Are you sure you want to delete your account? This will permanently remove all your data and cannot be undone.')) {
+            if (onDeleteAccount) onDeleteAccount();
+          }
+        }}
+        className="w-full py-3 rounded-xl text-sm font-semibold mt-2 border"
+        style={{ borderColor: '#ba1a1a', color: '#ba1a1a', background: 'transparent' }}
+      >
+        Delete My Account
       </button>
       )}
     </div>
