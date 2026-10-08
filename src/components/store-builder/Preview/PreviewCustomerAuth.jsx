@@ -220,7 +220,7 @@ const PreviewCustomerAuth = ({ brand, storeId, onAuthenticated, onCancel }) => {
                     <p style={{ marginBottom:'12px' }}>We collect your mobile number and name to process your orders. Your data is stored securely and never sold to third parties.</p>
                     <p><strong>Your Rights (DPDP Act, 2023)</strong></p>
                     <p style={{ marginBottom:'12px' }}>You have the right to access, correct, and delete your personal data at any time from your Profile page.</p>
-                    <p style={{ color:'#94a3b8', fontSize:'12px' }}>For queries: contact this store or email aapnaestore@gmail.com</p>
+                    <p style={{ color:'#94a3b8', fontSize:'12px' }}>For queries: contact {storeName} support directly.</p>
                   </div>
                   <button onClick={() => { setConsentGiven(true); setShowTermsModal(false); }}
                     style={{ width:'100%', marginTop:'16px', padding:'12px', borderRadius:'12px', fontWeight:'bold', fontSize:'14px', border:'none', cursor:'pointer', backgroundColor: primaryColor, color: buttonLabel }}>
