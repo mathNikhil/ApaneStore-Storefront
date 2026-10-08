@@ -209,41 +209,6 @@ const PreviewCustomerAuth = ({ brand, storeId, onAuthenticated, onCancel }) => {
               {error && <p className="text-[#ba1a1a] text-xs mt-1">{error}</p>}
             </div>
 
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 font-bold text-base rounded-xl hover:brightness-105 active:scale-[0.98] transition-all disabled:opacity-50"
-              style={{ backgroundColor: primary, color: buttonLabel }}
-            >
-              {loading ? (
-                <span className="material-symbols-outlined animate-spin">progress_activity</span>
-              ) : (
-                <>Get OTP <span className="material-symbols-outlined text-xl">arrow_forward</span></>
-              )}
-            </button>
-          </form>
-        </div>
-      </div>
-    );
-  }
-
-  // OTP step
-  return (
-    <div className="w-full h-full flex items-center justify-center p-4" style={{ backgroundColor: background }}>
-      <div className="rounded-xl w-full max-w-sm p-8 shadow-md border border-[#E9EDEF]" style={{ backgroundColor: background }}>
-        <div className="flex flex-col items-center text-center gap-3">
-          <div className="w-16 h-16 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: `${primary}20` }}>
-            <span className="material-symbols-outlined text-3xl" style={{ color: primary }}>verified_user</span>
-          </div>
-          <h2 className="text-2xl font-semibold" style={{ fontFamily: headingFont, color: fontHeader }}>Enter OTP</h2>
-          <p className="text-sm text-[#3c4a3d]">
-            Please enter the 6-digit code sent to <span className="font-bold text-[#191c1e]">+91 {mobile}</span>
-          </p>
-          {devOtpHint && (
-            <p className="text-xs text-[#8e9eab] bg-[#f2f4f7] rounded-lg px-3 py-2">
-              Dev mode — no SMS gateway configured yet. Your OTP is <span className="font-bold text-[#191c1e]">{devOtpHint}</span>
-            </p>
           )}
         </div>
 
