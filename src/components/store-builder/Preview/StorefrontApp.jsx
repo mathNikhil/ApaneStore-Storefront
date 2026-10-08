@@ -237,7 +237,7 @@ const StorefrontApp = ({
     try {
       const token = customerToken;
       if (token) {
-        await fetch(`https://api.aapnaestore.com/api/store/${storeId}/customers/delete-account`, {
+        await fetch(`https://api.aapnaestore.com/api/store/${storeId}/customers/me/delete-account`, {
           method: 'DELETE',
           headers: { 'Authorization': `Bearer ${token}` }
         });
