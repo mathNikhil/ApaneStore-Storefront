@@ -235,12 +235,15 @@ const StorefrontApp = ({
 
   const handleDeleteAccount = async () => {
     try {
+    console.log('Delete account called, token:', customerToken, 'storeId:', storeId);
       const token = customerToken;
       if (token) {
         await fetch(`https://api.aapnaestore.com/api/store/${storeId}/customers/me/delete-account`, {
           method: 'DELETE',
           headers: { 'Authorization': `Bearer ${token}` }
         });
+        const resp = await fetch(`https://api.aapnaestore.com/api/store/${storeId}/customers/me/delete-account`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await resp.json(); console.log('Delete response:', resp.status, data);
       }
     } catch(e) { console.error('Delete account failed:', e); }
     handleLogout();
