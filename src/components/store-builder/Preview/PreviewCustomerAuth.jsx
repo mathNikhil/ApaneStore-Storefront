@@ -34,7 +34,7 @@ const PreviewCustomerAuth = ({ brand, storeId, onAuthenticated, onCancel }) => {
   const handleGoogleLogin = () => {
     setLoading(true);
     const popup = window.open(
-      'https://aapnaestore.com/auth/google-popup?storeId=' + storeId,
+      'https://aapnaestore.com/auth/google-popup?storeId=' + storeId + '&storeName=' + encodeURIComponent(storeName) + '&storeLogo=' + encodeURIComponent(brand?.logoUrl || ''),
       'google-auth', 'width=500,height=600,scrollbars=yes'
     );
     const handler = (event) => {
