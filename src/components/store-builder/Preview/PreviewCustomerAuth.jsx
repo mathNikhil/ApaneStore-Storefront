@@ -55,19 +55,25 @@ const PreviewCustomerAuth = ({ brand, storeId, onAuthenticated, onCancel }) => {
 
   // Facebook Login
   const handleFacebookLogin = () => {
-    if (!window.FB) { setError('Facebook not loaded'); return; }
     setLoading(true);
-    window.FB.login(async (response) => {
-      if (response.authResponse) {
-        try {
-          const res = await fetch(API_BASE + '/api/store/' + storeId + '/auth/social/facebook', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ accessToken: response.authResponse.accessToken, userID: response.authResponse.userID })
-          });
-          handleSocialResult(await res.json());
-        } catch(e) { setError('Facebook login failed'); setLoading(false); }
-      } else { setError('Facebook login cancelled'); setLoading(false); }
-    }, { scope: 'email,public_profile' });
+    const popup = window.open(
+      'https://aapnaestore.com/auth/facebook-popup?storeId=' + storeId + '&storeName=' + encodeURIComponent(storeName) + '&storeLogo=' + encodeURIComponent(brand && brand.logoUrl ? brand.logoUrl : ''),
+      'facebook-auth', 'width=500,height=600,scrollbars=yes'
+    );
+    const handler = (event) => {
+      if (event.data && event.data.type === 'FACEBOOK_AUTH_RESULT') {
+        window.removeEventListener('message', handler);
+        handleSocialResult(event.data);
+      }
+    };
+    window.addEventListener('message', handler);
+    const checkClosed = setInterval(() => {
+      if (popup && popup.closed) {
+        clearInterval(checkClosed);
+        window.removeEventListener('message', handler);
+        setLoading(false);
+      }
+    }, 500);
   };
 
   const handlePhoneSubmit = async (e) => {
