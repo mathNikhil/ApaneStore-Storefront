@@ -34,7 +34,7 @@ const PreviewCustomerAuth = ({ brand, storeId, onAuthenticated, onCancel }) => {
   const handleGoogleLogin = () => {
     setLoading(true);
     const popup = window.open(
-      'https://aapnaestore.com/auth/google-popup?storeId=' + storeId + '&storeName=' + encodeURIComponent(storeName) + '&storeLogo=' + encodeURIComponent(brand?.logoUrl || ''),
+      'https://aapnaestore.com/auth/google-popup?storeId=' + storeId + '&storeName=' + encodeURIComponent(storeName) + '&storeLogo=' + encodeURIComponent(brand?.logo || brand?.logoUrl || ''),
       'google-auth', 'width=500,height=600,scrollbars=yes'
     );
     const handler = (event) => {
@@ -57,7 +57,7 @@ const PreviewCustomerAuth = ({ brand, storeId, onAuthenticated, onCancel }) => {
   const handleFacebookLogin = () => {
     setLoading(true);
     const popup = window.open(
-      'https://aapnaestore.com/auth/facebook-popup?storeId=' + storeId + '&storeName=' + encodeURIComponent(storeName) + '&storeLogo=' + encodeURIComponent(brand && brand.logoUrl ? brand.logoUrl : ''),
+      'https://aapnaestore.com/auth/facebook-popup?storeId=' + storeId + '&storeName=' + encodeURIComponent(storeName) + '&storeLogo=' + encodeURIComponent(brand && (brand.logo || brand.logoUrl) ? (brand.logo || brand.logoUrl) : ''),
       'facebook-auth', 'width=500,height=600,scrollbars=yes'
     );
     const handler = (event) => {
@@ -105,8 +105,8 @@ const PreviewCustomerAuth = ({ brand, storeId, onAuthenticated, onCancel }) => {
       <div style={card}>
         <button onClick={onCancel} style={{ position: 'absolute', top: 14, right: 14, background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#8e9eab' }}>✕</button>
 
-        {brand?.logoUrl && <div style={{ textAlign: 'center', marginBottom: 12 }}>
-          <img src={brand.logoUrl} alt={storeName} style={{ height: 52, objectFit: 'contain' }} />
+        {(brand?.logo || brand?.logoUrl) && <div style={{ textAlign: 'center', marginBottom: 12 }}>
+          <img src={brand.logo || brand.logoUrl} alt={storeName} style={{ height: 52, objectFit: 'contain' }} />
         </div>}
 
         {step === 'social' && (
