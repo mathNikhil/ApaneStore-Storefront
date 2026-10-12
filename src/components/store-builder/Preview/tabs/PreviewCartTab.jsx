@@ -30,7 +30,15 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
   const [pincodeChecked, setPincodeChecked] = useState(false);
 
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const gst = enableGST ? subtotal * (gstRate / 100) : 0;
+  // Per-product GST: sum each item's gstRate if set, else fall back to global gstRate
+  const gst = (() => {
+    if (!enableGST) return 0;
+    return items.reduce((acc, item) => {
+      const itemTotal = (parseFloat(item.price) || 0) * (item.quantity || 1);
+      const rate = item.gstRate != null ? item.gstRate : gstRate;
+      return acc + itemTotal * (rate / 100);
+    }, 0);
+  })();
   const delivery = orderType === 'dine_in' ? 0 : (freeDelivery
     ? (subtotal >= freeDeliveryThreshold ? 0 : (deliveryZoneInfo?.deliveryCost ?? deliveryCharge))
     : (deliveryZoneInfo?.deliveryCost ?? deliveryCharge));
@@ -72,16 +80,18 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
   });
 
   // Resolve delivery zone by pincode
-  const resolveDeliveryZone = (pincode) => {
+  const resolveDeliveryZone = (pincode, customerAddress) => {
     if (!pincode || deliveryZones.length === 0) {
       return { allowed: true, storeAddressId: null, storeAddressName: null, deliveryZone: null, deliveryCost: deliveryCharge || 0, flatRate: true };
     }
+    const addrLower = (customerAddress || '').toLowerCase();
     for (const address of deliveryZones) {
       for (const zone of (address.zones || [])) {
         if (!zone.pincode || !zone.pincode.trim()) continue; // skip empty zones
-        if (pincode.startsWith(zone.pincode)) {
-          return { allowed: true, storeAddressId: address.storeAddressId, storeAddressName: address.storeAddressName, deliveryZone: zone.area, deliveryCost: zone.deliveryCost || 0, flatRate: false };
-        }
+        if (!pincode.startsWith(zone.pincode)) continue;
+        const areaName = (zone.area || '').trim();
+        if (areaName && addrLower && !addrLower.includes(areaName.toLowerCase())) continue; // area mismatch
+        return { allowed: true, storeAddressId: address.storeAddressId, storeAddressName: address.storeAddressName, deliveryZone: zone.area, deliveryCost: zone.deliveryCost || 0, flatRate: false };
       }
     }
     return { allowed: false, storeAddressId: null, storeAddressName: null, deliveryZone: null, deliveryCost: null, flatRate: false };
@@ -90,7 +100,8 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
   // Check pincode when address selected
   React.useEffect(() => {
     if (orderType === 'delivery' && currentAddress?.pincode) {
-      const zone = resolveDeliveryZone(currentAddress.pincode);
+      const fullAddr = [currentAddress.addressLine1, currentAddress.addressLine2, currentAddress.city, currentAddress.state].filter(Boolean).join(' ');
+      const zone = resolveDeliveryZone(currentAddress.pincode, fullAddr);
       setDeliveryZoneInfo(zone);
       setPincodeChecked(true);
     } else {
@@ -483,6 +494,8 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
           <div className="space-y-3 mb-4">
             {items.map((item) => {
               const itemTotal = item.price * item.quantity;
+              const itemGstRate = enableGST ? (item.gstRate != null ? item.gstRate : (item.gstRate === null && gstRate ? 0 : null)) : null;
+              const itemGstAmt = enableGST && item.gstRate != null ? item.price * item.quantity * (item.gstRate / 100) : null;
               return (
                 <div key={item.id} className="rounded-lg border p-4 flex items-center gap-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
                   <div className="w-16 h-16 rounded-lg bg-[#f2f4f7] flex items-center justify-center overflow-hidden flex-shrink-0">
@@ -501,6 +514,11 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                     </p>
                     <p className="text-sm font-bold" style={{ color: brand.colors.primary }}>
                       ₹{itemTotal.toFixed(2)}
+                      {itemGstAmt != null && (
+                        <span className="text-xs font-normal ml-1" style={{ color: brand.colors.fontBody }}>
+                          + ₹{itemGstAmt.toFixed(2)} {taxLabel} ({item.gstRate}%)
+                        </span>
+                      )}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">

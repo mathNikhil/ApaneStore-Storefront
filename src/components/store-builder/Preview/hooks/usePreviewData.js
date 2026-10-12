@@ -426,6 +426,8 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
               size: size?.size || '',
               unit: size?.unit || '',
               price: parseFloat(size?.price) || 0,
+              gstRate: product.gstRate ?? null,
+              discount: product.discount || 0,
               quantity: 1,
               image: (() => {
                 // Use variation's imageIndex to show correct variant image
