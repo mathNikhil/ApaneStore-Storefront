@@ -30,14 +30,24 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
   const [pincodeChecked, setPincodeChecked] = useState(false);
 
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  // Per-product GST: sum each item's gstRate if set, else fall back to global gstRate
+  // Detect if any item has per-product GST
+  const hasPerProductGST = items.some(item => item.gstRate != null && item.gstRate > 0);
+  // Per-product GST breakdown grouped by rate
+  const gstByRate = (() => {
+    if (!enableGST || !hasPerProductGST) return {};
+    return items.reduce((acc, item) => {
+      if (item.gstRate == null) return acc;
+      const itemTotal = (parseFloat(item.price) || 0) * (item.quantity || 1);
+      const rate = item.gstRate;
+      acc[rate] = (acc[rate] || 0) + itemTotal * (rate / 100);
+      return acc;
+    }, {});
+  })();
+  // Global GST (only when no per-product GST)
   const gst = (() => {
     if (!enableGST) return 0;
-    return items.reduce((acc, item) => {
-      const itemTotal = (parseFloat(item.price) || 0) * (item.quantity || 1);
-      const rate = item.gstRate != null ? item.gstRate : gstRate;
-      return acc + itemTotal * (rate / 100);
-    }, 0);
+    if (hasPerProductGST) return Object.values(gstByRate).reduce((a, b) => a + b, 0);
+    return subtotal * (gstRate / 100);
   })();
   const delivery = orderType === 'dine_in' ? 0 : (freeDelivery
     ? (subtotal >= freeDeliveryThreshold ? 0 : (deliveryZoneInfo?.deliveryCost ?? deliveryCharge))
@@ -494,8 +504,8 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
           <div className="space-y-3 mb-4">
             {items.map((item) => {
               const itemTotal = item.price * item.quantity;
-              const itemGstRate = enableGST ? (item.gstRate != null ? item.gstRate : (item.gstRate === null && gstRate ? 0 : null)) : null;
-              const itemGstAmt = enableGST && item.gstRate != null ? item.price * item.quantity * (item.gstRate / 100) : null;
+              const itemGstRate = enableGST ? (item.gstRate != null && item.gstRate > 0 ? item.gstRate : (item.gstRate === null && gstRate ? 0 : null)) : null;
+              const itemGstAmt = enableGST && item.gstRate != null && item.gstRate > 0 ? item.price * item.quantity * (item.gstRate / 100) : null;
               return (
                 <div key={item.id} className="rounded-lg border p-4 flex items-center gap-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
                   <div className="w-16 h-16 rounded-lg bg-[#f2f4f7] flex items-center justify-center overflow-hidden flex-shrink-0">
@@ -512,14 +522,20 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                     <p className="text-xs" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>
                       {item.sizeLabel} • {item.variationName}
                     </p>
-                    <p className="text-sm font-bold" style={{ color: brand.colors.primary }}>
-                      ₹{itemTotal.toFixed(2)}
-                      {itemGstAmt != null && (
-                        <span className="text-xs font-normal ml-1" style={{ color: brand.colors.fontBody }}>
-                          + ₹{itemGstAmt.toFixed(2)} {taxLabel} ({item.gstRate}%)
-                        </span>
-                      )}
-                    </p>
+                    {itemGstAmt != null ? (
+                      <div>
+                        <p className="text-xs" style={{ color: brand.colors.fontBody }}>
+                          ₹{itemTotal.toFixed(2)} + {taxLabel} {item.gstRate}% (₹{itemGstAmt.toFixed(2)})
+                        </p>
+                        <p className="text-sm font-bold" style={{ color: brand.colors.primary }}>
+                          = ₹{(itemTotal + itemGstAmt).toFixed(2)}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-sm font-bold" style={{ color: brand.colors.primary }}>
+                        ₹{itemTotal.toFixed(2)}
+                      </p>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -707,10 +723,19 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                     </span>
                   </div>}
                   {enableGST && (
-                    <div className="flex justify-between text-sm">
-                      <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>{taxLabel} ({gstRate}%)</span>
-                      <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>₹{gst.toFixed(2)}</span>
-                    </div>
+                    hasPerProductGST ? (
+                      Object.entries(gstByRate).sort((a,b) => a[0]-b[0]).map(([rate, amt]) => (
+                        <div key={rate} className="flex justify-between text-sm">
+                          <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>{taxLabel} ({rate}%)</span>
+                          <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>₹{amt.toFixed(2)}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="flex justify-between text-sm">
+                        <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>{taxLabel} ({gstRate}%)</span>
+                        <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>₹{gst.toFixed(2)}</span>
+                      </div>
+                    )
                   )}
                 </>
               ) : null}

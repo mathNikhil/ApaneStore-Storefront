@@ -45,6 +45,7 @@ const adaptProductForPreview = (builderProduct) => {
       }))
     })),
     discount: builderProduct.discount || 0,
+    gstRate: builderProduct.gstRate ?? null,
     bulkPricing: builderProduct.bulkPricing || false,
     isPreview: true
   };
