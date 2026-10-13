@@ -75,6 +75,10 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
   };
 
   const paymentMethods = getPaymentMethods();
+  const partialPaymentEnabled = payment?.partialPaymentEnabled && payment?.upiId;
+  const partialPaymentPercent = payment?.partialPaymentPercent || 10;
+  const advanceAmount = partialPaymentEnabled ? parseFloat((total * partialPaymentPercent / 100).toFixed(2)) : 0;
+  const balanceAmount = partialPaymentEnabled ? parseFloat((total - advanceAmount).toFixed(2)) : 0;
   const deliveryZones = data?.cart?.deliveryZones || data?.deliveryZones || [];
   const dineInLocations = data?.cart?.dineInLocations || data?.dineInLocations || [];
   const storeLocations = data?.profile?.storeLocations || [];
@@ -246,10 +250,13 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
       deliveryZoneName = deliveryZoneInfo.deliveryZone;
     }
 
+    const isPartialCOD = selectedPayment === 'cod' && partialPaymentEnabled && upiIdConfirmed;
     const result = await placeOrder({
       address: orderType === 'dine_in' ? {} : currentAddress,
       paymentMethodId: selectedPayment,
-      paymentMethodLabel: methodLabel,
+      paymentMethodLabel: isPartialCOD ? `COD + ${partialPaymentPercent}% Advance UPI` : methodLabel,
+      partialPayment: isPartialCOD ? { advanceAmount, balanceAmount, percent: partialPaymentPercent, customerUpiId } : null,
+      orderNote: isPartialCOD ? `Advance ₹${advanceAmount.toFixed(2)} paid via UPI (${customerUpiId}). Balance ₹${balanceAmount.toFixed(2)} on delivery. Pending verification.` : undefined,
       customerUpiId: selectedPayment === 'upi' ? customerUpiId.trim() : undefined,
       orderType: orderType,
       branchId,
@@ -374,6 +381,36 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
               ))}
             </div>
           )}
+          {selectedPayment === 'cod' && partialPaymentEnabled && payment?.upiId && (
+            <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg flex flex-col items-center gap-2">
+              <p className="text-sm font-semibold w-full" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>
+                Pay Advance ₹{advanceAmount.toFixed(2)} via UPI
+              </p>
+              <p className="text-xs w-full" style={{ color: brand.colors.fontBody }}>
+                Balance ₹{balanceAmount.toFixed(2)} collected on delivery. Order confirmed after payment verification.
+              </p>
+              {!upiIdConfirmed ? (
+                <div className="w-full flex flex-col gap-2">
+                  <label className="text-sm font-medium" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>Enter your UPI ID</label>
+                  <input type="text" value={customerUpiId} onChange={(e) => setCustomerUpiId(e.target.value)} placeholder="yourname@okhdfcbank" className="w-full px-3 py-2 rounded-lg border text-sm" />
+                  <button onClick={() => { if (!customerUpiId.trim()) { alert('Please enter your UPI ID'); return; } setUpiIdConfirmed(true); }} className="w-full py-2.5 rounded-lg font-semibold text-sm" style={{ backgroundColor: brand.colors.button || '#25D366', color: brand.colors.buttonLabel || '#FFFFFF' }}>
+                    Pay ₹{advanceAmount.toFixed(2)} Advance
+                  </button>
+                </div>
+              ) : (() => {
+                const txnRef = `TXN${Date.now()}`;
+                const upiUri = `upi://pay?pa=${encodeURIComponent(payment.upiId.trim())}&pn=${encodeURIComponent(brand?.name || 'Store')}&am=${advanceAmount.toFixed(2)}&cu=INR&tn=${encodeURIComponent('Advance Payment')}&tr=${txnRef}`;
+                return (
+                  <>
+                    <p className="text-xs w-full" style={{ color: brand.colors.fontBody }}>Paying from <span className="font-semibold">{customerUpiId}</span> <button onClick={() => setUpiIdConfirmed(false)} className="underline">change</button></p>
+                    {payment?.showQRCode && <div className="bg-white p-3 rounded-lg border"><QRCodeSVG value={upiUri} size={140} /></div>}
+                    <a href={upiUri} className="w-full text-center py-2.5 rounded-lg font-semibold text-sm mt-1" style={{ backgroundColor: brand.colors.button || '#25D366', color: brand.colors.buttonLabel || '#FFFFFF' }}>Pay ₹{advanceAmount.toFixed(2)} Advance via UPI App</a>
+                    <p className="text-xs text-center max-w-[240px]" style={{ color: brand.colors.fontBody }}>Once done, tap "Place Order". We'll confirm after verifying payment.</p>
+                  </>
+                );
+              })()}
+            </div>
+          )}
           {selectedPayment === 'upi' && payment?.upiId && (
             <div className="mt-3 p-3 bg-[#f2f4f7] rounded-lg flex flex-col items-center gap-2">
               {!upiIdConfirmed ? (
@@ -458,7 +495,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
 
         <button
           onClick={handlePlaceOrder}
-          disabled={paymentMethods.length === 0 || placingOrder || (selectedPayment === 'upi' && !upiIdConfirmed)}
+          disabled={paymentMethods.length === 0 || placingOrder || (selectedPayment === 'upi' && !upiIdConfirmed) || (selectedPayment === 'cod' && partialPaymentEnabled && !upiIdConfirmed)}
           className="w-full py-3 rounded-lg font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50 disabled:pointer-events-none"
           style={{ backgroundColor: brand.colors.button || '#25D366' }}
         >

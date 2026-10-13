@@ -198,6 +198,8 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
       upiAppName: '',
       showQRCode: true,
       showUPIId: true,
+      partialPaymentEnabled: builderData.partialPaymentEnabled ?? false,
+      partialPaymentPercent: builderData.partialPaymentPercent ?? 10,
       defaultPayment: 'cod',
     },
     // Step 6: order cancellation + status-tracker display rules
@@ -348,6 +350,8 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
           defaultPayment: builderData.defaultPayment || prev.payment.defaultPayment,
           cashfreeEnabled: builderData.cashfreeEnabled ?? builderData.payment?.cashfreeEnabled ?? prev.payment.cashfreeEnabled,
           stripeEnabled: builderData.stripeEnabled ?? builderData.payment?.stripeEnabled ?? prev.payment.stripeEnabled,
+          partialPaymentEnabled: builderData.partialPaymentEnabled ?? prev.payment.partialPaymentEnabled ?? false,
+          partialPaymentPercent: builderData.partialPaymentPercent ?? prev.payment.partialPaymentPercent ?? 10,
         },
         // ============================================
         // STEP 6: ORDER TRACKER / CANCELLATION CONFIG
