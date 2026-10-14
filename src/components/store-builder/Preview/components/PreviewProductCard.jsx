@@ -127,6 +127,7 @@ const PreviewProductCard = ({
               <>
                 {images.map((img, idx) => (
                   <img key={img.id || idx} src={typeof img === 'string' ? img : img?.url} alt={product.name}
+                    loading="lazy"
                     className="absolute inset-0 w-full h-full object-contain transition-opacity duration-500"
                     style={{ opacity: idx === activeImageIndex ? 1 : 0 }} />
                 ))}
@@ -228,6 +229,7 @@ const PreviewProductCard = ({
             <>
               {images.map((img, idx) => (
                 <img key={img.id || idx} src={typeof img === 'string' ? img : img?.url} alt={product.name}
+                  loading="lazy"
                   className="absolute inset-0 w-full h-full object-contain transition-opacity duration-700"
                   style={{ opacity: idx === activeImageIndex ? 1 : 0 }} />
               ))}
@@ -362,6 +364,7 @@ const PreviewProductCard = ({
           <>
             {images.map((img, idx) => (
               <img key={img.id || idx} src={typeof img === 'string' ? img : img?.url} alt={product.name}
+                loading="lazy"
                 className="absolute inset-0 w-full h-full object-contain transition-opacity duration-700"
                 style={{ opacity: idx === activeImageIndex ? 1 : 0 }} />
             ))}
