@@ -168,16 +168,11 @@ const QRScannerModal = ({ storeId, primaryColor, onAddToCart, onClose, customerT
     };
   }, [startScanLoop, stopCamera]);
 
-  const handleAddToCart = (product, quantity) => {
-    onAddToCart(product, quantity);
-    handleScanAgain(); // stay in modal, restart camera for next scan
-  };
-
   const handleScanAgain = () => {
     setScannedProduct(null);
     setError('');
+    setCameraReady(false);
     activeRef.current = true;
-    // Restart camera
     const startCamera = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -196,6 +191,11 @@ const QRScannerModal = ({ storeId, primaryColor, onAddToCart, onClose, customerT
       }
     };
     startCamera();
+  };
+
+  const handleAddToCart = (product, quantity) => {
+    onAddToCart(product, quantity);
+    handleScanAgain();
   };
 
   return (
