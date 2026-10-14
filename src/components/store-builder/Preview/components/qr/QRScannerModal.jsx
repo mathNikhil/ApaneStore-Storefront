@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import ScannedProductModal from './ScannedProductModal';
 
-const API = import.meta.env.VITE_API_URL || 'https://api.aapnaestore.com';
+const API = import.meta.env.VITE_API_URL || 'https://api.aapnaestore.com'; // v2
 
 const QRScannerModal = ({ storeId, primaryColor, onAddToCart, onClose, customerToken, addToCartLabel = 'Add to Cart' }) => {
   const videoRef = useRef(null);
