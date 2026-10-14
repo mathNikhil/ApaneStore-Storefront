@@ -81,16 +81,6 @@ const ScannedProductModal = ({ product, primaryColor, onAddToCart, onScanAgain, 
         {addToCartLabel}
       </button>
 
-      <button
-        onClick={onScanAgain}
-        style={{
-          width: '100%', padding: '12px', borderRadius: 12,
-          border: '1.5px solid #e5e7eb', background: '#fff',
-          color: '#555', fontWeight: 600, fontSize: 14, cursor: 'pointer'
-        }}
-      >
-        📷 Scan Another Product
-      </button>
     </div>
   );
 };
