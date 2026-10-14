@@ -68,6 +68,9 @@ const QRScannerModal = ({ storeId, primaryColor, onAddToCart, onClose, customerT
   const handleScannedToken = async (token) => {
     setError('');
     try {
+      console.log('[QR] Raw scanned token:', token);
+      console.log('[QR] Store ID being sent:', storeId, typeof storeId);
+
       const res = await fetch(`${API}/api/qr/validate`, {
         method: 'POST',
         headers: {
@@ -77,6 +80,7 @@ const QRScannerModal = ({ storeId, primaryColor, onAddToCart, onClose, customerT
         body: JSON.stringify({ token, store_id: storeId })
       });
       const data = await res.json();
+      console.log('[QR] Validate response:', data);
 
       if (!data.valid) {
         const messages = {
@@ -86,7 +90,7 @@ const QRScannerModal = ({ storeId, primaryColor, onAddToCart, onClose, customerT
           invalid_token: 'Invalid QR code. Please try again.',
           invalid_signature: 'QR code has been tampered with.',
         };
-        setError(messages[data.reason] || 'Invalid QR code.');
+        setError((messages[data.reason] || 'Invalid QR code.') + ` [${data.reason || 'unknown'}]`);
         setScanning(true); // re-trigger scanner via useEffect
         return;
       }
