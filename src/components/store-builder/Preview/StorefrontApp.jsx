@@ -283,6 +283,9 @@ const StorefrontApp = ({
             device={device}
             stockMap={stockMap}
             initialProductId={initialProductId}
+            storeId={storeId}
+            customerToken={customerToken}
+            isLoggedIn={!!customerToken}
           />
         );
       case 'cart':

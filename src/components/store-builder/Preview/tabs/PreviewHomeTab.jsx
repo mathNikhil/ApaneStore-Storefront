@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PreviewBanner from '../components/PreviewBanner';
 import PreviewProductCard from '../components/PreviewProductCard';
+import QRScannerModal from '../components/qr/QRScannerModal';
+
+const API = import.meta.env.VITE_API_URL || 'https://api.aapnaestore.com';
 
 const PreviewHomeTab = ({
   data,
@@ -8,6 +11,9 @@ const PreviewHomeTab = ({
   device = 'desktop',
   initialProductId = null,
   stockMap = {},
+  storeId,
+  customerToken,
+  isLoggedIn = false,
 }) => {
   const { banner, categories, brand, products, enableProductSearch, settings = {} } = data;
   const brandFonts = brand.fonts || { heading: 'Inter', body: 'Inter' };
@@ -17,6 +23,16 @@ const PreviewHomeTab = ({
   const imgShapeClass = imgShape === 'circle' ? 'rounded-full' : 'rounded-lg';
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [qrActive, setQrActive] = useState(false);
+  const [showQRScanner, setShowQRScanner] = useState(false);
+
+  useEffect(() => {
+    if (!storeId) return;
+    fetch(`${API}/api/qr/status/${storeId}`)
+      .then(r => r.json())
+      .then(d => setQrActive(d.active || false))
+      .catch(() => {});
+  }, [storeId]);
 
   const allProducts = products || [];
   const allCategories = categories || [];
@@ -77,6 +93,38 @@ const PreviewHomeTab = ({
         device={device}
         fonts={brand.fonts}
       />
+
+      {/* QR Scan button — only when QR service active and customer is logged in */}
+      {qrActive && isLoggedIn && (
+        <div style={{ marginBottom: 12, marginTop: 12 }}>
+          <button
+            onClick={() => setShowQRScanner(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              background: brand.colors.primary || '#1a56db',
+              color: '#fff', border: 'none', borderRadius: 10,
+              padding: '10px 18px', fontSize: 14, fontWeight: 700,
+              cursor: 'pointer', width: '100%', justifyContent: 'center'
+            }}
+          >
+            <span style={{ fontSize: 18 }}>📱</span>
+            Scan Product QR Code
+          </button>
+        </div>
+      )}
+
+      {showQRScanner && (
+        <QRScannerModal
+          storeId={storeId}
+          primaryColor={brand.colors.primary}
+          customerToken={customerToken}
+          onAddToCart={(product, quantity, isScan) => {
+            onAddToCart(product, quantity, { isScanOrder: true });
+            setShowQRScanner(false);
+          }}
+          onClose={() => setShowQRScanner(false)}
+        />
+      )}
 
       {searchEnabled && (
         <div className="mb-4 mt-4">

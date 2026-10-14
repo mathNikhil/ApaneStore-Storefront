@@ -23,6 +23,11 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
   const [upiIdConfirmed, setUpiIdConfirmed] = useState(false);
   const [cashfreeLoading, setCashfreeLoading] = useState(false);
 
+  // Walk-in customer details — shown only for scan orders
+  const isScanOrder = cart.items?.some(item => item.isScanOrder);
+  const [walkInName, setWalkInName] = useState('');
+  const [walkInMobile, setWalkInMobile] = useState('');
+
   const { items, freeDelivery, freeDeliveryThreshold, deliveryCharge, showProgressBar, enableGST, gstRate, taxLabel, showGSTBreakdownCart, showGSTBreakdownCheckout, gstNumber, enableDineIn, dineInLabel } = cart;
   const [orderType, setOrderType] = useState('delivery'); // 'dine_in' or 'delivery'
   const [selectedLocation, setSelectedLocation] = useState(null); // for dine-in location selection
@@ -250,6 +255,13 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
       deliveryZoneName = deliveryZoneInfo.deliveryZone;
     }
 
+    // Validate walk-in customer name if this is a scan order
+    if (isScanOrder && !walkInName.trim()) {
+      alert('Please enter the customer name');
+      setPlacingOrder(false);
+      return;
+    }
+
     const isPartialCOD = selectedPayment === 'cod' && partialPaymentEnabled && upiIdConfirmed;
     const result = await placeOrder({
       address: orderType === 'dine_in' ? {} : currentAddress,
@@ -263,6 +275,12 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
       branchName,
       deliveryZone: deliveryZoneName,
       deliveryCost: finalDeliveryCost,
+      // Walk-in customer (scan orders only)
+      ...(isScanOrder ? {
+        isScanOrder: true,
+        walkInCustomerName: walkInName.trim(),
+        walkInCustomerMobile: walkInMobile.trim() || undefined,
+      } : {}),
     });
     setPlacingOrder(false);
 
@@ -333,8 +351,54 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
           </div>
         </div>
 
+        {/* Walk-in Customer Details — only for QR scan orders */}
+        {isScanOrder && (
+          <div className="rounded-lg border-2 p-4 mb-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF', borderColor: brand.colors.primary }}>
+            <div className="flex items-center gap-2 mb-3">
+              <span style={{ fontSize: 18 }}>🛍️</span>
+              <h3 className="font-semibold text-sm" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>Walk-in Customer Details</h3>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold mb-1" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>
+                  Customer Name <span style={{ color: '#ba1a1a' }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  value={walkInName}
+                  onChange={e => setWalkInName(e.target.value)}
+                  placeholder="Enter customer name"
+                  className="w-full border rounded-lg px-3 py-2 text-sm outline-none"
+                  style={{
+                    borderColor: walkInName.trim() ? brand.colors.primary : '#d1d5db',
+                    color: brand.colors.fontBody,
+                    fontFamily: brand.fonts?.body || 'Inter',
+                  }}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold mb-1" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>
+                  Mobile Number <span style={{ color: '#888', fontWeight: 400 }}>(optional)</span>
+                </label>
+                <input
+                  type="tel"
+                  value={walkInMobile}
+                  onChange={e => setWalkInMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  placeholder="10-digit mobile"
+                  className="w-full border rounded-lg px-3 py-2 text-sm outline-none"
+                  style={{
+                    borderColor: '#d1d5db',
+                    color: brand.colors.fontBody,
+                    fontFamily: brand.fonts?.body || 'Inter',
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Delivery Address */}
-        <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
+        {!isScanOrder && <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
           <h3 className="font-semibold text-sm mb-2" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>Deliver To</h3>
           {currentAddress ? (
             <p className="text-sm" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>
@@ -356,7 +420,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
               }
             </div>
           )}
-        </div>
+        </div>}
 
         {/* Payment Methods - From Step 4 */}
         <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
