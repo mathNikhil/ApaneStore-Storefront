@@ -170,7 +170,7 @@ const QRScannerModal = ({ storeId, primaryColor, onAddToCart, onClose, customerT
 
   const handleAddToCart = (product, quantity) => {
     onAddToCart(product, quantity);
-    onClose();
+    handleScanAgain(); // stay in modal, restart camera for next scan
   };
 
   const handleScanAgain = () => {
