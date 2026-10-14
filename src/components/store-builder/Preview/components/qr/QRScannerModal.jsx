@@ -80,7 +80,7 @@ const QRScannerModal = ({ storeId, primaryColor, onAddToCart, onClose, customerT
         body: JSON.stringify({ token, store_id: storeId })
       });
       const data = await res.json();
-      setDebugInfo(prev => prev + ` | reason: ${data.reason || 'valid'}`);
+      setDebugInfo(prev => prev + ` | reason: ${data.reason || 'valid'}${data.detail ? ' | ' + data.detail : ''}`);
 
       if (!data.valid) {
         const messages = {
