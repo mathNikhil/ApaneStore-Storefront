@@ -4,52 +4,66 @@ import ScannedProductModal from './ScannedProductModal';
 const API = import.meta.env.VITE_API_URL || 'https://api.aapnaestore.com';
 
 const QRScannerModal = ({ storeId, primaryColor, onAddToCart, onClose, customerToken, addToCartLabel = 'Add to Cart' }) => {
-  const scannerRef = useRef(null);
-  const scannerInstanceRef = useRef(null);
-  const [scanning, setScanning] = useState(true);
+  const videoRef = useRef(null);
+  const controlsRef = useRef(null);
   const [error, setError] = useState('');
   const [scannedProduct, setScannedProduct] = useState(null);
+  const [scanning, setScanning] = useState(true);
 
   useEffect(() => {
-    let scanner;
+    if (scannedProduct) return; // don't start scanner if product already scanned
+
+    let stopped = false;
 
     const startScanner = async () => {
       try {
-        // Lazy-load html5-qrcode to avoid it being in the initial bundle
-        const { Html5QrcodeScanner } = await import('html5-qrcode');
+        const { BrowserQRCodeReader, BrowserCodeReader } = await import('@zxing/browser');
+        const codeReader = new BrowserQRCodeReader();
 
-        scanner = new Html5QrcodeScanner(
-          'qr-reader-container',
-          { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
-          false // verbose
-        );
+        // Get available video devices
+        const devices = await BrowserCodeReader.listVideoInputDevices();
+        if (!devices || devices.length === 0) {
+          setError('No camera found. Please allow camera access.');
+          return;
+        }
 
-        scannerInstanceRef.current = scanner;
+        // Prefer back camera on mobile
+        const backCamera = devices.find(d =>
+          /back|rear|environment/i.test(d.label)
+        ) || devices[devices.length - 1];
 
-        scanner.render(
-          async (decodedText) => {
-            // Stop scanning immediately after first valid scan
-            try { await scanner.clear(); } catch {}
-            setScanning(false);
-            await handleScannedToken(decodedText);
-          },
-          () => {
-            // Decode errors are normal while scanner is trying — ignore
+        const controls = await codeReader.decodeFromVideoDevice(
+          backCamera.deviceId,
+          videoRef.current,
+          async (result, err) => {
+            if (stopped) return;
+            if (result) {
+              stopped = true;
+              controls.stop();
+              setScanning(false);
+              await handleScannedToken(result.getText());
+            }
+            // err here is just "no QR found in this frame" — normal, ignore
           }
         );
+
+        controlsRef.current = controls;
       } catch (err) {
-        setError('Camera not available. Please allow camera access and try again.');
+        if (!stopped) {
+          setError('Camera not available. Please allow camera access and try again.');
+        }
       }
     };
 
     startScanner();
 
     return () => {
-      if (scannerInstanceRef.current) {
-        scannerInstanceRef.current.clear().catch(() => {});
+      stopped = true;
+      if (controlsRef.current) {
+        try { controlsRef.current.stop(); } catch {}
       }
     };
-  }, []);
+  }, [scannedProduct]);
 
   const handleScannedToken = async (token) => {
     setError('');
@@ -73,35 +87,19 @@ const QRScannerModal = ({ storeId, primaryColor, onAddToCart, onClose, customerT
           invalid_signature: 'QR code has been tampered with.',
         };
         setError(messages[data.reason] || 'Invalid QR code.');
-        setScanning(true);
-        restartScanner();
+        setScanning(true); // re-trigger scanner via useEffect
         return;
       }
 
       setScannedProduct(data.product);
-    } catch (err) {
-      setError('Network error. Please check connection and try again.');
+    } catch {
+      setError('Network error. Please check your connection.');
       setScanning(true);
-      restartScanner();
     }
-  };
-
-  const restartScanner = async () => {
-    if (scannerInstanceRef.current) {
-      try { await scannerInstanceRef.current.clear(); } catch {}
-    }
-    setTimeout(() => {
-      const { Html5QrcodeScanner } = window.Html5QrcodeScanner
-        ? { Html5QrcodeScanner: window.Html5QrcodeScanner }
-        : {};
-      // Re-render the scanner
-      setScanning(true);
-      setError('');
-    }, 1000);
   };
 
   const handleAddToCart = (product, quantity) => {
-    onAddToCart(product, quantity, true); // true = isScanOrder
+    onAddToCart(product, quantity, true);
     setScannedProduct(null);
     onClose();
   };
@@ -118,23 +116,44 @@ const QRScannerModal = ({ storeId, primaryColor, onAddToCart, onClose, customerT
           <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#666', lineHeight: 1 }}>×</button>
         </div>
 
-        {/* Scanner */}
-        {!scannedProduct && (
-          <>
-            <div
-              id="qr-reader-container"
-              style={{ width: '100%', borderRadius: 12, overflow: 'hidden', background: '#000' }}
+        {/* Camera view — always mounted so video element exists for zxing */}
+        <div style={{ display: scannedProduct ? 'none' : 'block' }}>
+          <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', background: '#000', aspectRatio: '1/1' }}>
+            <video
+              ref={videoRef}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              muted
+              playsInline
             />
-            {error && (
-              <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: 12, color: '#dc2626', fontSize: 13, marginTop: 12 }}>
-                {error}
+            {/* Scan target overlay */}
+            {scanning && !error && (
+              <div style={{
+                position: 'absolute', inset: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                pointerEvents: 'none'
+              }}>
+                <div style={{
+                  width: 200, height: 200,
+                  border: `3px solid ${primaryColor || '#1a56db'}`,
+                  borderRadius: 16,
+                  boxShadow: '0 0 0 9999px rgba(0,0,0,0.35)'
+                }} />
               </div>
             )}
-            <div style={{ textAlign: 'center', marginTop: 14, fontSize: 13, color: '#888' }}>
-              Hold the QR code steady in the frame
+          </div>
+
+          {error && (
+            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: 12, color: '#dc2626', fontSize: 13, marginTop: 12 }}>
+              {error}
             </div>
-          </>
-        )}
+          )}
+
+          {!error && (
+            <div style={{ textAlign: 'center', marginTop: 12, fontSize: 13, color: '#888' }}>
+              Hold the QR code steady inside the frame
+            </div>
+          )}
+        </div>
 
         {/* Product confirm screen */}
         {scannedProduct && (
@@ -142,7 +161,7 @@ const QRScannerModal = ({ storeId, primaryColor, onAddToCart, onClose, customerT
             product={scannedProduct}
             primaryColor={primaryColor}
             onAddToCart={handleAddToCart}
-            onScanAgain={() => { setScannedProduct(null); setScanning(true); }}
+            onScanAgain={() => { setScannedProduct(null); setError(''); setScanning(true); }}
             addToCartLabel={addToCartLabel}
           />
         )}
