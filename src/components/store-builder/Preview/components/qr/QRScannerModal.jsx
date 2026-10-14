@@ -7,12 +7,11 @@ const QRScannerModal = ({ storeId, primaryColor, onAddToCart, onClose, customerT
   const videoRef = useRef(null);
   const controlsRef = useRef(null);
   const [error, setError] = useState('');
-  const [debugInfo, setDebugInfo] = useState('');
   const [scannedProduct, setScannedProduct] = useState(null);
   const [scanning, setScanning] = useState(true);
 
   useEffect(() => {
-    if (scannedProduct) return; // don't start scanner if product already scanned
+    if (scannedProduct) return;
 
     let stopped = false;
 
@@ -21,14 +20,12 @@ const QRScannerModal = ({ storeId, primaryColor, onAddToCart, onClose, customerT
         const { BrowserQRCodeReader, BrowserCodeReader } = await import('@zxing/browser');
         const codeReader = new BrowserQRCodeReader();
 
-        // Get available video devices
         const devices = await BrowserCodeReader.listVideoInputDevices();
         if (!devices || devices.length === 0) {
           setError('No camera found. Please allow camera access.');
           return;
         }
 
-        // Prefer back camera on mobile
         const backCamera = devices.find(d =>
           /back|rear|environment/i.test(d.label)
         ) || devices[devices.length - 1];
@@ -44,7 +41,6 @@ const QRScannerModal = ({ storeId, primaryColor, onAddToCart, onClose, customerT
               setScanning(false);
               await handleScannedToken(result.getText());
             }
-            // err here is just "no QR found in this frame" — normal, ignore
           }
         );
 
@@ -68,8 +64,6 @@ const QRScannerModal = ({ storeId, primaryColor, onAddToCart, onClose, customerT
 
   const handleScannedToken = async (token) => {
     setError('');
-    const tokenPreview = token ? token.substring(0, 40) + '...' : 'empty';
-    setDebugInfo(`storeId: ${storeId} | token: ${tokenPreview}`);
     try {
       const res = await fetch(`${API}/api/qr/validate`, {
         method: 'POST',
@@ -80,7 +74,6 @@ const QRScannerModal = ({ storeId, primaryColor, onAddToCart, onClose, customerT
         body: JSON.stringify({ token, store_id: storeId })
       });
       const data = await res.json();
-      setDebugInfo(prev => prev + ` | reason: ${data.reason || 'valid'}${data.detail ? ' | ' + data.detail : ''}`);
 
       if (!data.valid) {
         const messages = {
@@ -90,8 +83,8 @@ const QRScannerModal = ({ storeId, primaryColor, onAddToCart, onClose, customerT
           invalid_token: 'Invalid QR code. Please try again.',
           invalid_signature: 'QR code has been tampered with.',
         };
-        setError((messages[data.reason] || 'Invalid QR code.') + ` [${data.reason || 'unknown'}]`);
-        setScanning(true); // re-trigger scanner via useEffect
+        setError(messages[data.reason] || 'Invalid QR code.');
+        setScanning(true);
         return;
       }
 
@@ -103,8 +96,7 @@ const QRScannerModal = ({ storeId, primaryColor, onAddToCart, onClose, customerT
   };
 
   const handleAddToCart = (product, quantity) => {
-    onAddToCart(product, quantity, true);
-    setScannedProduct(null);
+    onAddToCart(product, quantity);
     onClose();
   };
 
@@ -120,7 +112,7 @@ const QRScannerModal = ({ storeId, primaryColor, onAddToCart, onClose, customerT
           <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#666', lineHeight: 1 }}>×</button>
         </div>
 
-        {/* Camera view — always mounted so video element exists for zxing */}
+        {/* Camera view */}
         <div style={{ display: scannedProduct ? 'none' : 'block' }}>
           <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', background: '#000', aspectRatio: '1/1' }}>
             <video
@@ -129,7 +121,6 @@ const QRScannerModal = ({ storeId, primaryColor, onAddToCart, onClose, customerT
               muted
               playsInline
             />
-            {/* Scan target overlay */}
             {scanning && !error && (
               <div style={{
                 position: 'absolute', inset: 0,
@@ -145,12 +136,6 @@ const QRScannerModal = ({ storeId, primaryColor, onAddToCart, onClose, customerT
               </div>
             )}
           </div>
-
-          {debugInfo && (
-            <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8, padding: 10, color: '#0369a1', fontSize: 11, marginTop: 8, wordBreak: 'break-all', fontFamily: 'monospace' }}>
-              {debugInfo}
-            </div>
-          )}
 
           {error && (
             <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: 12, color: '#dc2626', fontSize: 13, marginTop: 12 }}>
