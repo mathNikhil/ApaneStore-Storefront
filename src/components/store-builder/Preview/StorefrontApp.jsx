@@ -59,12 +59,28 @@ const StorefrontApp = ({
   };
 
   const handleAddScannedToCart = (product, quantity) => {
-    // handleAddToCart expects (productId, variationId, sizeId)
-    const variantId = product.variant?.id || null;
+    const variationId = product.variant_id || 'qr_v';
+    const sizeId = product.size_id || 'qr_s';
+    const cartProduct = {
+      id: product.id,
+      name: product.name,
+      images: product.image_url ? [{ url: product.image_url }] : (Array.isArray(product.images) ? product.images.map(u => ({ url: u })) : []),
+      discount: 0,
+      variations: [{
+        id: variationId,
+        name: product.variation_name || '',
+        sizes: [{
+          id: sizeId,
+          size: product.size || '',
+          unit: product.unit || '',
+          price: String(product.scanned_price || product.price || 0),
+          label: product.size_label || ''
+        }]
+      }]
+    };
     for (let i = 0; i < (quantity || 1); i++) {
-      handleAddToCart(product.id, variantId, null);
+      addToCart(cartProduct, variationId, sizeId);
     }
-    setScannedProduct(null);
     setActiveTab('cart');
   };
 
