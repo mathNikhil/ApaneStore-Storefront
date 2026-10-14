@@ -1,12 +1,12 @@
 import React from 'react';
 
-const PreviewHeader = ({ brand, cartCount = 0 }) => {
+const PreviewHeader = ({ brand, cartCount = 0, qrActive = false, onScanClick }) => {
   const { name, tagline, logo, colors, fonts } = brand;
 
   return (
-    <header 
+    <header
       className="w-full border-b flex-shrink-0"
-      style={{ 
+      style={{
         backgroundColor: colors.background || '#FFFFFF',
         borderColor: colors.secondary || '#e0e3e6'
       }}
@@ -15,13 +15,13 @@ const PreviewHeader = ({ brand, cartCount = 0 }) => {
         {/* Logo & Brand */}
         <div className="flex items-center gap-3">
           {logo ? (
-            <img 
-              src={logo} 
-              alt={name} 
+            <img
+              src={logo}
+              alt={name}
               className="w-10 h-10 rounded-full object-cover"
             />
           ) : (
-            <div 
+            <div
               className="w-10 h-10 rounded-full flex items-center justify-center"
               style={{ backgroundColor: colors.primary }}
             >
@@ -29,17 +29,17 @@ const PreviewHeader = ({ brand, cartCount = 0 }) => {
             </div>
           )}
           <div>
-            <h1 
+            <h1
               className="font-bold text-lg"
-              style={{ 
+              style={{
                 color: colors.fontHeader || '#191C1E', fontFamily: fonts?.body || 'Inter'
               }}
             >
               {name || 'Your Store'}
             </h1>
-            <p 
+            <p
               className="text-xs"
-              style={{ 
+              style={{
                 color: colors.fontBody || '#556067', fontFamily: fonts?.body || 'Inter'
               }}
             >
@@ -48,20 +48,36 @@ const PreviewHeader = ({ brand, cartCount = 0 }) => {
           </div>
         </div>
 
-        {/* Cart Icon */}
-        <button className="relative p-2 hover:bg-[#f2f4f7] rounded-full transition-colors">
-          <span className="material-symbols-outlined" style={{ color: colors.fontBody}}>
-            shopping_cart
-          </span>
-          {cartCount > 0 && (
-            <span 
-              className="absolute -top-1 -right-1 w-5 h-5 rounded-full text-xs font-bold flex items-center justify-center text-white"
-              style={{ backgroundColor: colors.primary }}
+        {/* Right side icons */}
+        <div className="flex items-center gap-1">
+          {/* QR Scan icon — only when store has active QR subscription */}
+          {qrActive && (
+            <button
+              onClick={onScanClick}
+              className="relative p-2 hover:bg-[#f2f4f7] rounded-full transition-colors"
+              title="Scan product QR code"
             >
-              {cartCount}
-            </span>
+              <span className="material-symbols-outlined" style={{ color: colors.primary, fontSize: 26 }}>
+                qr_code_scanner
+              </span>
+            </button>
           )}
-        </button>
+
+          {/* Cart Icon */}
+          <button className="relative p-2 hover:bg-[#f2f4f7] rounded-full transition-colors">
+            <span className="material-symbols-outlined" style={{ color: colors.fontBody }}>
+              shopping_cart
+            </span>
+            {cartCount > 0 && (
+              <span
+                className="absolute -top-1 -right-1 w-5 h-5 rounded-full text-xs font-bold flex items-center justify-center text-white"
+                style={{ backgroundColor: colors.primary }}
+              >
+                {cartCount}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
     </header>
   );

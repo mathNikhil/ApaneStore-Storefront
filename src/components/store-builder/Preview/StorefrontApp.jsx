@@ -9,6 +9,8 @@ import PreviewProfileTab from './tabs/PreviewProfileTab';
 import { usePreviewData } from './hooks/usePreviewData';
 import { customerCartAPI } from '../../../services/api';
 import { DeviceFrameContext } from './DeviceFrameContext';
+import QRScannerModal from './components/qr/QRScannerModal';
+import ScannedProductModal from './components/qr/ScannedProductModal';
 
 const StorefrontApp = ({
   builderData,
@@ -24,6 +26,10 @@ const StorefrontApp = ({
   const [customer, setCustomer] = useState(null);
   const [customerToken, setCustomerToken] = useState(null);
   const [checkoutNeedsAuth, setCheckoutNeedsAuth] = useState(false);
+  const [qrActive, setQrActive] = useState(false);
+  const [showQRScanner, setShowQRScanner] = useState(false);
+  const [scannedProduct, setScannedProduct] = useState(null);
+  const API = 'https://api.aapnaestore.com';
 
   useEffect(() => {
     if (!storeId) return;
@@ -38,6 +44,29 @@ const StorefrontApp = ({
       console.error('Failed to load saved customer session:', e);
     }
   }, [storeId]);
+
+  useEffect(() => {
+    if (!storeId) return;
+    fetch(`${API}/api/qr/status/${storeId}`)
+      .then(r => r.json())
+      .then(d => setQrActive(d.active || false))
+      .catch(() => {});
+  }, [storeId]);
+
+  const handleQRScanned = (product) => {
+    setShowQRScanner(false);
+    setScannedProduct(product);
+  };
+
+  const handleAddScannedToCart = (product, quantity) => {
+    // handleAddToCart expects (productId, variationId, sizeId)
+    const variantId = product.variant?.id || null;
+    for (let i = 0; i < (quantity || 1); i++) {
+      handleAddToCart(product.id, variantId, null);
+    }
+    setScannedProduct(null);
+    setActiveTab('cart');
+  };
 
   const handleAuthenticated = async (customerData, token) => {
     setCustomer(customerData);
@@ -378,7 +407,12 @@ const StorefrontApp = ({
       }}
     >
       <DeviceFrameContext.Provider value={rootNode}>
-        <PreviewHeader brand={storeData.brand || {}} cartCount={getCartItemCount()} />
+        <PreviewHeader
+          brand={storeData.brand || {}}
+          cartCount={getCartItemCount()}
+          qrActive={qrActive}
+          onScanClick={() => setShowQRScanner(true)}
+        />
         <div className="flex-1 overflow-y-auto pb-20">
           {renderTab()}
         </div>
@@ -393,6 +427,32 @@ const StorefrontApp = ({
           />
         </div>
       </DeviceFrameContext.Provider>
+
+      {showQRScanner && (
+        <QRScannerModal
+          storeId={storeId}
+          onScanned={handleQRScanned}
+          onClose={() => setShowQRScanner(false)}
+        />
+      )}
+      {scannedProduct && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+          zIndex: 1000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center'
+        }} onClick={() => setScannedProduct(null)}>
+          <div style={{
+            background: '#fff', borderRadius: '20px 20px 0 0',
+            padding: 24, width: '100%', maxWidth: 480, maxHeight: '80vh', overflowY: 'auto'
+          }} onClick={e => e.stopPropagation()}>
+            <ScannedProductModal
+              product={scannedProduct}
+              primaryColor={storeData.brand?.colors?.primary}
+              onAddToCart={handleAddScannedToCart}
+              onScanAgain={() => { setScannedProduct(null); setShowQRScanner(true); }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
