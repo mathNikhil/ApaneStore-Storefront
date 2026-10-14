@@ -1,64 +1,74 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import ScannedProductModal from './ScannedProductModal';
 
 const API = import.meta.env.VITE_API_URL || 'https://api.aapnaestore.com';
 
 const QRScannerModal = ({ storeId, primaryColor, onAddToCart, onClose, customerToken, addToCartLabel = 'Add to Cart' }) => {
   const videoRef = useRef(null);
-  const controlsRef = useRef(null);
+  const streamRef = useRef(null);
+  const scanningRef = useRef(false);
+  const mountedRef = useRef(true);
   const [error, setError] = useState('');
   const [scannedProduct, setScannedProduct] = useState(null);
   const [scanning, setScanning] = useState(true);
 
+  const stopCamera = () => {
+    scanningRef.current = false;
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) videoRef.current.srcObject = null;
+  };
+
+  const decodeFrame = async (BrowserQRCodeReader, codeReader) => {
+    if (!scanningRef.current || !mountedRef.current) return;
+    try {
+      const result = await codeReader.decodeOnceFromVideoElement(videoRef.current);
+      if (result && scanningRef.current && mountedRef.current) {
+        scanningRef.current = false;
+        setScanning(false);
+        await handleScannedToken(result.getText());
+      }
+    } catch {
+      // No QR in this frame — wait 300ms then try again
+      if (scanningRef.current && mountedRef.current) {
+        setTimeout(() => decodeFrame(BrowserQRCodeReader, codeReader), 300);
+      }
+    }
+  };
+
   useEffect(() => {
     if (scannedProduct) return;
-
-    let stopped = false;
+    mountedRef.current = true;
 
     const startScanner = async () => {
       try {
-        const { BrowserQRCodeReader, BrowserCodeReader } = await import('@zxing/browser');
+        const { BrowserQRCodeReader } = await import('@zxing/browser');
         const codeReader = new BrowserQRCodeReader();
 
-        const devices = await BrowserCodeReader.listVideoInputDevices();
-        if (!devices || devices.length === 0) {
-          setError('No camera found. Please allow camera access.');
-          return;
-        }
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' }, width: { ideal: 640 }, height: { ideal: 640 } }
+        });
 
-        const backCamera = devices.find(d =>
-          /back|rear|environment/i.test(d.label)
-        ) || devices[devices.length - 1];
+        if (!mountedRef.current) { stream.getTracks().forEach(t => t.stop()); return; }
 
-        const controls = await codeReader.decodeFromVideoDevice(
-          backCamera.deviceId,
-          videoRef.current,
-          async (result, err) => {
-            if (stopped) return;
-            if (result) {
-              stopped = true;
-              controls.stop();
-              setScanning(false);
-              await handleScannedToken(result.getText());
-            }
-          }
-        );
+        streamRef.current = stream;
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
 
-        controlsRef.current = controls;
-      } catch (err) {
-        if (!stopped) {
-          setError('Camera not available. Please allow camera access and try again.');
-        }
+        scanningRef.current = true;
+        decodeFrame(BrowserQRCodeReader, codeReader);
+      } catch {
+        if (mountedRef.current) setError('Camera not available. Please allow camera access and try again.');
       }
     };
 
     startScanner();
 
     return () => {
-      stopped = true;
-      if (controlsRef.current) {
-        try { controlsRef.current.stop(); } catch {}
-      }
+      mountedRef.current = false;
+      stopCamera();
     };
   }, [scannedProduct]);
 
@@ -83,21 +93,37 @@ const QRScannerModal = ({ storeId, primaryColor, onAddToCart, onClose, customerT
           invalid_token: 'Invalid QR code. Please try again.',
           invalid_signature: 'QR code has been tampered with.',
         };
-        setError(messages[data.reason] || 'Invalid QR code.');
-        setScanning(true);
+        if (mountedRef.current) {
+          setError(messages[data.reason] || 'Invalid QR code.');
+          setScanning(true);
+          scanningRef.current = true;
+          // Restart frame loop after error
+          const { BrowserQRCodeReader } = await import('@zxing/browser');
+          const codeReader = new BrowserQRCodeReader();
+          setTimeout(() => decodeFrame(BrowserQRCodeReader, codeReader), 1000);
+        }
         return;
       }
 
-      setScannedProduct(data.product);
+      if (mountedRef.current) setScannedProduct(data.product);
     } catch {
-      setError('Network error. Please check your connection.');
-      setScanning(true);
+      if (mountedRef.current) {
+        setError('Network error. Please check your connection.');
+        setScanning(true);
+      }
     }
   };
 
   const handleAddToCart = (product, quantity) => {
+    stopCamera();
     onAddToCart(product, quantity);
     onClose();
+  };
+
+  const handleScanAgain = () => {
+    setScannedProduct(null);
+    setError('');
+    setScanning(true);
   };
 
   return (
@@ -109,7 +135,7 @@ const QRScannerModal = ({ storeId, primaryColor, onAddToCart, onClose, customerT
             <div style={{ fontWeight: 700, fontSize: 17, color: '#111' }}>📱 Scan Product</div>
             <div style={{ fontSize: 13, color: '#888', marginTop: 2 }}>Point camera at the product QR code</div>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#666', lineHeight: 1 }}>×</button>
+          <button onClick={() => { stopCamera(); onClose(); }} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#666', lineHeight: 1 }}>×</button>
         </div>
 
         {/* Camera view */}
@@ -122,17 +148,8 @@ const QRScannerModal = ({ storeId, primaryColor, onAddToCart, onClose, customerT
               playsInline
             />
             {scanning && !error && (
-              <div style={{
-                position: 'absolute', inset: 0,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                pointerEvents: 'none'
-              }}>
-                <div style={{
-                  width: 200, height: 200,
-                  border: `3px solid ${primaryColor || '#1a56db'}`,
-                  borderRadius: 16,
-                  boxShadow: '0 0 0 9999px rgba(0,0,0,0.35)'
-                }} />
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                <div style={{ width: 200, height: 200, border: `3px solid ${primaryColor || '#1a56db'}`, borderRadius: 16, boxShadow: '0 0 0 9999px rgba(0,0,0,0.35)' }} />
               </div>
             )}
           </div>
@@ -142,7 +159,6 @@ const QRScannerModal = ({ storeId, primaryColor, onAddToCart, onClose, customerT
               {error}
             </div>
           )}
-
           {!error && (
             <div style={{ textAlign: 'center', marginTop: 12, fontSize: 13, color: '#888' }}>
               Hold the QR code steady inside the frame
@@ -156,7 +172,7 @@ const QRScannerModal = ({ storeId, primaryColor, onAddToCart, onClose, customerT
             product={scannedProduct}
             primaryColor={primaryColor}
             onAddToCart={handleAddToCart}
-            onScanAgain={() => { setScannedProduct(null); setError(''); setScanning(true); }}
+            onScanAgain={handleScanAgain}
             addToCartLabel={addToCartLabel}
           />
         )}
