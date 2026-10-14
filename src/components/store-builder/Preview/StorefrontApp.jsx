@@ -449,6 +449,7 @@ const StorefrontApp = ({
               primaryColor={storeData.brand?.colors?.primary}
               onAddToCart={handleAddScannedToCart}
               onScanAgain={() => { setScannedProduct(null); setShowQRScanner(true); }}
+              addToCartLabel={storeData.products?.addToCartLabel || storeData.addToCartLabel || 'Add to Cart'}
             />
           </div>
         </div>

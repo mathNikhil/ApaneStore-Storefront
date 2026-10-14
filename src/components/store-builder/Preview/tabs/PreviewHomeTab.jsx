@@ -118,6 +118,7 @@ const PreviewHomeTab = ({
           storeId={storeId}
           primaryColor={brand.colors.primary}
           customerToken={customerToken}
+          addToCartLabel={data.addToCartLabel || 'Add to Cart'}
           onAddToCart={(product, quantity, isScan) => {
             onAddToCart(product, quantity, { isScanOrder: true });
             setShowQRScanner(false);

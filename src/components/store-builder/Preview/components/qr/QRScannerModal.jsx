@@ -3,7 +3,7 @@ import ScannedProductModal from './ScannedProductModal';
 
 const API = import.meta.env.VITE_API_URL || 'https://api.aapnaestore.com';
 
-const QRScannerModal = ({ storeId, primaryColor, onAddToCart, onClose, customerToken }) => {
+const QRScannerModal = ({ storeId, primaryColor, onAddToCart, onClose, customerToken, addToCartLabel = 'Add to Cart' }) => {
   const scannerRef = useRef(null);
   const scannerInstanceRef = useRef(null);
   const [scanning, setScanning] = useState(true);
@@ -143,6 +143,7 @@ const QRScannerModal = ({ storeId, primaryColor, onAddToCart, onClose, customerT
             primaryColor={primaryColor}
             onAddToCart={handleAddToCart}
             onScanAgain={() => { setScannedProduct(null); setScanning(true); }}
+            addToCartLabel={addToCartLabel}
           />
         )}
       </div>
