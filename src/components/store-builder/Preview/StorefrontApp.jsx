@@ -447,8 +447,11 @@ const StorefrontApp = ({
       {showQRScanner && (
         <QRScannerModal
           storeId={storeId}
-          onScanned={handleQRScanned}
+          primaryColor={storeData.brand?.colors?.primary}
+          onAddToCart={handleAddScannedToCart}
           onClose={() => setShowQRScanner(false)}
+          customerToken={customerToken}
+          addToCartLabel={storeData.products?.addToCartLabel || storeData.addToCartLabel || 'Add to Cart'}
         />
       )}
       {scannedProduct && (
