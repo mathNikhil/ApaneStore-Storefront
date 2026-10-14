@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import ScannedProductModal from './ScannedProductModal';
 
-const API = import.meta.env.VITE_API_URL || 'https://api.aapnaestore.com'; // v2
+const API = import.meta.env.VITE_API_URL || 'https://api.aapnaestore.com';
 
 const QRScannerModal = ({ storeId, primaryColor, onAddToCart, onClose, customerToken, addToCartLabel = 'Add to Cart' }) => {
   const videoRef = useRef(null);
   const controlsRef = useRef(null);
   const [error, setError] = useState('');
+  const [debugInfo, setDebugInfo] = useState('');
   const [scannedProduct, setScannedProduct] = useState(null);
   const [scanning, setScanning] = useState(true);
 
@@ -67,10 +68,9 @@ const QRScannerModal = ({ storeId, primaryColor, onAddToCart, onClose, customerT
 
   const handleScannedToken = async (token) => {
     setError('');
+    const tokenPreview = token ? token.substring(0, 40) + '...' : 'empty';
+    setDebugInfo(`storeId: ${storeId} | token: ${tokenPreview}`);
     try {
-      console.log('[QR] Raw scanned token:', token);
-      console.log('[QR] Store ID being sent:', storeId, typeof storeId);
-
       const res = await fetch(`${API}/api/qr/validate`, {
         method: 'POST',
         headers: {
@@ -80,7 +80,7 @@ const QRScannerModal = ({ storeId, primaryColor, onAddToCart, onClose, customerT
         body: JSON.stringify({ token, store_id: storeId })
       });
       const data = await res.json();
-      console.log('[QR] Validate response:', data);
+      setDebugInfo(prev => prev + ` | reason: ${data.reason || 'valid'}`);
 
       if (!data.valid) {
         const messages = {
@@ -145,6 +145,12 @@ const QRScannerModal = ({ storeId, primaryColor, onAddToCart, onClose, customerT
               </div>
             )}
           </div>
+
+          {debugInfo && (
+            <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8, padding: 10, color: '#0369a1', fontSize: 11, marginTop: 8, wordBreak: 'break-all', fontFamily: 'monospace' }}>
+              {debugInfo}
+            </div>
+          )}
 
           {error && (
             <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: 12, color: '#dc2626', fontSize: 13, marginTop: 12 }}>
