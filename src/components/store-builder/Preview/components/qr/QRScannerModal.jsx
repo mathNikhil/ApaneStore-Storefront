@@ -1,79 +1,53 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useRef, useState } from 'react';
 import ScannedProductModal from './ScannedProductModal';
 
 const API = import.meta.env.VITE_API_URL || 'https://api.aapnaestore.com';
 
 const QRScannerModal = ({ storeId, primaryColor, onAddToCart, onClose, customerToken, addToCartLabel = 'Add to Cart' }) => {
-  const videoRef = useRef(null);
-  const streamRef = useRef(null);
-  const scanningRef = useRef(false);
-  const mountedRef = useRef(true);
+  const fileInputRef = useRef(null);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const [scannedProduct, setScannedProduct] = useState(null);
-  const [scanning, setScanning] = useState(true);
 
-  const stopCamera = () => {
-    scanningRef.current = false;
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(t => t.stop());
-      streamRef.current = null;
-    }
-    if (videoRef.current) videoRef.current.srcObject = null;
-  };
+  const handleCapture = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  const decodeFrame = async (BrowserQRCodeReader, codeReader) => {
-    if (!scanningRef.current || !mountedRef.current) return;
+    setError('');
+    setLoading(true);
+
     try {
-      const result = await codeReader.decodeOnceFromVideoElement(videoRef.current);
-      if (result && scanningRef.current && mountedRef.current) {
-        scanningRef.current = false;
-        setScanning(false);
-        await handleScannedToken(result.getText());
+      const { BrowserQRCodeReader } = await import('@zxing/browser');
+      const codeReader = new BrowserQRCodeReader();
+
+      // Draw image to canvas, decode QR from it
+      const imageBitmap = await createImageBitmap(file);
+      const canvas = document.createElement('canvas');
+      canvas.width = imageBitmap.width;
+      canvas.height = imageBitmap.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(imageBitmap, 0, 0);
+
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const result = await codeReader.decodeFromCanvas(canvas);
+
+      if (!result) {
+        setError('No QR code found in photo. Try again with better lighting.');
+        setLoading(false);
+        return;
       }
+
+      await handleScannedToken(result.getText());
     } catch {
-      // No QR in this frame — wait 300ms then try again
-      if (scanningRef.current && mountedRef.current) {
-        setTimeout(() => decodeFrame(BrowserQRCodeReader, codeReader), 300);
-      }
+      setError('Could not read QR code. Make sure the QR is clear and well-lit.');
+      setLoading(false);
     }
+
+    // Reset input so same file can be re-selected
+    e.target.value = '';
   };
-
-  useEffect(() => {
-    if (scannedProduct) return;
-    mountedRef.current = true;
-
-    const startScanner = async () => {
-      try {
-        const { BrowserQRCodeReader } = await import('@zxing/browser');
-        const codeReader = new BrowserQRCodeReader();
-
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: 'environment' }, width: { ideal: 640 }, height: { ideal: 640 } }
-        });
-
-        if (!mountedRef.current) { stream.getTracks().forEach(t => t.stop()); return; }
-
-        streamRef.current = stream;
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-
-        scanningRef.current = true;
-        decodeFrame(BrowserQRCodeReader, codeReader);
-      } catch {
-        if (mountedRef.current) setError('Camera not available. Please allow camera access and try again.');
-      }
-    };
-
-    startScanner();
-
-    return () => {
-      mountedRef.current = false;
-      stopCamera();
-    };
-  }, [scannedProduct]);
 
   const handleScannedToken = async (token) => {
-    setError('');
     try {
       const res = await fetch(`${API}/api/qr/validate`, {
         method: 'POST',
@@ -93,29 +67,19 @@ const QRScannerModal = ({ storeId, primaryColor, onAddToCart, onClose, customerT
           invalid_token: 'Invalid QR code. Please try again.',
           invalid_signature: 'QR code has been tampered with.',
         };
-        if (mountedRef.current) {
-          setError(messages[data.reason] || 'Invalid QR code.');
-          setScanning(true);
-          scanningRef.current = true;
-          // Restart frame loop after error
-          const { BrowserQRCodeReader } = await import('@zxing/browser');
-          const codeReader = new BrowserQRCodeReader();
-          setTimeout(() => decodeFrame(BrowserQRCodeReader, codeReader), 1000);
-        }
+        setError(messages[data.reason] || 'Invalid QR code.');
+        setLoading(false);
         return;
       }
 
-      if (mountedRef.current) setScannedProduct(data.product);
+      setScannedProduct(data.product);
     } catch {
-      if (mountedRef.current) {
-        setError('Network error. Please check your connection.');
-        setScanning(true);
-      }
+      setError('Network error. Please check your connection.');
     }
+    setLoading(false);
   };
 
   const handleAddToCart = (product, quantity) => {
-    stopCamera();
     onAddToCart(product, quantity);
     onClose();
   };
@@ -123,50 +87,83 @@ const QRScannerModal = ({ storeId, primaryColor, onAddToCart, onClose, customerT
   const handleScanAgain = () => {
     setScannedProduct(null);
     setError('');
-    setScanning(true);
   };
 
   return (
     <div style={overlay}>
       <div style={modal}>
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 17, color: '#111' }}>📱 Scan Product</div>
-            <div style={{ fontSize: 13, color: '#888', marginTop: 2 }}>Point camera at the product QR code</div>
+            <div style={{ fontWeight: 700, fontSize: 17, color: '#111' }}>📷 Scan Product</div>
+            <div style={{ fontSize: 13, color: '#888', marginTop: 2 }}>Take a photo of the product QR code</div>
           </div>
-          <button onClick={() => { stopCamera(); onClose(); }} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#666', lineHeight: 1 }}>×</button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#666', lineHeight: 1 }}>×</button>
         </div>
 
-        {/* Camera view */}
-        <div style={{ display: scannedProduct ? 'none' : 'block' }}>
-          <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', background: '#000', aspectRatio: '1/1' }}>
-            <video
-              ref={videoRef}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-              muted
-              playsInline
+        {!scannedProduct && (
+          <>
+            {/* Capture button */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleCapture}
+              style={{ display: 'none' }}
             />
-            {scanning && !error && (
-              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-                <div style={{ width: 200, height: 200, border: `3px solid ${primaryColor || '#1a56db'}`, borderRadius: 16, boxShadow: '0 0 0 9999px rgba(0,0,0,0.35)' }} />
+
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={loading}
+              style={{
+                width: '100%',
+                padding: '48px 20px',
+                border: `2px dashed ${primaryColor || '#1a56db'}`,
+                borderRadius: 16,
+                background: loading ? '#f8faff' : '#f0f4ff',
+                cursor: loading ? 'default' : 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 12,
+                marginBottom: 16,
+              }}
+            >
+              {loading ? (
+                <>
+                  <div style={{ fontSize: 40 }}>⏳</div>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: primaryColor || '#1a56db' }}>Reading QR code...</div>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: 48 }}>📷</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: primaryColor || '#1a56db' }}>Tap to take photo</div>
+                  <div style={{ fontSize: 12, color: '#888' }}>Point camera at the QR code and snap</div>
+                </>
+              )}
+            </button>
+
+            {error && (
+              <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: 12, color: '#dc2626', fontSize: 13, marginBottom: 12 }}>
+                {error}
+                <div style={{ marginTop: 8 }}>
+                  <button
+                    onClick={() => { setError(''); fileInputRef.current?.click(); }}
+                    style={{ background: '#dc2626', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    Try Again
+                  </button>
+                </div>
               </div>
             )}
-          </div>
 
-          {error && (
-            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: 12, color: '#dc2626', fontSize: 13, marginTop: 12 }}>
-              {error}
+            <div style={{ fontSize: 12, color: '#aaa', textAlign: 'center' }}>
+              💡 Good lighting = faster scan
             </div>
-          )}
-          {!error && (
-            <div style={{ textAlign: 'center', marginTop: 12, fontSize: 13, color: '#888' }}>
-              Hold the QR code steady inside the frame
-            </div>
-          )}
-        </div>
+          </>
+        )}
 
-        {/* Product confirm screen */}
         {scannedProduct && (
           <ScannedProductModal
             product={scannedProduct}
