@@ -94,24 +94,6 @@ const PreviewHomeTab = ({
         fonts={brand.fonts}
       />
 
-      {/* QR Scan button — only when QR service active and customer is logged in */}
-      {qrActive && isLoggedIn && (
-        <div style={{ marginBottom: 12, marginTop: 12 }}>
-          <button
-            onClick={() => setShowQRScanner(true)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              background: brand.colors.primary || '#1a56db',
-              color: '#fff', border: 'none', borderRadius: 10,
-              padding: '10px 18px', fontSize: 14, fontWeight: 700,
-              cursor: 'pointer', width: '100%', justifyContent: 'center'
-            }}
-          >
-            <span style={{ fontSize: 18 }}>📱</span>
-            Scan Product QR Code
-          </button>
-        </div>
-      )}
 
       {showQRScanner && (
         <QRScannerModal
