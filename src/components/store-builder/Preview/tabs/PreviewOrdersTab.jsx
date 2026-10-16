@@ -446,78 +446,158 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart, storeId, c
                         const taxableAmt = enableGST && gstRate > 0 ? (order.total / (1 + gstRate/100)).toFixed(2) : order.subtotal.toFixed(2);
                         const cgstAmt = enableGST && order.gst > 0 ? (order.gst / 2).toFixed(2) : '0.00';
                         const sgstAmt = cgstAmt;
-                        const html = `<!DOCTYPE html><html><head><title>Tax Invoice - ${invoiceNo}</title><style>
-                          body{font-family:Arial,sans-serif;max-width:700px;margin:24px auto;padding:24px;color:#191c1e;}
-                          .header{text-align:center;margin-bottom:16px;}
-                          .store-name{font-size:22px;font-weight:800;}
-                          .divider{border-top:1px solid #e0e3e6;margin:14px 0;}
-                          .bill-title{text-align:center;font-size:13px;font-weight:700;letter-spacing:3px;color:#556067;margin-bottom:4px;}
-                          .original{text-align:center;font-size:11px;color:#556067;margin-bottom:14px;}
-                          .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:8px;}
-                          .label{font-size:10px;color:#8e9eab;font-weight:700;text-transform:uppercase;margin-bottom:3px;}
-                          .value{font-size:13px;font-weight:600;}
-                          .small{font-size:11px;color:#556067;margin-top:2px;}
-                          table{width:100%;border-collapse:collapse;margin:8px 0;}
-                          th{padding:8px;font-size:11px;font-weight:700;color:#556067;text-transform:uppercase;border-bottom:2px solid #e0e3e6;text-align:left;}
-                          td{padding:8px;font-size:12px;border-bottom:1px solid #f2f4f7;}
-                          .total-row{display:flex;justify-content:space-between;font-size:12px;color:#556067;margin-bottom:3px;}
-                          .grand-total{display:flex;justify-content:space-between;font-size:15px;font-weight:800;color:#006d2f;margin-top:6px;}
-                          .footer{text-align:center;font-size:11px;color:#8e9eab;margin-top:16px;}
-                          .words{font-size:12px;color:#556067;font-style:italic;border-top:1px dashed #e0e3e6;padding-top:8px;margin-top:8px;}
-                          .signatory{display:flex;justify-content:flex-end;margin-top:24px;}
-                          .sign-box{text-align:center;border-top:1px solid #556067;padding-top:4px;font-size:11px;color:#556067;width:160px;}
-                          @media print{@page{size:A4;margin:10mm;}}
+                        const paymentLabel = order.paymentMethodId === 'cod' || order.paymentMethod === 'cod' ? 'Cash on Delivery' : order.paymentMethodId === 'upi' || order.paymentMethod === 'upi' ? 'UPI' : order.paymentMethodId || order.paymentMethod || 'N/A';
+                        const shipTo = order.order_type === 'dine_in'
+                          ? '<div class="lbl">Order Type</div><div class="val">🍽️ '+dineInLabel+'</div>'
+                          : addr.addressLine1
+                            ? '<div class="lbl">Ship To</div><div class="val">'+(addr.recipientName||order.customerName||'')+'</div><div class="sub">'+addr.addressLine1+(addr.addressLine2?', '+addr.addressLine2:'')+'<br/>'+addr.city+', '+addr.state+' '+addr.pincode+'</div>'
+                            : '';
+                        const itemRows = order.items.map(item => {
+                          const itemTotal = item.price * item.quantity;
+                          const itemTaxable = enableGST && gstRate > 0 ? (itemTotal / (1 + gstRate/100)).toFixed(2) : itemTotal.toFixed(2);
+                          const img = item.image
+                            ? '<img src="'+item.image+'" style="width:36px;height:36px;object-fit:cover;border-radius:4px;flex-shrink:0;vertical-align:middle;margin-right:8px" />'
+                            : '<span style="display:inline-block;width:36px;height:36px;background:#f2f4f7;border-radius:4px;vertical-align:middle;margin-right:8px;text-align:center;line-height:36px;font-size:16px">📦</span>';
+                          return '<tr><td style="padding:7px 6px"><div style="display:flex;align-items:center">'+img+'<span style="font-size:12px">'+item.name+'</span></div></td>'
+                            +'<td style="padding:7px 6px;font-size:11px;color:#8e9eab;text-align:center">'+(hsnCode||'—')+'</td>'
+                            +'<td style="padding:7px 6px;font-size:11px;color:#8e9eab;text-align:center">'+(item.weight||item.variant||'S')+'</td>'
+                            +'<td style="padding:7px 6px;font-size:11px;text-align:right">₹'+itemTaxable+'</td>'
+                            +'<td style="padding:7px 6px;font-size:12px;text-align:center">'+item.quantity+'</td>'
+                            +'<td style="padding:7px 6px;font-size:12px;text-align:right">₹'+item.price.toFixed(2)+'</td>'
+                            +'<td style="padding:7px 6px;font-size:12px;font-weight:700;text-align:right">₹'+item.total.toFixed(2)+'</td></tr>';
+                        }).join('');
+                        const totalsHtml = (enableGST && order.gst > 0
+                          ? '<div class="trow"><span>Taxable Amount</span><span>₹'+taxableAmt+'</span></div>'
+                            +'<div class="trow"><span>CGST @ '+cgstRate+'%</span><span>₹'+cgstAmt+'</span></div>'
+                            +'<div class="trow"><span>SGST @ '+sgstRate+'%</span><span>₹'+sgstAmt+'</span></div>'
+                          : order.gst > 0 ? '<div class="trow"><span>GST</span><span>₹'+order.gst.toFixed(2)+'</span></div>' : '')
+                          + (order.delivery > 0
+                            ? '<div class="trow"><span>Delivery</span><span>₹'+order.delivery.toFixed(2)+'</span></div>'
+                            : '<div class="trow"><span>Delivery</span><span style="color:#16a34a">FREE</span></div>');
+                        const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Tax Invoice - ${invoiceNo}</title><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;color:#191c1e;background:#fff;padding:0}
+.page{display:flex;width:100%;min-height:148mm;border:1px solid #d1d5db}
+/* LEFT PANEL — store info + order meta */
+.left{width:42%;border-right:1px solid #d1d5db;padding:18px 16px;display:flex;flex-direction:column;gap:14px;background:#fafafa}
+/* RIGHT PANEL — items table + totals */
+.right{width:58%;padding:18px 16px;display:flex;flex-direction:column;gap:10px}
+.store-logo{height:52px;object-fit:contain;margin-bottom:4px}
+.store-name{font-size:18px;font-weight:800;line-height:1.2}
+.store-sub{font-size:11px;color:#556067;margin-top:3px;line-height:1.6}
+.title-block{text-align:center;border-top:1px solid #d1d5db;border-bottom:1px solid #d1d5db;padding:5px 0}
+.title-block .t{font-size:12px;font-weight:700;letter-spacing:3px;color:#191c1e}
+.title-block .s{font-size:10px;color:#8e9eab;margin-top:1px}
+.lbl{font-size:9px;font-weight:700;text-transform:uppercase;color:#8e9eab;margin-bottom:2px;letter-spacing:.5px}
+.val{font-size:12px;font-weight:600;color:#191c1e}
+.sub{font-size:10px;color:#556067;margin-top:1px;line-height:1.5}
+.meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.divider{border-top:1px solid #e5e7eb}
+table{width:100%;border-collapse:collapse}
+thead th{font-size:10px;font-weight:700;text-transform:uppercase;color:#556067;padding:6px;border-bottom:2px solid #d1d5db;text-align:left;white-space:nowrap}
+tbody td{border-bottom:1px solid #f2f4f7;vertical-align:middle}
+.trow{display:flex;justify-content:space-between;font-size:11px;color:#556067;padding:2px 0}
+.grand{display:flex;justify-content:space-between;font-size:14px;font-weight:800;color:#006d2f;padding-top:6px;border-top:2px solid #006d2f;margin-top:4px}
+.words{font-size:10px;color:#556067;font-style:italic;border-top:1px dashed #d1d5db;padding-top:6px;margin-top:4px}
+.sign{display:flex;justify-content:flex-end;margin-top:auto;padding-top:12px}
+.sign-box{text-align:center;border-top:1px solid #556067;padding-top:4px;font-size:10px;color:#556067;width:140px}
+.footer{text-align:center;font-size:10px;color:#8e9eab;padding-top:10px;border-top:1px solid #e5e7eb;margin-top:auto}
+@media print{
+  @page{size:A4 landscape;margin:8mm}
+  body{padding:0}
+  .page{border:none;min-height:auto}
+  .no-print{display:none}
+}
                         </style></head><body>
-                        <div class="header">
-                          ${storeLogo ? '<img src="'+storeLogo+'" style="height:60px;object-fit:contain;margin-bottom:8px;" />' : ''}
-                          <div class="store-name">${storeName}</div>
-                          ${storeAddress ? '<div class="small">📍 '+storeAddress+'</div>' : ''}
-                          ${storePhone ? '<div class="small">📞 '+storePhone+'</div>' : ''}
-                          ${storeEmail ? '<div class="small">✉ '+storeEmail+'</div>' : ''}
-                          ${storeGST ? '<div class="small">GSTIN: '+storeGST+'</div>' : ''}
-                          ${storePAN ? '<div class="small">PAN: '+storePAN+'</div>' : ''}
-                        </div>
-                        <div class="divider"></div>
-                        <div class="bill-title">TAX INVOICE</div>
-                        <div class="original">Original for Recipient</div>
-                        <div class="grid">
-                          <div><div class="label">Invoice No.</div><div class="value">${invoiceNo}</div><div class="small">Order: #${(order.id||'').slice(-8)}</div></div>
-                          <div style="text-align:right"><div class="label">Date</div><div class="value">${order.date}</div></div>
-                          <div><div class="label">Payment</div><div class="value">${order.paymentMethodId === 'cod' || order.paymentMethod === 'cod' ? 'Cash on Delivery' : order.paymentMethodId === 'upi' || order.paymentMethod === 'upi' ? 'UPI' : order.paymentMethodId || order.paymentMethod || 'N/A'}</div></div>
-                          <div style="text-align:right"><div class="label">Status</div><div class="value">${order.statusText || order.status}</div></div>
-                          <div><div class="label">Place of Supply</div><div class="value">${storeState || 'N/A'}</div></div>
-                          <div style="text-align:right"><div class="label">Reverse Charge</div><div class="value">No</div></div>
-                        </div>
-                        <div class="divider"></div>
-                        <div class="grid">
-                          <div><div class="label">Bill To</div><div class="value">${order.customerName || 'Customer'}</div>${order.customerPhone ? '<div class="small">📞 '+order.customerPhone+'</div>' : ''}</div>
-                          ${order.order_type === 'dine_in' ? '<div style="text-align:right"><div class="label">Order Type</div><div class="value">🍽️ '+dineInLabel+'</div></div>' : addr.addressLine1 ? '<div style="text-align:right"><div class="label">Ship To</div><div class="value">'+(addr.recipientName||order.customerName||'')+'</div><div class="small">'+addr.addressLine1+(addr.addressLine2?', '+addr.addressLine2:'')+'</div><div class="small">'+addr.city+', '+addr.state+' - '+addr.pincode+'</div></div>' : ''}
-                        </div>
-                        <div class="divider"></div>
-                        <table>
-                          <thead><tr><th>Item</th><th>HSN/SAC</th><th>Variant</th><th style="text-align:right">Taxable Value</th><th style="text-align:center">Qty</th><th style="text-align:right">Price</th><th style="text-align:right">Subtotal</th></tr></thead>
-                          <tbody>${order.items.map(item => {
-                            const itemTotal = item.price * item.quantity;
-                            const itemTaxable = enableGST && gstRate > 0 ? (itemTotal / (1 + gstRate/100)).toFixed(2) : itemTotal.toFixed(2);
-                            return '<tr><td><div style="display:flex;align-items:center;gap:10px">'+(item.image ? '<img src="'+item.image+'" style="width:40px;height:40px;object-fit:cover;border-radius:6px;flex-shrink:0" />' : '<div style="width:40px;height:40px;background:#f2f4f7;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:18px">📦</div>')+'<span>'+item.name+'</span></div></td><td style="color:#8e9eab;font-size:11px">'+(hsnCode||'—')+'</td><td style="color:#8e9eab;font-size:11px">'+(item.weight||item.variant||'—')+'</td><td style="text-align:right">₹'+itemTaxable+'</td><td style="text-align:center">'+item.quantity+'</td><td style="text-align:right">₹'+item.price.toFixed(2)+'</td><td style="text-align:right;font-weight:600">₹'+item.total.toFixed(2)+'</td></tr>';
-                          }).join('')}</tbody>
-                        </table>
-                        <div style="margin-left:auto;width:280px;margin-top:8px;">
-                          ${enableGST && order.gst > 0 ? '<div class="total-row"><span>Taxable Amount</span><span>₹'+taxableAmt+'</span></div><div class="total-row"><span>CGST @ '+cgstRate+'%</span><span>₹'+cgstAmt+'</span></div><div class="total-row"><span>SGST @ '+sgstRate+'%</span><span>₹'+sgstAmt+'</span></div>' : order.gst > 0 ? '<div class="total-row"><span>GST</span><span>₹'+order.gst.toFixed(2)+'</span></div>' : ''}
-                          ${order.delivery > 0 ? '<div class="total-row"><span>Delivery</span><span>₹'+order.delivery.toFixed(2)+'</span></div>' : '<div class="total-row"><span>Delivery</span><span>FREE</span></div>'}
-                          <div class="divider"></div>
-                          <div class="grand-total"><span>TOTAL</span><span>₹${order.total.toFixed(2)}</span></div>
-                        </div>
-                        <div class="words"><strong>Amount in Words:</strong> ${amountInWords(order.total)}</div>
-                        <div class="signatory"><div class="sign-box">Authorized Signatory<br/>${storeName}</div></div>
-                        <div class="divider"></div>
-                        <div class="footer">
-                          <div>Thank you for your order! 🎉</div>
-                          <div style="margin-top:4px">This is a computer generated invoice.</div>
-                          <div style="margin-top:2px">Powered by AapnaEstore · aapnaestore.com</div>
-                        </div>
+<div class="no-print" style="text-align:center;padding:10px;background:#f9f9f9;border-bottom:1px solid #e5e7eb">
+  <button onclick="window.print()" style="padding:8px 24px;background:#191c1e;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600">🖨️ Print Invoice</button>
+</div>
+<div style="padding:12px">
+<div class="page">
+  <!-- LEFT: Store info + Order meta -->
+  <div class="left">
+    <div>
+      ${storeLogo ? '<img src="'+storeLogo+'" class="store-logo" /><br/>' : ''}
+      <div class="store-name">${storeName}</div>
+      <div class="store-sub">
+        ${storeAddress ? storeAddress+'<br/>' : ''}
+        ${storePhone ? '📞 '+storePhone+'<br/>' : ''}
+        ${storeEmail ? '✉ '+storeEmail+'<br/>' : ''}
+        ${storeGST ? 'GSTIN: '+storeGST+'<br/>' : ''}
+        ${storePAN ? 'PAN: '+storePAN : ''}
+      </div>
+    </div>
+    <div class="title-block">
+      <div class="t">TAX INVOICE</div>
+      <div class="s">Original for Recipient</div>
+    </div>
+    <div class="meta-grid">
+      <div>
+        <div class="lbl">Invoice No.</div>
+        <div class="val">${invoiceNo}</div>
+        <div class="sub">Order: #${(order.id||'').slice(-8)}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="lbl">Date</div>
+        <div class="val">${order.date}</div>
+      </div>
+      <div>
+        <div class="lbl">Payment</div>
+        <div class="val" style="font-size:11px">${paymentLabel}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="lbl">Status</div>
+        <div class="val" style="font-size:11px">${order.statusText || order.status}</div>
+      </div>
+      <div>
+        <div class="lbl">Place of Supply</div>
+        <div class="val" style="font-size:11px">${storeState || 'N/A'}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="lbl">Reverse Charge</div>
+        <div class="val" style="font-size:11px">No</div>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div>
+      <div class="lbl">Bill To</div>
+      <div class="val">${order.customerName || 'Customer'}</div>
+      ${order.customerPhone ? '<div class="sub">📞 '+order.customerPhone+'</div>' : ''}
+    </div>
+    ${shipTo ? '<div class="divider"></div><div>'+shipTo+'</div>' : ''}
+  </div>
+
+  <!-- RIGHT: Items + Totals -->
+  <div class="right">
+    <table>
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th style="text-align:center">HSN/SAC</th>
+          <th style="text-align:center">Variant</th>
+          <th style="text-align:right">Taxable Value</th>
+          <th style="text-align:center">Qty</th>
+          <th style="text-align:right">Price</th>
+          <th style="text-align:right">Subtotal</th>
+        </tr>
+      </thead>
+      <tbody>${itemRows}</tbody>
+    </table>
+    <div style="margin-left:auto;width:220px;margin-top:4px">
+      ${totalsHtml}
+      <div class="grand"><span>TOTAL</span><span>₹${order.total.toFixed(2)}</span></div>
+    </div>
+    <div class="words"><strong>Amount in Words:</strong> ${amountInWords(order.total)}</div>
+    <div class="sign"><div class="sign-box">Authorized Signatory<br/>${storeName}</div></div>
+    <div class="footer">
+      Thank you for your order! &nbsp;·&nbsp; This is a computer generated invoice.<br/>
+      Powered by AapnaEstore &nbsp;·&nbsp; aapnaestore.com
+    </div>
+  </div>
+</div>
+</div>
                         </body></html>`;
-                        const w = window.open('', '_blank');
+                        const w = window.open('', '_blank', 'width=900,height=700');
                         w.document.write(html);
                         w.document.close();
                         setTimeout(() => w.print(), 500);
