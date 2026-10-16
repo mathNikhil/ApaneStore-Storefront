@@ -37,8 +37,13 @@ const StorefrontApp = ({
       const raw = localStorage.getItem(`customer_session_${storeId}`);
       if (raw) {
         const saved = JSON.parse(raw);
-        setCustomer(saved.customer);
-        setCustomerToken(saved.token);
+        const sevenDays = 7 * 24 * 60 * 60 * 1000;
+        if (saved.loginTime && Date.now() - saved.loginTime > sevenDays) {
+          localStorage.removeItem(`customer_session_${storeId}`);
+        } else {
+          setCustomer(saved.customer);
+          setCustomerToken(saved.token);
+        }
       }
     } catch (e) {
       console.error('Failed to load saved customer session:', e);
@@ -68,7 +73,7 @@ const StorefrontApp = ({
       setTimeout(() => setActiveTab('profile'), 100);
     }
     try {
-      localStorage.setItem(`customer_session_${storeId}`, JSON.stringify({ customer: customerData, token }));
+      localStorage.setItem(`customer_session_${storeId}`, JSON.stringify({ customer: customerData, token, loginTime: Date.now() }));
     } catch (e) {
       console.error('Failed to persist customer session:', e);
     }
