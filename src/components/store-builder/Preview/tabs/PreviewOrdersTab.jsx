@@ -458,12 +458,16 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart, storeId, c
                           const img = item.image
                             ? '<img src="'+item.image+'" style="width:26px;height:26px;object-fit:cover;border-radius:3px;flex-shrink:0;vertical-align:middle;margin-right:5px" />'
                             : '<span style="display:inline-block;width:26px;height:26px;background:#f2f4f7;border-radius:3px;vertical-align:middle;margin-right:5px;text-align:center;line-height:26px;font-size:12px">📦</span>';
+                          const itemCgst = enableGST && gstRate > 0 ? ((itemTotal - parseFloat(itemTaxable)) / 2).toFixed(2) : '0.00';
+                          const itemSgst = itemCgst;
                           return '<tr><td style="padding:4px 3px"><div style="display:flex;align-items:center">'+img+'<span style="font-size:8px">'+item.name+'</span></div></td>'
                             +'<td style="padding:4px 3px;font-size:7.5px;color:#8e9eab;text-align:center">'+(hsnCode||'—')+'</td>'
                             +'<td style="padding:4px 3px;font-size:7.5px;color:#8e9eab;text-align:center">'+(item.weight||item.variant||'S')+'</td>'
                             +'<td style="padding:4px 3px;font-size:8px;text-align:right">₹'+itemTaxable+'</td>'
                             +'<td style="padding:4px 3px;font-size:8px;text-align:center">'+item.quantity+'</td>'
                             +'<td style="padding:4px 3px;font-size:8px;text-align:right">₹'+item.price.toFixed(2)+'</td>'
+                            +'<td style="padding:4px 3px;font-size:7.5px;text-align:right;color:#556067">'+cgstRate+'%<br/>₹'+itemCgst+'</td>'
+                            +'<td style="padding:4px 3px;font-size:7.5px;text-align:right;color:#556067">'+sgstRate+'%<br/>₹'+itemSgst+'</td>'
                             +'<td style="padding:4px 3px;font-size:8px;font-weight:700;text-align:right">₹'+item.total.toFixed(2)+'</td></tr>';
                         }).join('');
                         const totalsHtml = (enableGST && order.gst > 0
@@ -589,6 +593,8 @@ tbody td{border-bottom:1px solid #f2f4f7;vertical-align:middle;padding:3px 4px}
         <th style="text-align:right">Taxable Value</th>
         <th style="text-align:center">Qty</th>
         <th style="text-align:right">Price</th>
+        <th style="text-align:right">CGST</th>
+        <th style="text-align:right">SGST</th>
         <th style="text-align:right">Subtotal</th>
       </tr>
     </thead>
