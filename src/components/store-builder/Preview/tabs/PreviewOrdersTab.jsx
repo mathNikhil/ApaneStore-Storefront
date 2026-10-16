@@ -477,7 +477,7 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart, storeId, c
                         const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Tax Invoice - ${invoiceNo}</title><style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Arial,sans-serif;color:#191c1e;background:#fff}
-.page{width:148mm;padding:8mm;background:#fff}
+.page{width:148mm;min-height:210mm;padding:8mm;background:#fff;margin:0 auto}
 /* HEADER: logo + store name + address in one row */
 .store-header{display:flex;align-items:flex-start;gap:10px;margin-bottom:6px}
 .store-logo{height:40px;width:40px;object-fit:contain;flex-shrink:0}
@@ -506,9 +506,9 @@ tbody td{border-bottom:1px solid #f2f4f7;vertical-align:middle;padding:3px 4px}
 .footer{font-size:7px;color:#8e9eab}
 .sign-box{text-align:center;border-top:1px solid #556067;padding-top:3px;font-size:7.5px;color:#556067;width:90px}
 @media print{
-  @page{size:A4 portrait;margin:0}
+  @page{size:A5 portrait;margin:6mm}
   body{margin:0;padding:0}
-  .page{margin:0;padding:8mm}
+  .page{width:100%;padding:0}
   .no-print{display:none}
 }
                         </style></head><body>
