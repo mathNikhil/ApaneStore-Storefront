@@ -456,15 +456,15 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart, storeId, c
                           const itemTotal = item.price * item.quantity;
                           const itemTaxable = enableGST && gstRate > 0 ? (itemTotal / (1 + gstRate/100)).toFixed(2) : itemTotal.toFixed(2);
                           const img = item.image
-                            ? '<img src="'+item.image+'" style="width:36px;height:36px;object-fit:cover;border-radius:4px;flex-shrink:0;vertical-align:middle;margin-right:8px" />'
-                            : '<span style="display:inline-block;width:36px;height:36px;background:#f2f4f7;border-radius:4px;vertical-align:middle;margin-right:8px;text-align:center;line-height:36px;font-size:16px">📦</span>';
-                          return '<tr><td style="padding:7px 6px"><div style="display:flex;align-items:center">'+img+'<span style="font-size:12px">'+item.name+'</span></div></td>'
-                            +'<td style="padding:7px 6px;font-size:11px;color:#8e9eab;text-align:center">'+(hsnCode||'—')+'</td>'
-                            +'<td style="padding:7px 6px;font-size:11px;color:#8e9eab;text-align:center">'+(item.weight||item.variant||'S')+'</td>'
-                            +'<td style="padding:7px 6px;font-size:11px;text-align:right">₹'+itemTaxable+'</td>'
-                            +'<td style="padding:7px 6px;font-size:12px;text-align:center">'+item.quantity+'</td>'
-                            +'<td style="padding:7px 6px;font-size:12px;text-align:right">₹'+item.price.toFixed(2)+'</td>'
-                            +'<td style="padding:7px 6px;font-size:12px;font-weight:700;text-align:right">₹'+item.total.toFixed(2)+'</td></tr>';
+                            ? '<img src="'+item.image+'" style="width:26px;height:26px;object-fit:cover;border-radius:3px;flex-shrink:0;vertical-align:middle;margin-right:5px" />'
+                            : '<span style="display:inline-block;width:26px;height:26px;background:#f2f4f7;border-radius:3px;vertical-align:middle;margin-right:5px;text-align:center;line-height:26px;font-size:12px">📦</span>';
+                          return '<tr><td style="padding:4px 3px"><div style="display:flex;align-items:center">'+img+'<span style="font-size:8px">'+item.name+'</span></div></td>'
+                            +'<td style="padding:4px 3px;font-size:7.5px;color:#8e9eab;text-align:center">'+(hsnCode||'—')+'</td>'
+                            +'<td style="padding:4px 3px;font-size:7.5px;color:#8e9eab;text-align:center">'+(item.weight||item.variant||'S')+'</td>'
+                            +'<td style="padding:4px 3px;font-size:8px;text-align:right">₹'+itemTaxable+'</td>'
+                            +'<td style="padding:4px 3px;font-size:8px;text-align:center">'+item.quantity+'</td>'
+                            +'<td style="padding:4px 3px;font-size:8px;text-align:right">₹'+item.price.toFixed(2)+'</td>'
+                            +'<td style="padding:4px 3px;font-size:8px;font-weight:700;text-align:right">₹'+item.total.toFixed(2)+'</td></tr>';
                         }).join('');
                         const totalsHtml = (enableGST && order.gst > 0
                           ? '<div class="trow"><span>Taxable Amount</span><span>₹'+taxableAmt+'</span></div>'
@@ -476,43 +476,43 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart, storeId, c
                             : '<div class="trow"><span>Delivery</span><span style="color:#16a34a">FREE</span></div>');
                         const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Tax Invoice - ${invoiceNo}</title><style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Arial,sans-serif;color:#191c1e;background:#fff;padding:0}
-.page{display:flex;width:100%;min-height:148mm;border:1px solid #d1d5db}
+body{font-family:Arial,sans-serif;color:#191c1e;background:#fff}
+.page{display:flex;width:148mm;min-height:105mm;border:1px solid #d1d5db;margin:0 auto}
 /* LEFT PANEL — store info + order meta */
-.left{width:42%;border-right:1px solid #d1d5db;padding:18px 16px;display:flex;flex-direction:column;gap:14px;background:#fafafa}
+.left{width:42%;border-right:1px solid #d1d5db;padding:10px 10px;display:flex;flex-direction:column;gap:8px;background:#fafafa}
 /* RIGHT PANEL — items table + totals */
-.right{width:58%;padding:18px 16px;display:flex;flex-direction:column;gap:10px}
-.store-logo{height:52px;object-fit:contain;margin-bottom:4px}
-.store-name{font-size:18px;font-weight:800;line-height:1.2}
-.store-sub{font-size:11px;color:#556067;margin-top:3px;line-height:1.6}
-.title-block{text-align:center;border-top:1px solid #d1d5db;border-bottom:1px solid #d1d5db;padding:5px 0}
-.title-block .t{font-size:12px;font-weight:700;letter-spacing:3px;color:#191c1e}
-.title-block .s{font-size:10px;color:#8e9eab;margin-top:1px}
-.lbl{font-size:9px;font-weight:700;text-transform:uppercase;color:#8e9eab;margin-bottom:2px;letter-spacing:.5px}
-.val{font-size:12px;font-weight:600;color:#191c1e}
-.sub{font-size:10px;color:#556067;margin-top:1px;line-height:1.5}
-.meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.right{width:58%;padding:10px 10px;display:flex;flex-direction:column;gap:6px}
+.store-logo{height:36px;object-fit:contain;margin-bottom:2px}
+.store-name{font-size:13px;font-weight:800;line-height:1.2}
+.store-sub{font-size:8px;color:#556067;margin-top:2px;line-height:1.6}
+.title-block{text-align:center;border-top:1px solid #d1d5db;border-bottom:1px solid #d1d5db;padding:3px 0}
+.title-block .t{font-size:9px;font-weight:700;letter-spacing:3px;color:#191c1e}
+.title-block .s{font-size:8px;color:#8e9eab;margin-top:1px}
+.lbl{font-size:7px;font-weight:700;text-transform:uppercase;color:#8e9eab;margin-bottom:1px;letter-spacing:.5px}
+.val{font-size:9px;font-weight:600;color:#191c1e}
+.sub{font-size:7.5px;color:#556067;margin-top:1px;line-height:1.4}
+.meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .divider{border-top:1px solid #e5e7eb}
 table{width:100%;border-collapse:collapse}
-thead th{font-size:10px;font-weight:700;text-transform:uppercase;color:#556067;padding:6px;border-bottom:2px solid #d1d5db;text-align:left;white-space:nowrap}
+thead th{font-size:7px;font-weight:700;text-transform:uppercase;color:#556067;padding:4px 3px;border-bottom:1.5px solid #d1d5db;text-align:left;white-space:nowrap}
 tbody td{border-bottom:1px solid #f2f4f7;vertical-align:middle}
-.trow{display:flex;justify-content:space-between;font-size:11px;color:#556067;padding:2px 0}
-.grand{display:flex;justify-content:space-between;font-size:14px;font-weight:800;color:#006d2f;padding-top:6px;border-top:2px solid #006d2f;margin-top:4px}
-.words{font-size:10px;color:#556067;font-style:italic;border-top:1px dashed #d1d5db;padding-top:6px;margin-top:4px}
-.sign{display:flex;justify-content:flex-end;margin-top:auto;padding-top:12px}
-.sign-box{text-align:center;border-top:1px solid #556067;padding-top:4px;font-size:10px;color:#556067;width:140px}
-.footer{text-align:center;font-size:10px;color:#8e9eab;padding-top:10px;border-top:1px solid #e5e7eb;margin-top:auto}
+.trow{display:flex;justify-content:space-between;font-size:8px;color:#556067;padding:1.5px 0}
+.grand{display:flex;justify-content:space-between;font-size:10px;font-weight:800;color:#006d2f;padding-top:4px;border-top:1.5px solid #006d2f;margin-top:3px}
+.words{font-size:7.5px;color:#556067;font-style:italic;border-top:1px dashed #d1d5db;padding-top:4px;margin-top:3px}
+.sign{display:flex;justify-content:flex-end;margin-top:auto;padding-top:8px}
+.sign-box{text-align:center;border-top:1px solid #556067;padding-top:3px;font-size:7.5px;color:#556067;width:90px}
+.footer{text-align:center;font-size:7px;color:#8e9eab;padding-top:6px;border-top:1px solid #e5e7eb;margin-top:auto}
 @media print{
-  @page{size:A4 landscape;margin:8mm}
+  @page{size:A5 portrait;margin:6mm}
   body{padding:0}
-  .page{border:none;min-height:auto}
+  .page{border:none;width:100%;min-height:auto}
   .no-print{display:none}
 }
                         </style></head><body>
-<div class="no-print" style="text-align:center;padding:10px;background:#f9f9f9;border-bottom:1px solid #e5e7eb">
-  <button onclick="window.print()" style="padding:8px 24px;background:#191c1e;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600">🖨️ Print Invoice</button>
+<div class="no-print" style="text-align:center;padding:8px;background:#f9f9f9;border-bottom:1px solid #e5e7eb">
+  <button onclick="window.print()" style="padding:7px 20px;background:#191c1e;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">🖨️ Print Invoice</button>
 </div>
-<div style="padding:12px">
+<div style="padding:8px">
 <div class="page">
   <!-- LEFT: Store info + Order meta -->
   <div class="left">
@@ -583,7 +583,7 @@ tbody td{border-bottom:1px solid #f2f4f7;vertical-align:middle}
       </thead>
       <tbody>${itemRows}</tbody>
     </table>
-    <div style="margin-left:auto;width:220px;margin-top:4px">
+    <div style="margin-left:auto;width:160px;margin-top:4px">
       ${totalsHtml}
       <div class="grand"><span>TOTAL</span><span>₹${order.total.toFixed(2)}</span></div>
     </div>
