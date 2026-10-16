@@ -34,7 +34,7 @@ const StorefrontApp = ({
   useEffect(() => {
     if (!storeId) return;
     try {
-      const raw = sessionStorage.getItem(`customer_session_${storeId}`);
+      const raw = localStorage.getItem(`customer_session_${storeId}`);
       if (raw) {
         const saved = JSON.parse(raw);
         setCustomer(saved.customer);
@@ -68,7 +68,7 @@ const StorefrontApp = ({
       setTimeout(() => setActiveTab('profile'), 100);
     }
     try {
-      sessionStorage.setItem(`customer_session_${storeId}`, JSON.stringify({ customer: customerData, token }));
+      localStorage.setItem(`customer_session_${storeId}`, JSON.stringify({ customer: customerData, token }));
     } catch (e) {
       console.error('Failed to persist customer session:', e);
     }
@@ -298,7 +298,7 @@ const StorefrontApp = ({
     setCustomer(null);
     setCustomerToken(null);
     try {
-      sessionStorage.removeItem(`customer_session_${storeId}`);
+      localStorage.removeItem(`customer_session_${storeId}`);
       localStorage.removeItem(`customer_12hr_${storeId}`);
     } catch (e) {
       console.error('Failed to clear customer session:', e);
