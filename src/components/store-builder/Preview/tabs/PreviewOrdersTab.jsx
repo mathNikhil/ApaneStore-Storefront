@@ -658,6 +658,8 @@ tbody td{border-bottom:1px solid #f2f4f7;vertical-align:middle;padding:3px 4px}
                       {order.order_type === 'dine_in' ? (
                         <div className="text-sm p-3 rounded-lg bg-[#fff8e1]" style={{ color: getFontBodyColor() }}>
                           <p className="font-medium">🍽️ {dineInLabel}</p>
+                          {order.dine_in_customer_name && <p className="mt-1">Guest: <strong>{order.dine_in_customer_name}</strong></p>}
+                          {order.dine_in_customer_mobile && <p>Mobile: {order.dine_in_customer_mobile}</p>}
                         </div>
                       ) : order.deliveryAddress ? (
                         <div className="text-sm p-3 rounded-lg bg-[#f7f9fc]" style={{ color: getFontBodyColor() }}>
