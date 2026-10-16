@@ -483,10 +483,8 @@ body{font-family:Arial,sans-serif;color:#191c1e;background:#fff}
 .store-logo{height:40px;width:40px;object-fit:contain;flex-shrink:0}
 .store-name{font-size:14px;font-weight:800;line-height:1.2}
 .store-sub{font-size:8px;color:#556067;margin-top:2px;line-height:1.6}
-/* TITLE BAND */
-.title-block{text-align:center;border-top:1px solid #d1d5db;border-bottom:1px solid #d1d5db;padding:3px 0;margin:6px 0}
-.title-block .t{font-size:9px;font-weight:700;letter-spacing:3px;color:#191c1e}
-.title-block .s{font-size:7.5px;color:#8e9eab;margin-top:1px}
+/* TITLE BAND — kept for .t class used inline */
+.t{font-size:9px;font-weight:700;letter-spacing:3px;color:#191c1e}
 /* META GRID: 3 col pairs */
 .meta-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px 10px;margin-bottom:5px}
 .meta-grid .right-align{text-align:right}
@@ -519,10 +517,10 @@ tbody td{border-bottom:1px solid #f2f4f7;vertical-align:middle;padding:3px 4px}
 </div>
 <div class="page">
 
-  <!-- STORE HEADER -->
+  <!-- STORE HEADER + TITLE in one row -->
   <div class="store-header">
     ${storeLogo ? '<img src="'+storeLogo+'" class="store-logo" />' : ''}
-    <div>
+    <div style="flex:1">
       <div class="store-name">${storeName}</div>
       <div class="store-sub">
         ${storeAddress ? storeAddress+'<br/>' : ''}
@@ -530,12 +528,10 @@ tbody td{border-bottom:1px solid #f2f4f7;vertical-align:middle;padding:3px 4px}
         ${storeGST ? 'GSTIN: '+storeGST+'  ' : ''}${storePAN ? 'PAN: '+storePAN : ''}
       </div>
     </div>
-  </div>
-
-  <!-- TAX INVOICE TITLE -->
-  <div class="title-block">
-    <div class="t">TAX INVOICE</div>
-    <div class="s">Original for Recipient</div>
+    <div style="text-align:right;flex-shrink:0">
+      <div class="t" style="font-size:11px;font-weight:700;letter-spacing:2px;color:#191c1e">TAX INVOICE</div>
+      <div style="font-size:7.5px;color:#8e9eab;margin-top:2px">Original for Recipient</div>
+    </div>
   </div>
 
   <!-- META: invoice no, date, payment, status, place of supply, reverse charge -->
