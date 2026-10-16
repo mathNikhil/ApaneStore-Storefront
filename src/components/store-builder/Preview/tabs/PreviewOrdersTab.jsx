@@ -467,134 +467,154 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart, storeId, c
                             +'<td style="padding:4px 3px;font-size:8px;font-weight:700;text-align:right">₹'+item.total.toFixed(2)+'</td></tr>';
                         }).join('');
                         const totalsHtml = (enableGST && order.gst > 0
-                          ? '<div class="trow"><span>Taxable Amount</span><span>₹'+taxableAmt+'</span></div>'
-                            +'<div class="trow"><span>CGST @ '+cgstRate+'%</span><span>₹'+cgstAmt+'</span></div>'
-                            +'<div class="trow"><span>SGST @ '+sgstRate+'%</span><span>₹'+sgstAmt+'</span></div>'
-                          : order.gst > 0 ? '<div class="trow"><span>GST</span><span>₹'+order.gst.toFixed(2)+'</span></div>' : '')
+                          ? '<div class="totals-row"><span>Taxable Amount</span><span>₹'+taxableAmt+'</span></div>'
+                            +'<div class="totals-row"><span>CGST @ '+cgstRate+'%</span><span>₹'+cgstAmt+'</span></div>'
+                            +'<div class="totals-row"><span>SGST @ '+sgstRate+'%</span><span>₹'+sgstAmt+'</span></div>'
+                          : order.gst > 0 ? '<div class="totals-row"><span>GST</span><span>₹'+order.gst.toFixed(2)+'</span></div>' : '')
                           + (order.delivery > 0
-                            ? '<div class="trow"><span>Delivery</span><span>₹'+order.delivery.toFixed(2)+'</span></div>'
-                            : '<div class="trow"><span>Delivery</span><span style="color:#16a34a">FREE</span></div>');
+                            ? '<div class="totals-row"><span>Delivery</span><span>₹'+order.delivery.toFixed(2)+'</span></div>'
+                            : '<div class="totals-row"><span>Delivery</span><span style="color:#16a34a">FREE</span></div>');
                         const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Tax Invoice - ${invoiceNo}</title><style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Arial,sans-serif;color:#191c1e;background:#fff}
-.page{display:flex;width:148mm;min-height:105mm;border:1px solid #d1d5db;margin:0 auto}
-/* LEFT PANEL — store info + order meta */
-.left{width:42%;border-right:1px solid #d1d5db;padding:10px 10px;display:flex;flex-direction:column;gap:8px;background:#fafafa}
-/* RIGHT PANEL — items table + totals */
-.right{width:58%;padding:10px 10px;display:flex;flex-direction:column;gap:6px}
-.store-logo{height:36px;object-fit:contain;margin-bottom:2px}
-.store-name{font-size:13px;font-weight:800;line-height:1.2}
+.page{width:148mm;padding:8mm;background:#fff}
+/* HEADER: logo + store name + address in one row */
+.store-header{display:flex;align-items:flex-start;gap:10px;margin-bottom:6px}
+.store-logo{height:40px;width:40px;object-fit:contain;flex-shrink:0}
+.store-name{font-size:14px;font-weight:800;line-height:1.2}
 .store-sub{font-size:8px;color:#556067;margin-top:2px;line-height:1.6}
-.title-block{text-align:center;border-top:1px solid #d1d5db;border-bottom:1px solid #d1d5db;padding:3px 0}
+/* TITLE BAND */
+.title-block{text-align:center;border-top:1px solid #d1d5db;border-bottom:1px solid #d1d5db;padding:3px 0;margin:6px 0}
 .title-block .t{font-size:9px;font-weight:700;letter-spacing:3px;color:#191c1e}
-.title-block .s{font-size:8px;color:#8e9eab;margin-top:1px}
-.lbl{font-size:7px;font-weight:700;text-transform:uppercase;color:#8e9eab;margin-bottom:1px;letter-spacing:.5px}
-.val{font-size:9px;font-weight:600;color:#191c1e}
+.title-block .s{font-size:7.5px;color:#8e9eab;margin-top:1px}
+/* META GRID: 3 col pairs */
+.meta-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px 10px;margin-bottom:5px}
+.meta-grid .right-align{text-align:right}
+.lbl{font-size:7px;font-weight:700;text-transform:uppercase;color:#8e9eab;letter-spacing:.4px;margin-bottom:1px}
+.val{font-size:8.5px;font-weight:600;color:#191c1e}
 .sub{font-size:7.5px;color:#556067;margin-top:1px;line-height:1.4}
-.meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.divider{border-top:1px solid #e5e7eb}
-table{width:100%;border-collapse:collapse}
-thead th{font-size:7px;font-weight:700;text-transform:uppercase;color:#556067;padding:4px 3px;border-bottom:1.5px solid #d1d5db;text-align:left;white-space:nowrap}
-tbody td{border-bottom:1px solid #f2f4f7;vertical-align:middle}
-.trow{display:flex;justify-content:space-between;font-size:8px;color:#556067;padding:1.5px 0}
-.grand{display:flex;justify-content:space-between;font-size:10px;font-weight:800;color:#006d2f;padding-top:4px;border-top:1.5px solid #006d2f;margin-top:3px}
-.words{font-size:7.5px;color:#556067;font-style:italic;border-top:1px dashed #d1d5db;padding-top:4px;margin-top:3px}
-.sign{display:flex;justify-content:flex-end;margin-top:auto;padding-top:8px}
+/* BILL/SHIP ROW */
+.party-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:5px 0}
+.divider{border-top:1px solid #e5e7eb;margin:5px 0}
+/* ITEMS TABLE */
+table{width:100%;border-collapse:collapse;margin-top:4px}
+thead th{font-size:7px;font-weight:700;text-transform:uppercase;color:#556067;padding:3px 4px;border-bottom:1.5px solid #d1d5db;text-align:left;white-space:nowrap}
+tbody td{border-bottom:1px solid #f2f4f7;vertical-align:middle;padding:3px 4px}
+/* TOTALS */
+.totals-row{display:flex;justify-content:flex-end;gap:40px;font-size:8px;color:#556067;padding:1.5px 0}
+.grand{display:flex;justify-content:flex-end;gap:40px;font-size:10px;font-weight:800;color:#006d2f;padding-top:4px;border-top:1.5px solid #006d2f;margin-top:3px}
+.words{font-size:7.5px;color:#556067;font-style:italic;border-top:1px dashed #d1d5db;padding-top:4px;margin-top:5px}
+.bottom-row{display:flex;justify-content:space-between;align-items:flex-end;margin-top:8px}
+.footer{font-size:7px;color:#8e9eab}
 .sign-box{text-align:center;border-top:1px solid #556067;padding-top:3px;font-size:7.5px;color:#556067;width:90px}
-.footer{text-align:center;font-size:7px;color:#8e9eab;padding-top:6px;border-top:1px solid #e5e7eb;margin-top:auto}
 @media print{
-  @page{size:A5 portrait;margin:6mm}
-  body{padding:0}
-  .page{border:none;width:100%;min-height:auto}
+  @page{size:A4 portrait;margin:0}
+  body{margin:0;padding:0}
+  .page{margin:0;padding:8mm}
   .no-print{display:none}
 }
                         </style></head><body>
 <div class="no-print" style="text-align:center;padding:8px;background:#f9f9f9;border-bottom:1px solid #e5e7eb">
   <button onclick="window.print()" style="padding:7px 20px;background:#191c1e;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">🖨️ Print Invoice</button>
 </div>
-<div style="padding:8px">
 <div class="page">
-  <!-- LEFT: Store info + Order meta -->
-  <div class="left">
+
+  <!-- STORE HEADER -->
+  <div class="store-header">
+    ${storeLogo ? '<img src="'+storeLogo+'" class="store-logo" />' : ''}
     <div>
-      ${storeLogo ? '<img src="'+storeLogo+'" class="store-logo" /><br/>' : ''}
       <div class="store-name">${storeName}</div>
       <div class="store-sub">
         ${storeAddress ? storeAddress+'<br/>' : ''}
-        ${storePhone ? '📞 '+storePhone+'<br/>' : ''}
-        ${storeEmail ? '✉ '+storeEmail+'<br/>' : ''}
-        ${storeGST ? 'GSTIN: '+storeGST+'<br/>' : ''}
-        ${storePAN ? 'PAN: '+storePAN : ''}
+        ${storePhone ? '📞 '+storePhone+'  ' : ''}${storeEmail ? '✉ '+storeEmail+'<br/>' : ''}
+        ${storeGST ? 'GSTIN: '+storeGST+'  ' : ''}${storePAN ? 'PAN: '+storePAN : ''}
       </div>
     </div>
-    <div class="title-block">
-      <div class="t">TAX INVOICE</div>
-      <div class="s">Original for Recipient</div>
+  </div>
+
+  <!-- TAX INVOICE TITLE -->
+  <div class="title-block">
+    <div class="t">TAX INVOICE</div>
+    <div class="s">Original for Recipient</div>
+  </div>
+
+  <!-- META: invoice no, date, payment, status, place of supply, reverse charge -->
+  <div class="meta-grid">
+    <div>
+      <div class="lbl">Invoice No.</div>
+      <div class="val">${invoiceNo}</div>
+      <div class="sub">Order: #${(order.id||'').slice(-8)}</div>
     </div>
-    <div class="meta-grid">
-      <div>
-        <div class="lbl">Invoice No.</div>
-        <div class="val">${invoiceNo}</div>
-        <div class="sub">Order: #${(order.id||'').slice(-8)}</div>
-      </div>
-      <div style="text-align:right">
-        <div class="lbl">Date</div>
-        <div class="val">${order.date}</div>
-      </div>
-      <div>
-        <div class="lbl">Payment</div>
-        <div class="val" style="font-size:11px">${paymentLabel}</div>
-      </div>
-      <div style="text-align:right">
-        <div class="lbl">Status</div>
-        <div class="val" style="font-size:11px">${order.statusText || order.status}</div>
-      </div>
-      <div>
-        <div class="lbl">Place of Supply</div>
-        <div class="val" style="font-size:11px">${storeState || 'N/A'}</div>
-      </div>
-      <div style="text-align:right">
-        <div class="lbl">Reverse Charge</div>
-        <div class="val" style="font-size:11px">No</div>
-      </div>
+    <div>
+      <div class="lbl">Payment</div>
+      <div class="val">${paymentLabel}</div>
     </div>
-    <div class="divider"></div>
+    <div>
+      <div class="lbl">Place of Supply</div>
+      <div class="val">${storeState || 'N/A'}</div>
+    </div>
+    <div>
+      <div class="lbl">Date</div>
+      <div class="val">${order.date}</div>
+    </div>
+    <div>
+      <div class="lbl">Status</div>
+      <div class="val">${order.statusText || order.status}</div>
+    </div>
+    <div>
+      <div class="lbl">Reverse Charge</div>
+      <div class="val">No</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- BILL TO + SHIP TO / ORDER TYPE -->
+  <div class="party-row">
     <div>
       <div class="lbl">Bill To</div>
       <div class="val">${order.customerName || 'Customer'}</div>
       ${order.customerPhone ? '<div class="sub">📞 '+order.customerPhone+'</div>' : ''}
     </div>
-    ${shipTo ? '<div class="divider"></div><div>'+shipTo+'</div>' : ''}
+    <div>
+      ${shipTo}
+    </div>
   </div>
 
-  <!-- RIGHT: Items + Totals -->
-  <div class="right">
-    <table>
-      <thead>
-        <tr>
-          <th>Item</th>
-          <th style="text-align:center">HSN/SAC</th>
-          <th style="text-align:center">Variant</th>
-          <th style="text-align:right">Taxable Value</th>
-          <th style="text-align:center">Qty</th>
-          <th style="text-align:right">Price</th>
-          <th style="text-align:right">Subtotal</th>
-        </tr>
-      </thead>
-      <tbody>${itemRows}</tbody>
-    </table>
-    <div style="margin-left:auto;width:160px;margin-top:4px">
-      ${totalsHtml}
-      <div class="grand"><span>TOTAL</span><span>₹${order.total.toFixed(2)}</span></div>
-    </div>
-    <div class="words"><strong>Amount in Words:</strong> ${amountInWords(order.total)}</div>
-    <div class="sign"><div class="sign-box">Authorized Signatory<br/>${storeName}</div></div>
-    <div class="footer">
-      Thank you for your order! &nbsp;·&nbsp; This is a computer generated invoice.<br/>
-      Powered by AapnaEstore &nbsp;·&nbsp; aapnaestore.com
-    </div>
+  <div class="divider"></div>
+
+  <!-- ITEMS TABLE -->
+  <table>
+    <thead>
+      <tr>
+        <th>Item</th>
+        <th style="text-align:center">HSN/SAC</th>
+        <th style="text-align:center">Variant</th>
+        <th style="text-align:right">Taxable Value</th>
+        <th style="text-align:center">Qty</th>
+        <th style="text-align:right">Price</th>
+        <th style="text-align:right">Subtotal</th>
+      </tr>
+    </thead>
+    <tbody>${itemRows}</tbody>
+  </table>
+
+  <!-- TOTALS -->
+  <div style="margin-top:4px">
+    ${totalsHtml}
+    <div class="grand"><span>TOTAL</span><span>₹${order.total.toFixed(2)}</span></div>
   </div>
-</div>
+
+  <div class="words"><strong>Amount in Words:</strong> ${amountInWords(order.total)}</div>
+
+  <div class="bottom-row">
+    <div class="footer">
+      Thank you for your order!<br/>
+      This is a computer generated invoice. Powered by AapnaEstore · aapnaestore.com
+    </div>
+    <div class="sign-box">Authorized Signatory<br/>${storeName}</div>
+  </div>
+
 </div>
                         </body></html>`;
                         const w = window.open('', '_blank', 'width=900,height=700');
