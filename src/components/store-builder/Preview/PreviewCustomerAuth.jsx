@@ -14,8 +14,6 @@ const PreviewCustomerAuth = ({ brand, storeId, onAuthenticated, onCancel }) => {
   const [error, setError] = useState('');
 
   const saveSession = (customer, token) => {
-    const key = 'customer_session_' + storeId;
-    localStorage.setItem(key, JSON.stringify({ customer, token, loginTime: Date.now() }));
     onAuthenticated(customer, token);
   };
 
