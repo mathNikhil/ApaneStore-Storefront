@@ -141,9 +141,9 @@ const PreviewCustomerAuth = ({ brand, storeId, onAuthenticated, onCancel }) => {
 
         {step === 'phone' && (
           <>
-            <h2 style={{ textAlign: 'center', fontSize: 17, fontWeight: 700, color: '#191c1e', marginBottom: 4 }}>Enter Your Mobile Number</h2>
+            <h2 style={{ textAlign: 'center', fontSize: 17, fontWeight: 700, color: '#191c1e', marginBottom: 4 }}>Verify Your Mobile Number</h2>
             <p style={{ textAlign: 'center', fontSize: 13, color: '#556067', marginBottom: 20 }}>
-              Hi {socialProfile?.name?.split(' ')[0]}! We need your number for order updates.
+              Hi {socialProfile?.name?.split(' ')[0]}! Enter your mobile number to link your Google account and continue.
             </p>
             {error && <p style={{ color: '#ba1a1a', fontSize: 13, textAlign: 'center', marginBottom: 12 }}>{error}</p>}
             <form onSubmit={handlePhoneSubmit}>
