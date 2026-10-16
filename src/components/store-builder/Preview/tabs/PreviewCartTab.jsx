@@ -27,6 +27,8 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
   const isScanOrder = cart.items?.some(item => item.isScanOrder);
   const [walkInName, setWalkInName] = useState('');
   const [walkInMobile, setWalkInMobile] = useState('');
+  const [dineInName, setDineInName] = useState('');
+  const [dineInMobile, setDineInMobile] = useState('');
 
   const { items, freeDelivery, freeDeliveryThreshold, deliveryCharge, showProgressBar, enableGST, gstRate, taxLabel, showGSTBreakdownCart, showGSTBreakdownCheckout, gstNumber, enableDineIn, dineInLabel } = cart;
   const [orderType, setOrderType] = useState('delivery'); // 'dine_in' or 'delivery'
@@ -262,6 +264,13 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
       return;
     }
 
+    // Validate dine-in customer name
+    if (orderType === 'dine_in' && !dineInName.trim()) {
+      alert('Please enter the customer name for dine-in order');
+      setPlacingOrder(false);
+      return;
+    }
+
     const isPartialCOD = selectedPayment === 'cod' && partialPaymentEnabled && upiIdConfirmed;
     const result = await placeOrder({
       address: orderType === 'dine_in' ? {} : currentAddress,
@@ -280,6 +289,11 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
         isScanOrder: true,
         walkInCustomerName: walkInName.trim(),
         walkInCustomerMobile: walkInMobile.trim() || undefined,
+      } : {}),
+      // Dine-in customer name/phone
+      ...(orderType === 'dine_in' ? {
+        dineInCustomerName: dineInName.trim(),
+        dineInCustomerMobile: dineInMobile.trim() || undefined,
       } : {}),
     });
     setPlacingOrder(false);
@@ -716,6 +730,49 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                         {loc.address && <span className="text-xs block opacity-70">{loc.address}</span>}
                       </button>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Dine-in customer name & phone */}
+              {orderType === 'dine_in' && (
+                <div className="space-y-3 pt-1">
+                  <p className="text-xs font-semibold" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>
+                    Customer Details
+                  </p>
+                  <div>
+                    <label className="block text-xs font-semibold mb-1" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>
+                      Customer Name <span style={{ color: '#ba1a1a' }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={dineInName}
+                      onChange={e => setDineInName(e.target.value)}
+                      placeholder="Enter customer name"
+                      className="w-full border rounded-lg px-3 py-2 text-sm outline-none"
+                      style={{
+                        borderColor: dineInName.trim() ? brand.colors.primary : '#d1d5db',
+                        color: brand.colors.fontBody,
+                        fontFamily: brand.fonts?.body || 'Inter',
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold mb-1" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>
+                      Mobile Number <span style={{ color: '#888', fontWeight: 400 }}>(optional)</span>
+                    </label>
+                    <input
+                      type="tel"
+                      value={dineInMobile}
+                      onChange={e => setDineInMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                      placeholder="10-digit mobile"
+                      className="w-full border rounded-lg px-3 py-2 text-sm outline-none"
+                      style={{
+                        borderColor: '#d1d5db',
+                        color: brand.colors.fontBody,
+                        fontFamily: brand.fonts?.body || 'Inter',
+                      }}
+                    />
                   </div>
                 </div>
               )}

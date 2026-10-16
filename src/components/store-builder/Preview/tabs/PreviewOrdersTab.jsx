@@ -573,8 +573,8 @@ tbody td{border-bottom:1px solid #f2f4f7;vertical-align:middle;padding:3px 4px}
   <div class="party-row">
     <div>
       <div class="lbl">Bill To</div>
-      <div class="val">${order.customerName || 'Customer'}</div>
-      ${order.customerPhone ? '<div class="sub">📞 '+order.customerPhone+'</div>' : ''}
+      <div class="val">${(order.order_type === 'dine_in' && order.dine_in_customer_name) ? order.dine_in_customer_name : (order.customerName || 'Customer')}</div>
+      ${(order.order_type === 'dine_in' && order.dine_in_customer_mobile) ? '<div class="sub">📞 '+order.dine_in_customer_mobile+'</div>' : (order.customerPhone ? '<div class="sub">📞 '+order.customerPhone+'</div>' : '')}
     </div>
     <div>
       ${shipTo}
