@@ -139,9 +139,12 @@ const PreviewCustomerAuth = ({ brand, storeId, onAuthenticated, onCancel }) => {
 
         {step === 'phone' && (
           <>
-            <h2 style={{ textAlign: 'center', fontSize: 17, fontWeight: 700, color: '#191c1e', marginBottom: 4 }}>Verify Your Mobile Number</h2>
-            <p style={{ textAlign: 'center', fontSize: 13, color: '#556067', marginBottom: 20 }}>
-              Hi {socialProfile?.name?.split(' ')[0]}! Enter your mobile number to link your Google account and continue.
+            <h2 style={{ textAlign: 'center', fontSize: 17, fontWeight: 700, color: '#191c1e', marginBottom: 4 }}>One-Time Account Link</h2>
+            <p style={{ textAlign: 'center', fontSize: 13, color: '#556067', marginBottom: 8 }}>
+              Hi {socialProfile?.name?.split(' ')[0]}! Enter the mobile number you registered with to link it to your Google account.
+            </p>
+            <p style={{ textAlign: 'center', fontSize: 12, color: '#25a85a', background: '#f0faf4', borderRadius: 8, padding: '8px 12px', marginBottom: 16 }}>
+              ✓ You only need to do this once. Next time, Google login will be instant.
             </p>
             {error && <p style={{ color: '#ba1a1a', fontSize: 13, textAlign: 'center', marginBottom: 12 }}>{error}</p>}
             <form onSubmit={handlePhoneSubmit}>
