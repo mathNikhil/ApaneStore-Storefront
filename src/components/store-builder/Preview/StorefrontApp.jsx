@@ -7,31 +7,29 @@ import PreviewCartTab from './tabs/PreviewCartTab';
 import PreviewOrdersTab from './tabs/PreviewOrdersTab';
 import PreviewProfileTab from './tabs/PreviewProfileTab';
 import { usePreviewData } from './hooks/usePreviewData';
+import { customerCartAPI } from '../../../services/api';
 import { DeviceFrameContext } from './DeviceFrameContext';
+import QRScannerModal from './components/qr/QRScannerModal';
+import ScannedProductModal from './components/qr/ScannedProductModal';
 
-// The actual storefront — login gate, header, tabs, footer. Shared by BOTH
-// the builder's simulated preview (wrapped in a device frame) AND the real
-// published storefront (full page, no chrome). This is deliberately the
-// exact same component in both places: what the tenant tests is what their
-// customers get, byte for byte.
-const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '', style = {} }) => {
-    console.log('🔍 StorefrontApp builderData.products:', JSON.stringify({
-        categoryImageShape: builderData?.products?.categoryImageShape,
-        categoryImageSize: builderData?.products?.categoryImageSize,
-        autoSlide: builderData?.products?.autoSlideProductImages,
-        addToCartLabel: builderData?.products?.addToCartLabel
-    }));
+const StorefrontApp = ({
+  builderData,
+  stockMap = {},
+  storeId,
+  device = 'desktop',
+  className = '',
+  style = {},
+  initialProductId = null,
+}) => {
   const [activeTab, setActiveTab] = useState('home');
-  // ✅ Real customer session (was just the phone string before, from a fake
-  // login). Persisted per-store in localStorage so a returning customer
-  // within the token's validity doesn't have to re-verify every visit —
-  // scoped by storeId since the same browser might shop at multiple
-  // different stores, each with its own separate customer identity there.
+  const [isFirstTimeCustomer, setIsFirstTimeCustomer] = useState(false);
   const [customer, setCustomer] = useState(null);
   const [customerToken, setCustomerToken] = useState(null);
-  // Only set while the auth screen was triggered mid-shopping (checkout) —
-  // lets the person dismiss it and keep browsing instead of being stuck.
   const [checkoutNeedsAuth, setCheckoutNeedsAuth] = useState(false);
+  const [qrActive, setQrActive] = useState(false);
+  const [showQRScanner, setShowQRScanner] = useState(false);
+  const [scannedProduct, setScannedProduct] = useState(null);
+  const API = 'https://api.aapnaestore.com';
 
   useEffect(() => {
     if (!storeId) return;
@@ -39,31 +37,69 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
       const raw = localStorage.getItem(`customer_session_${storeId}`);
       if (raw) {
         const saved = JSON.parse(raw);
-        setCustomer(saved.customer);
-        setCustomerToken(saved.token);
+        const sevenDays = 7 * 24 * 60 * 60 * 1000;
+        if (saved.loginTime && Date.now() - saved.loginTime > sevenDays) {
+          localStorage.removeItem(`customer_session_${storeId}`);
+        } else {
+          setCustomer(saved.customer);
+          setCustomerToken(saved.token);
+        }
       }
     } catch (e) {
       console.error('Failed to load saved customer session:', e);
     }
   }, [storeId]);
 
-  const handleAuthenticated = (customerData, token) => {
+  useEffect(() => {
+    if (!storeId) return;
+    fetch(`${API}/api/qr/status/${storeId}`)
+      .then(r => r.json())
+      .then(d => setQrActive(d.active || false))
+      .catch(() => {});
+  }, [storeId]);
+
+  const handleQRScanned = (product) => {
+    setShowQRScanner(false);
+    setScannedProduct(product);
+  };
+
+  const handleAuthenticated = async (customerData, token) => {
     setCustomer(customerData);
     setCustomerToken(token);
     setCheckoutNeedsAuth(false);
+    // First time customer — no name yet → send to profile to fill details
+    if (!customerData.name) {
+      setIsFirstTimeCustomer(true);
+      setTimeout(() => setActiveTab('profile'), 100);
+    }
     try {
-      localStorage.setItem(`customer_session_${storeId}`, JSON.stringify({ customer: customerData, token }));
+      localStorage.setItem(`customer_session_${storeId}`, JSON.stringify({ customer: customerData, token, loginTime: Date.now() }));
     } catch (e) {
       console.error('Failed to persist customer session:', e);
     }
+    // Restore saved cart from backend
+    try {
+      const cartResult = await customerCartAPI.getCart(storeId, token);
+      if (cartResult.success && cartResult.data?.items?.length > 0) {
+        cartResult.data.items.forEach(item => {
+          addToCart({ 
+            id: item.productId, 
+            name: item.productName,
+            images: item.image ? [{ url: item.image }] : [],
+            discount: item.discount || 0,
+            variations: [{
+              id: item.variationId,
+              name: item.variationName,
+              sizes: [{ id: item.sizeId, size: item.size, unit: item.unit, price: String(item.price), label: item.sizeLabel }]
+            }]
+          }, item.variationId, item.sizeId);
+        });
+      }
+    } catch (e) {
+      console.error('Failed to restore cart:', e);
+    }
   };
 
-  // ✅ Pulls real, current order status whenever the customer opens the
-  // Orders tab — without this, a status change made in Store Admin would
-  // never actually show up here; the storefront would keep showing
-  // whatever the order looked like the moment it was placed. Also polls
-  // every 30 seconds while the tab stays open, so a customer watching an
-  // active delivery sees status changes without manually refreshing.
   useEffect(() => {
     if (activeTab !== 'orders' || !customer) return;
     refreshOrders();
@@ -72,28 +108,19 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, customer]);
 
-  // ✅ Loads the customer's real name/email/address book right after
-  // login — replaces the hardcoded "Amit Sharma" sample data every
-  // customer used to see regardless of who they actually were.
   useEffect(() => {
     if (!customer) return;
     refreshProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customer]);
 
-  // Any modal (product quick-view, etc.) portals into this root, so it stays
-  // contained within whatever box this component is rendered inside —
-  // the simulated device frame in the builder, or the whole page when live.
   const rootRef = useRef(null);
   const [rootNode, setRootNode] = useState(null);
   useEffect(() => { setRootNode(rootRef.current); }, []);
 
-
-  // Load Google Fonts for heading and body fonts
   useEffect(() => {
-    const heading = builderData?.brand?.fonts?.body || builderData?.brand?.fonts?.heading || builderData?.bodyFont || 'Inter';
-    const body = builderData?.brand?.fonts?.body || builderData?.bodyFont || 'Inter';
-    console.log('🔤 Loading fonts:', heading, body);
+    const heading = builderData?.brand?.fonts?.heading || 'Inter';
+    const body = builderData?.brand?.fonts?.body || 'Inter';
     const fonts = [...new Set([heading, body])].map(f => f.replace(/ /g, '+') + ':wght@400;500;600;700').join('&family=');
     const linkId = 'store-google-fonts';
     let link = document.getElementById(linkId);
@@ -104,35 +131,35 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
       document.head.appendChild(link);
     }
     link.href = `https://fonts.googleapis.com/css2?family=${fonts}&display=swap`;
-  }, [builderData?.brand?.fonts?.heading, builderData?.brand?.fonts?.body, builderData?.headingFont, builderData?.bodyFont]);
+  }, [builderData?.brand?.fonts?.heading, builderData?.brand?.fonts?.body]);
 
   const flattenedData = useMemo(() => ({
     brandName: builderData.brand.brandName,
     tagline: builderData.brand.tagline,
     logo: builderData.brand.logo,
     brandColors: builderData.brand.colors,
-    headingFont: builderData.brand.fonts.body || builderData.brand.fonts.heading,
+    headingFont: builderData.brand.fonts.heading,
     bodyFont: builderData.brand.fonts.body,
     baseFontSize: builderData.brand.baseFontSize,
-
     categories: builderData.products.categories,
     enableImageZoom: builderData.products.enableImageZoom,
-    categoryImageShape: builderData.products.categoryImageShape || 'circle',
-    categoryImageSize: builderData.products.categoryImageSize || 'S',
-    autoSlideProductImages: builderData.products.autoSlideProductImages || false,
-    addToCartLabel: builderData.products.addToCartLabel || 'Add to Cart',
+    enableProductSearch: builderData.products.enableProductSearch,
+    settings: {
+      categoryImageSize: builderData.products.categoryImageSize || 'S',
+      categoryImageShape: builderData.products.categoryImageShape || 'circle',
+      autoSlideProductImages: builderData.products.autoSlideProductImages || false,
+    },
     bannerImage: builderData.products.banner.image,
     bannerTagline: builderData.products.banner.tagline,
     bannerSubtitle: builderData.products.banner.subtitle,
     bannerCta: builderData.products.banner.cta,
     bannerHeight: builderData.products.banner.height,
     bannerBgColor: builderData.products.banner.bgColor,
+    textShadow: builderData.products.banner.textShadow !== undefined ? builderData.products.banner.textShadow : true,
     showCta: builderData.products.banner.showCta,
     showText: builderData.products.banner.showText,
     textAlignment: builderData.products.banner.textAlignment,
     textColor: builderData.products.banner.textColor,
-    textShadow: builderData.products.banner.textShadow !== undefined ? builderData.products.banner.textShadow : true,
-
     freeDelivery: builderData.cart.freeDelivery,
     freeDeliveryThreshold: builderData.cart.freeDeliveryThreshold,
     deliveryCharge: builderData.cart.deliveryCharge,
@@ -142,12 +169,11 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
     gstRate: builderData.cart.gstRate,
     taxLabel: builderData.cart.taxLabel,
     showGSTBreakdownCart: builderData.cart.showGSTBreakdownCart,
-    showGSTBreakdownCheckout: builderData.cart.showGSTBreakdownCheckout,
     tabName: builderData.cart.tabName || 'Cart',
     enableDineIn: builderData.cart.enableDineIn || false,
     dineInLabel: builderData.cart.dineInLabel || 'Dine In',
-    ordersTabName: builderData.order.ordersTabName || 'Orders',
-
+    showGSTBreakdownCheckout: builderData.cart.showGSTBreakdownCheckout,
+    gstNumber: builderData.cart.gstNumber || '',
     codEnabled: builderData.payment.codEnabled,
     upiEnabled: builderData.payment.upiEnabled,
     cardEnabled: builderData.payment.cardEnabled,
@@ -157,14 +183,29 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
     showQRCode: builderData.payment.showQRCode,
     showUPIId: builderData.payment.showUPIId,
     defaultPayment: builderData.payment.defaultPayment,
-
+    cashfreeEnabled: builderData.payment.cashfreeEnabled,
+    addToCartLabel: builderData.products?.addToCartLabel || builderData.addToCartLabel || 'Add to Cart',
+    stripeEnabled: builderData.payment.stripeEnabled,
+    payment: {
+      codEnabled: builderData.payment.codEnabled,
+      upiEnabled: builderData.payment.upiEnabled,
+      cardEnabled: builderData.payment.cardEnabled,
+      netBankingEnabled: builderData.payment.netBankingEnabled,
+      cashfreeEnabled: builderData.payment.cashfreeEnabled,
+      addToCartLabel: builderData.products?.addToCartLabel || builderData.addToCartLabel || 'Add to Cart',
+      stripeEnabled: builderData.payment.stripeEnabled,
+      upiId: builderData.payment.upiId,
+      upiAppName: builderData.payment.upiAppName,
+      showQRCode: builderData.payment.showQRCode,
+      showUPIId: builderData.payment.showUPIId,
+      defaultPayment: builderData.payment.defaultPayment,
+    },
     maxAddresses: builderData.address.maxAddresses,
     allowDefaultAddress: builderData.address.allowDefaultAddress,
     showAddressLabels: builderData.address.showAddressLabels,
     allowAddressEditing: builderData.address.allowAddressEditing,
     allowAddressDeletion: builderData.address.allowAddressDeletion,
     addressFields: builderData.address.fields,
-
     enableCancellation: builderData.order.enableCancellation,
     cancellationWindow: builderData.order.cancellationWindow,
     cancelOnlyConfirmed: builderData.order.cancelOnlyConfirmed,
@@ -172,7 +213,7 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
     sendCancelEmail: builderData.order.sendCancelEmail,
     showStatusTimeline: builderData.order.showStatusTimeline,
     showEstimatedDelivery: builderData.order.showEstimatedDelivery,
-
+    ordersTabName: builderData.order?.ordersTabName || 'Orders',
     officeNumber: builderData.profile.officeNumber,
     supportTime: builderData.profile.supportTime,
     supportEmail: builderData.profile.supportEmail,
@@ -187,14 +228,9 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
     socialLinks: builderData.profile.socialLinks,
     feedbackLinks: builderData.profile.feedbackLinks,
     profile: { ...builderData.profile, shippingInfo: builderData.profile?.shippingInfo || '' },
-
-    // ✅ Was missing entirely — Step 8's return policy never reached
-    // usePreviewData at all, regardless of what usePreviewData itself did
-    // with it. This is why every store showed the same hardcoded default
-    // (returns always enabled, 7-day window) no matter what a tenant set.
+    deliveryZones: builderData.cart?.deliveryZones || builderData.deliveryZones || [],
+    dineInLocations: builderData.cart?.dineInLocations || builderData.dineInLocations || [],
     return: builderData.return,
-    storeType: builderData.storeType || 'product',
-    booking: builderData.booking || {},
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [builderData]);
 
@@ -221,18 +257,61 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
     if (product) addToCart(product, variationId, sizeId);
   };
 
+  const handleAddScannedToCart = (product, quantity) => {
+    const variationId = product.variant_id || 'qr_v';
+    const sizeId = product.size_id || 'qr_s';
+    const cartProduct = {
+      id: product.id,
+      name: product.name,
+      images: product.image_url ? [{ url: product.image_url }] : (Array.isArray(product.images) ? product.images.map(u => ({ url: u })) : []),
+      discount: 0,
+      variations: [{
+        id: variationId,
+        name: product.variation_name || '',
+        sizes: [{
+          id: sizeId,
+          size: product.size || '',
+          unit: product.unit || '',
+          price: String(product.scanned_price || product.price || 0),
+          label: product.size_label || ''
+        }]
+      }]
+    };
+    for (let i = 0; i < (quantity || 1); i++) {
+      addToCart(cartProduct, variationId, sizeId);
+    }
+    setActiveTab('cart');
+  };
+
+  const handleDeleteAccount = async () => {
+    try {
+    console.log('Delete account called, token:', customerToken, 'storeId:', storeId);
+      const token = customerToken;
+      if (token) {
+        await fetch(`https://api.aapnaestore.com/api/store/${storeId}/customers/me/delete-account`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const resp = await fetch(`https://api.aapnaestore.com/api/store/${storeId}/customers/me/delete-account`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await resp.json(); console.log('Delete response:', resp.status, data);
+      }
+    } catch(e) { console.error('Delete account failed:', e); }
+    handleLogout();
+  };
+
   const handleLogout = () => {
     setCustomer(null);
     setCustomerToken(null);
     try {
       localStorage.removeItem(`customer_session_${storeId}`);
+      localStorage.removeItem(`customer_12hr_${storeId}`);
     } catch (e) {
       console.error('Failed to clear customer session:', e);
     }
     setActiveTab('home');
   };
 
-  const AUTH_REQUIRED_TABS = ['orders', 'profile'];
+  const AUTH_REQUIRED_TABS = ['orders']; // profile is now public
 
   const renderTab = () => {
     if (AUTH_REQUIRED_TABS.includes(activeTab) && !customer) {
@@ -247,7 +326,18 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
     }
     switch (activeTab) {
       case 'home':
-        return <PreviewHomeTab data={storeData} onAddToCart={handleAddToCart} device={device} />;
+        return (
+          <PreviewHomeTab
+            data={storeData}
+            onAddToCart={handleAddToCart}
+            device={device}
+            stockMap={stockMap}
+            initialProductId={initialProductId}
+            storeId={storeId}
+            customerToken={customerToken}
+            isLoggedIn={!!customerToken}
+          />
+        );
       case 'cart':
         return checkoutNeedsAuth ? (
           <PreviewCustomerAuth
@@ -270,11 +360,38 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
           />
         );
       case 'orders':
-        return <PreviewOrdersTab data={storeData} cancelOrder={cancelOrder} addToCart={addToCart} onGoToCart={() => setActiveTab('cart')} storeId={storeId} customerToken={customerToken} storeType={storeData.storeType || 'product'} />;
+        return (
+          <PreviewOrdersTab
+            data={storeData}
+            cancelOrder={cancelOrder}
+            addToCart={addToCart}
+            onGoToCart={() => setActiveTab('cart')}
+            storeId={storeId}
+            customerToken={customerToken}
+            storeType={storeData.storeType || 'product'}
+          />
+        );
       case 'profile':
+        if (checkoutNeedsAuth && !customer) {
+          return (
+            <PreviewCustomerAuth
+              brand={storeData.brand}
+              storeId={storeId}
+              onAuthenticated={(data, token) => { 
+                handleAuthenticated(data, token); 
+                setCheckoutNeedsAuth(false);
+                // Small delay to let token propagate before showing profile
+                setTimeout(() => setActiveTab('profile'), 100);
+              }}
+              onCancel={() => setCheckoutNeedsAuth(false)}
+            />
+          );
+        }
         return (
           <PreviewProfileTab
             data={storeData}
+            isAuthenticated={!!customer}
+            onRequireAuth={() => setCheckoutNeedsAuth(true)}
             customerMobile={customer?.phone}
             addAddress={addAddress}
             updateAddress={updateAddress}
@@ -282,23 +399,44 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
             setDefaultAddress={setDefaultAddress}
             updateProfileInfo={updateProfileInfo}
             onLogout={handleLogout}
+            onDeleteAccount={handleDeleteAccount}
+            isFirstTime={isFirstTimeCustomer}
+            onProfileSaved={() => { setIsFirstTimeCustomer(false); }}
           />
         );
       default:
-        return <PreviewHomeTab data={storeData} onAddToCart={handleAddToCart} device={device} />;
+        return (
+          <PreviewHomeTab
+            data={storeData}
+            onAddToCart={handleAddToCart}
+            device={device}
+            stockMap={stockMap}
+            initialProductId={initialProductId}
+          />
+        );
     }
   };
 
   return (
-    <div ref={rootRef} className={`store-root flex flex-col relative ${className}`}  style={{
-      ...style,
-      '--font-heading': builderData?.brand?.fonts?.heading || 'Inter',
-      '--font-body': builderData?.brand?.fonts?.body || 'Inter',
-      '--color-font-header': builderData?.brand?.colors?.fontHeader || '#191C1E',
-      '--color-font-body': builderData?.brand?.colors?.fontBody || '#556067',
-    }}>
+    <div
+      ref={rootRef}
+      className={`store-root flex flex-col relative ${className}`}
+      style={{
+        ...style,
+        '--font-heading': builderData?.brand?.fonts?.heading || 'Inter',
+        '--font-body': builderData?.brand?.fonts?.body || 'Inter',
+        '--color-font-header': builderData?.brand?.colors?.fontHeader || '#191C1E',
+        '--color-font-body': builderData?.brand?.colors?.fontBody || '#556067',
+        fontFamily: `'${builderData?.brand?.fonts?.body || 'Inter'}', sans-serif`,
+      }}
+    >
       <DeviceFrameContext.Provider value={rootNode}>
-        <PreviewHeader brand={storeData.brand || {}} cartCount={getCartItemCount()} />
+        <PreviewHeader
+          brand={storeData.brand || {}}
+          cartCount={getCartItemCount()}
+          qrActive={qrActive}
+          onScanClick={() => setShowQRScanner(true)}
+        />
         <div className="flex-1 overflow-y-auto pb-20">
           {renderTab()}
         </div>
@@ -311,10 +449,39 @@ const StorefrontApp = ({ builderData, storeId, device = 'desktop', className = '
             cartTabName={storeData.cart?.tabName || 'Cart'}
             ordersTabName={storeData.cart?.ordersTabName || 'Orders'}
             storeType={storeData.storeType || 'product'}
-            device={device}
           />
         </div>
       </DeviceFrameContext.Provider>
+
+      {showQRScanner && (
+        <QRScannerModal
+          storeId={storeId}
+          primaryColor={storeData.brand?.colors?.primary}
+          onAddToCart={handleAddScannedToCart}
+          onClose={() => setShowQRScanner(false)}
+          customerToken={customerToken}
+          addToCartLabel={storeData.products?.addToCartLabel || storeData.addToCartLabel || 'Add to Cart'}
+        />
+      )}
+      {scannedProduct && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+          zIndex: 1000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center'
+        }} onClick={() => setScannedProduct(null)}>
+          <div style={{
+            background: '#fff', borderRadius: '20px 20px 0 0',
+            padding: 24, width: '100%', maxWidth: 480, maxHeight: '80vh', overflowY: 'auto'
+          }} onClick={e => e.stopPropagation()}>
+            <ScannedProductModal
+              product={scannedProduct}
+              primaryColor={storeData.brand?.colors?.primary}
+              onAddToCart={handleAddScannedToCart}
+              onScanAgain={() => { setScannedProduct(null); setShowQRScanner(true); }}
+              addToCartLabel={storeData.products?.addToCartLabel || storeData.addToCartLabel || 'Add to Cart'}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -7,44 +7,7 @@ import { QRCodeSVG } from 'qrcode.react';
 // used to double as muted text color; that job moved entirely to fontBody.
 // Secondary is now purely a UI-state color (e.g. the free-delivery
 // progress bar's track, quantity-stepper borders).
-// Day abbreviation → JS Date.getDay() index (0=Sun)
-const DAY_INDEX = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
-
-// Generate time slots between workStart and workEnd, excluding break, with gapBetween minutes
-function generateSlots(workStart, workEnd, breakStart, breakEnd, gapMinutes) {
-  const slots = [];
-  const toMin = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
-  const toLabel = (m) => { const h = Math.floor(m / 60); const mn = m % 60; const ampm = h >= 12 ? 'PM' : 'AM'; return `${h % 12 || 12}:${mn.toString().padStart(2, '0')} ${ampm}`; };
-  const start = toMin(workStart || '10:00');
-  const end = toMin(workEnd || '19:00');
-  const bStart = breakStart ? toMin(breakStart) : null;
-  const bEnd = breakEnd ? toMin(breakEnd) : null;
-  const gap = gapMinutes || 30;
-  for (let t = start; t + gap <= end; t += gap) {
-    if (bStart !== null && t >= bStart && t < bEnd) continue;
-    slots.push({ value: `${Math.floor(t/60).toString().padStart(2,'0')}:${(t%60).toString().padStart(2,'0')}`, label: toLabel(t) });
-  }
-  return slots;
-}
-
-// Generate next N available dates based on workingDays
-function getAvailableDates(workingDays, advanceDays) {
-  const days = workingDays || ['Mon','Tue','Wed','Thu','Fri','Sat'];
-  const maxDays = advanceDays || 7;
-  const available = [];
-  const today = new Date();
-  today.setHours(0,0,0,0);
-  for (let i = 1; i <= maxDays + 14; i++) {
-    const d = new Date(today);
-    d.setDate(today.getDate() + i);
-    const dayName = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
-    if (days.includes(dayName)) available.push(d);
-    if (available.length >= maxDays) break;
-  }
-  return available;
-}
-
-const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGoToProfile, isAuthenticated, onRequireAuth, storeType, booking }) => {
+const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGoToProfile, isAuthenticated, onRequireAuth, storeType = 'product', booking = {} }) => {
   const isService = storeType === 'service';
   const { cart, brand, payment, profile } = data;
   const [showCheckout, setShowCheckout] = useState(false);
@@ -60,21 +23,43 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
   const [customerUpiId, setCustomerUpiId] = useState('');
   const [upiIdConfirmed, setUpiIdConfirmed] = useState(false);
   const [cashfreeLoading, setCashfreeLoading] = useState(false);
-  const [bookingDate, setBookingDate] = useState('');
-  const [bookingTime, setBookingTime] = useState('');
 
-  // Derived booking helpers (only used when isService)
-  const availableDates = isService ? getAvailableDates(booking.workingDays, booking.advanceDays) : [];
-  const availableSlots = isService && bookingDate ? generateSlots(booking.workStart, booking.workEnd, booking.breakStart, booking.breakEnd, booking.gapBetween) : [];
+  // Walk-in customer details — shown only for scan orders
+  const isScanOrder = cart.items?.some(item => item.isScanOrder);
+  const [walkInName, setWalkInName] = useState('');
+  const [walkInMobile, setWalkInMobile] = useState('');
+  const [dineInName, setDineInName] = useState('');
+  const [dineInMobile, setDineInMobile] = useState('');
 
   const { items, freeDelivery, freeDeliveryThreshold, deliveryCharge, showProgressBar, enableGST, gstRate, taxLabel, showGSTBreakdownCart, showGSTBreakdownCheckout, gstNumber, enableDineIn, dineInLabel } = cart;
-  const [orderType, setOrderType] = useState('delivery');
+  const [orderType, setOrderType] = useState('delivery'); // 'dine_in' or 'delivery'
+  const [selectedLocation, setSelectedLocation] = useState(null); // for dine-in location selection
+  const [deliveryZoneInfo, setDeliveryZoneInfo] = useState(null); // { allowed, storeAddressId, storeAddressName, deliveryZone, deliveryCost }
+  const [pincodeChecked, setPincodeChecked] = useState(false);
 
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const gst = enableGST ? subtotal * (gstRate / 100) : 0;
+  // Detect if any item has per-product GST
+  const hasPerProductGST = items.some(item => item.gstRate != null && item.gstRate > 0);
+  // Per-product GST breakdown grouped by rate
+  const gstByRate = (() => {
+    if (!enableGST || !hasPerProductGST) return {};
+    return items.reduce((acc, item) => {
+      if (item.gstRate == null) return acc;
+      const itemTotal = (parseFloat(item.price) || 0) * (item.quantity || 1);
+      const rate = item.gstRate;
+      acc[rate] = (acc[rate] || 0) + itemTotal * (rate / 100);
+      return acc;
+    }, {});
+  })();
+  // Global GST (only when no per-product GST)
+  const gst = (() => {
+    if (!enableGST) return 0;
+    if (hasPerProductGST) return Object.values(gstByRate).reduce((a, b) => a + b, 0);
+    return subtotal * (gstRate / 100);
+  })();
   const delivery = orderType === 'dine_in' ? 0 : (freeDelivery
-    ? (subtotal >= freeDeliveryThreshold ? 0 : deliveryCharge)
-    : deliveryCharge);
+    ? (subtotal >= freeDeliveryThreshold ? 0 : (deliveryZoneInfo?.deliveryCost ?? deliveryCharge))
+    : (deliveryZoneInfo?.deliveryCost ?? deliveryCharge));
   const total = subtotal + gst + delivery;
   const remainingForFree = freeDeliveryThreshold - subtotal;
 
@@ -98,6 +83,54 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
   };
 
   const paymentMethods = getPaymentMethods();
+  const partialPaymentEnabled = payment?.partialPaymentEnabled && payment?.upiId;
+  const partialPaymentPercent = payment?.partialPaymentPercent || 10;
+  const advanceAmount = partialPaymentEnabled ? parseFloat((total * partialPaymentPercent / 100).toFixed(2)) : 0;
+  const balanceAmount = partialPaymentEnabled ? parseFloat((total - advanceAmount).toFixed(2)) : 0;
+  const deliveryZones = data?.cart?.deliveryZones || data?.deliveryZones || [];
+  const dineInLocations = data?.cart?.dineInLocations || data?.dineInLocations || [];
+  const storeLocations = data?.profile?.storeLocations || [];
+  const mainStore = { id: 'main', name: 'Main Store', address: data?.profile?.storeAddress || '' };
+  const allLocations = [mainStore, ...storeLocations.filter(l => l.name && l.address)];
+  const hasMultipleLocations = allLocations.length > 1;
+
+  // Get dine-in enabled locations
+  const dineInEnabledLocations = allLocations.filter(loc => {
+    if (!dineInLocations.length) return true; // default all enabled
+    const found = dineInLocations.find(l => l.id === loc.id);
+    return found ? found.dineInEnabled !== false : true;
+  });
+
+  // Resolve delivery zone by pincode
+  const resolveDeliveryZone = (pincode, customerAddress) => {
+    if (!pincode || deliveryZones.length === 0) {
+      return { allowed: true, storeAddressId: null, storeAddressName: null, deliveryZone: null, deliveryCost: deliveryCharge || 0, flatRate: true };
+    }
+    const addrLower = (customerAddress || '').toLowerCase();
+    for (const address of deliveryZones) {
+      for (const zone of (address.zones || [])) {
+        if (!zone.pincode || !zone.pincode.trim()) continue; // skip empty zones
+        if (!pincode.startsWith(zone.pincode)) continue;
+        const areaName = (zone.area || '').trim();
+        if (areaName && addrLower && !addrLower.includes(areaName.toLowerCase())) continue; // area mismatch
+        return { allowed: true, storeAddressId: address.storeAddressId, storeAddressName: address.storeAddressName, deliveryZone: zone.area, deliveryCost: zone.deliveryCost || 0, flatRate: false };
+      }
+    }
+    return { allowed: false, storeAddressId: null, storeAddressName: null, deliveryZone: null, deliveryCost: null, flatRate: false };
+  };
+
+  // Check pincode when address selected
+  React.useEffect(() => {
+    if (orderType === 'delivery' && currentAddress?.pincode) {
+      const fullAddr = [currentAddress.addressLine1, currentAddress.addressLine2, currentAddress.city, currentAddress.state].filter(Boolean).join(' ');
+      const zone = resolveDeliveryZone(currentAddress.pincode, fullAddr);
+      setDeliveryZoneInfo(zone);
+      setPincodeChecked(true);
+    } else {
+      setDeliveryZoneInfo(null);
+      setPincodeChecked(false);
+    }
+  }, [currentAddress, orderType, deliveryZones]);
 
   const handleCheckout = () => {
     if (items.length === 0) {
@@ -108,14 +141,22 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
       onRequireAuth?.();
       return;
     }
-    if (!isService && orderType !== 'dine_in' && !currentAddress) {
+    if (orderType === 'dine_in' && hasMultipleLocations && !selectedLocation) {
+      alert('Please select a location for dine-in');
+      return;
+    }
+    if (orderType !== 'dine_in' && !currentAddress) {
       alert('Please add a delivery address from the Profile tab before checking out');
+      return;
+    }
+    if (orderType !== 'dine_in' && currentAddress?.pincode && deliveryZones.length > 0 && deliveryZoneInfo && !deliveryZoneInfo.allowed) {
+      alert('Sorry, we don\'t deliver to your area. Please check our delivery zones.');
       return;
     }
     setShowCheckout(true);
   };
 
-  const handleCashfreePayment = async (orderId, amount, customerPhone) => {
+  const handleCashfreePayment = async (orderId, amount, customerPhone, orderData = {}) => {
     setCashfreeLoading(true);
     try {
       const storeId = window.location.hostname.split('.')[0];
@@ -128,9 +169,10 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
         body: JSON.stringify({
           orderId,
           amount,
-          customerPhone: customerPhone || '9999999999',
-          customerName: 'Customer',
-          customerEmail: 'customer@store.com'
+          customerPhone: orderData?.customerPhone || customerPhone || '9999999999',
+          customerName: orderData?.customerName || 'Customer',
+          customerEmail: 'customer@store.com',
+          orderData,
         })
       });
       const data = await res.json();
@@ -138,10 +180,11 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
 
       // Load Cashfree SDK
       const cashfree = await new Promise((resolve, reject) => {
-        if (window.Cashfree) { resolve(window.Cashfree({ mode: 'sandbox' })); return; }
+        const cfMode = data.data?.mode === 'production' ? 'production' : 'sandbox';
+        if (window.Cashfree) { resolve(window.Cashfree({ mode: cfMode })); return; }
         const script = document.createElement('script');
         script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
-        script.onload = () => resolve(window.Cashfree({ mode: 'sandbox' }));
+        script.onload = () => resolve(window.Cashfree({ mode: cfMode }));
         script.onerror = reject;
         document.head.appendChild(script);
       });
@@ -162,11 +205,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
   };
 
   const handlePlaceOrder = async () => {
-    if (isService && (!bookingDate || !bookingTime)) {
-      alert('Please select an appointment date and time');
-      return;
-    }
-    if (!isService && orderType !== 'dine_in' && !currentAddress) {
+    if (orderType !== 'dine_in' && !currentAddress) {
       alert('Please select a delivery address');
       return;
     }
@@ -184,7 +223,19 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
     // Handle Cashfree payment first
     if (selectedPayment === 'cashfree') {
       const orderId = 'ORD_' + Date.now();
-      const cfResult = await handleCashfreePayment(orderId, total, currentAddress?.recipientMobile);
+      const cfOrderData = {
+        customerId: null, // customer ID not available at this scope
+        customerName: currentAddress?.recipientName,
+        customerPhone: currentAddress?.recipientMobile,
+        items: cart,
+        deliveryAddress: orderType === 'dine_in' ? {} : currentAddress,
+        subtotal: subtotal,
+        deliveryCharge: orderType === 'dine_in' ? 0 : (deliveryZoneInfo?.deliveryCost ?? deliveryCharge),
+        taxAmount: gst,
+        totalAmount: total,
+        orderType: orderType,
+      };
+      const cfResult = await handleCashfreePayment(orderId, total, currentAddress?.recipientMobile, cfOrderData);
       if (!cfResult.success) {
         alert(cfResult.error || 'Payment failed. Please try again.');
         return;
@@ -192,13 +243,59 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
     }
 
     setPlacingOrder(true);
+    // Determine branch info
+    let branchId = null;
+    let branchName = null;
+    let deliveryZoneName = null;
+    let finalDeliveryCost = orderType === 'dine_in' ? 0 : (deliveryZoneInfo?.deliveryCost ?? deliveryCharge);
+
+    if (orderType === 'dine_in' && selectedLocation) {
+      branchId = selectedLocation.id;
+      branchName = selectedLocation.name;
+    } else if (orderType === 'delivery' && deliveryZoneInfo) {
+      branchId = deliveryZoneInfo.storeAddressId;
+      branchName = deliveryZoneInfo.storeAddressName;
+      deliveryZoneName = deliveryZoneInfo.deliveryZone;
+    }
+
+    // Validate walk-in customer name if this is a scan order
+    if (isScanOrder && !walkInName.trim()) {
+      alert('Please enter the customer name');
+      setPlacingOrder(false);
+      return;
+    }
+
+    // Validate dine-in customer name
+    if (orderType === 'dine_in' && !dineInName.trim()) {
+      alert('Please enter the customer name for dine-in order');
+      setPlacingOrder(false);
+      return;
+    }
+
+    const isPartialCOD = selectedPayment === 'cod' && partialPaymentEnabled && upiIdConfirmed;
     const result = await placeOrder({
       address: orderType === 'dine_in' ? {} : currentAddress,
       paymentMethodId: selectedPayment,
-      paymentMethodLabel: methodLabel,
+      paymentMethodLabel: isPartialCOD ? `COD + ${partialPaymentPercent}% Advance UPI` : methodLabel,
+      partialPayment: isPartialCOD ? { advanceAmount, balanceAmount, percent: partialPaymentPercent, customerUpiId } : null,
+      orderNote: isPartialCOD ? `Advance ₹${advanceAmount.toFixed(2)} paid via UPI (${customerUpiId}). Balance ₹${balanceAmount.toFixed(2)} on delivery. Pending verification.` : undefined,
       customerUpiId: selectedPayment === 'upi' ? customerUpiId.trim() : undefined,
       orderType: orderType,
-      ...(isService && { bookingDate, bookingTime }),
+      branchId,
+      branchName,
+      deliveryZone: deliveryZoneName,
+      deliveryCost: finalDeliveryCost,
+      // Walk-in customer (scan orders only)
+      ...(isScanOrder ? {
+        isScanOrder: true,
+        walkInCustomerName: walkInName.trim(),
+        walkInCustomerMobile: walkInMobile.trim() || undefined,
+      } : {}),
+      // Dine-in customer name/phone
+      ...(orderType === 'dine_in' ? {
+        dineInCustomerName: dineInName.trim(),
+        dineInCustomerMobile: dineInMobile.trim() || undefined,
+      } : {}),
     });
     setPlacingOrder(false);
 
@@ -217,7 +314,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
     return (
       <div className="p-4 max-w-3xl mx-auto text-center py-12">
         <span className="material-symbols-outlined text-6xl text-[#006d2f] block mb-4">check_circle</span>
-        <h2 className="text-2xl font-bold" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.heading || 'Inter' }}>Order Placed! 🎉</h2>
+        <h2 className="text-2xl font-bold" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>Order Placed! 🎉</h2>
         <p style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>Your order has been placed successfully.</p>
       </div>
     );
@@ -230,11 +327,11 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
           <span className="material-symbols-outlined">arrow_back</span> Back to Cart
         </button>
 
-        <h2 className="text-xl font-bold mb-4" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.heading || 'Inter' }}>Payment</h2>
+        <h2 className="text-xl font-bold mb-4" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>Payment</h2>
 
         {/* Order Summary */}
         <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
-          <h3 className="font-semibold text-sm mb-3" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.heading || 'Inter' }}>Order Summary</h3>
+          <h3 className="font-semibold text-sm mb-3" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>Order Summary</h3>
           <div className="space-y-2">
             {items.map((item) => (
               <div key={item.id} className="flex justify-between text-sm">
@@ -269,44 +366,55 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
           </div>
         </div>
 
-        {/* Dine-In / Delivery selector */}
-        {enableDineIn && (
-          <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
-            <p className="text-sm font-semibold mb-3" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>
-              How would you like your order?
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setOrderType('dine_in')}
-                className="flex-1 py-2 px-4 rounded-lg border-2 text-sm font-semibold transition-colors"
-                style={{
-                  borderColor: orderType === 'dine_in' ? brand.colors.primary : brand.colors.secondary,
-                  background: orderType === 'dine_in' ? brand.colors.primary : 'transparent',
-                  color: orderType === 'dine_in' ? '#fff' : brand.colors.fontBody,
-                  fontFamily: brand.fonts?.body || 'Inter'
-                }}
-              >
-                🍽️ {dineInLabel || 'Dine In'}
-              </button>
-              <button
-                onClick={() => setOrderType('delivery')}
-                className="flex-1 py-2 px-4 rounded-lg border-2 text-sm font-semibold transition-colors"
-                style={{
-                  borderColor: orderType === 'delivery' ? brand.colors.primary : brand.colors.secondary,
-                  background: orderType === 'delivery' ? brand.colors.primary : 'transparent',
-                  color: orderType === 'delivery' ? '#fff' : brand.colors.fontBody,
-                  fontFamily: brand.fonts?.body || 'Inter'
-                }}
-              >
-                🚚 Delivery
-              </button>
+        {/* Walk-in Customer Details — only for QR scan orders */}
+        {isScanOrder && (
+          <div className="rounded-lg border-2 p-4 mb-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF', borderColor: brand.colors.primary }}>
+            <div className="flex items-center gap-2 mb-3">
+              <span style={{ fontSize: 18 }}>🛍️</span>
+              <h3 className="font-semibold text-sm" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>Walk-in Customer Details</h3>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold mb-1" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>
+                  Customer Name <span style={{ color: '#ba1a1a' }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  value={walkInName}
+                  onChange={e => setWalkInName(e.target.value)}
+                  placeholder="Enter customer name"
+                  className="w-full border rounded-lg px-3 py-2 text-sm outline-none"
+                  style={{
+                    borderColor: walkInName.trim() ? brand.colors.primary : '#d1d5db',
+                    color: brand.colors.fontBody,
+                    fontFamily: brand.fonts?.body || 'Inter',
+                  }}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold mb-1" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>
+                  Mobile Number <span style={{ color: '#888', fontWeight: 400 }}>(optional)</span>
+                </label>
+                <input
+                  type="tel"
+                  value={walkInMobile}
+                  onChange={e => setWalkInMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  placeholder="10-digit mobile"
+                  className="w-full border rounded-lg px-3 py-2 text-sm outline-none"
+                  style={{
+                    borderColor: '#d1d5db',
+                    color: brand.colors.fontBody,
+                    fontFamily: brand.fonts?.body || 'Inter',
+                  }}
+                />
+              </div>
             </div>
           </div>
         )}
 
         {/* Delivery Address */}
-        {orderType !== 'dine_in' && <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
-          <h3 className="font-semibold text-sm mb-2" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.heading || 'Inter' }}>Deliver To</h3>
+        {!isService && !isScanOrder && <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
+          <h3 className="font-semibold text-sm mb-2" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>Deliver To</h3>
           {currentAddress ? (
             <p className="text-sm" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>
               <span className="font-medium" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>{currentAddress.recipientName}</span><br />
@@ -317,11 +425,21 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
           ) : (
             <p className="text-sm text-[#ba1a1a]">No address selected</p>
           )}
+
+          {/* Delivery zone validation */}
+          {currentAddress?.pincode && pincodeChecked && deliveryZones.length > 0 && (
+            <div className={`mt-2 px-3 py-2 rounded-lg text-xs font-semibold ${deliveryZoneInfo?.allowed ? 'bg-[#e8f5e9] text-[#006d2f]' : 'bg-[#ffdad6] text-[#ba1a1a]'}`}>
+              {deliveryZoneInfo?.allowed
+                ? `✅ Delivering from: ${deliveryZoneInfo.storeAddressName || 'Main Store'}${deliveryZoneInfo.deliveryZone ? ' · ' + deliveryZoneInfo.deliveryZone : ''} · ₹${deliveryZoneInfo.deliveryCost} delivery`
+                : `❌ Sorry, we don't deliver to pincode ${currentAddress.pincode}. We deliver to select areas only.`
+              }
+            </div>
+          )}
         </div>}
 
         {/* Payment Methods - From Step 4 */}
         <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
-          <h3 className="font-semibold text-sm mb-3" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.heading || 'Inter' }}>Select Payment Method</h3>
+          <h3 className="font-semibold text-sm mb-3" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>Select Payment Method</h3>
           {paymentMethods.length === 0 ? (
             <p className="text-sm text-[#556067]">No payment methods enabled. Please enable at least one in Step 4 (Payment Configuration).</p>
           ) : (
@@ -340,6 +458,36 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                   <span className="text-sm" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>{method.label}</span>
                 </label>
               ))}
+            </div>
+          )}
+          {selectedPayment === 'cod' && partialPaymentEnabled && payment?.upiId && (
+            <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg flex flex-col items-center gap-2">
+              <p className="text-sm font-semibold w-full" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>
+                Pay Advance ₹{advanceAmount.toFixed(2)} via UPI
+              </p>
+              <p className="text-xs w-full" style={{ color: brand.colors.fontBody }}>
+                Balance ₹{balanceAmount.toFixed(2)} collected on delivery. Order confirmed after payment verification.
+              </p>
+              {!upiIdConfirmed ? (
+                <div className="w-full flex flex-col gap-2">
+                  <label className="text-sm font-medium" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>Enter your UPI ID</label>
+                  <input type="text" value={customerUpiId} onChange={(e) => setCustomerUpiId(e.target.value)} placeholder="yourname@okhdfcbank" className="w-full px-3 py-2 rounded-lg border text-sm" />
+                  <button onClick={() => { if (!customerUpiId.trim()) { alert('Please enter your UPI ID'); return; } setUpiIdConfirmed(true); }} className="w-full py-2.5 rounded-lg font-semibold text-sm" style={{ backgroundColor: brand.colors.button || '#25D366', color: brand.colors.buttonLabel || '#FFFFFF' }}>
+                    Pay ₹{advanceAmount.toFixed(2)} Advance
+                  </button>
+                </div>
+              ) : (() => {
+                const txnRef = `TXN${Date.now()}`;
+                const upiUri = `upi://pay?pa=${encodeURIComponent(payment.upiId.trim())}&pn=${encodeURIComponent(brand?.name || 'Store')}&am=${advanceAmount.toFixed(2)}&cu=INR&tn=${encodeURIComponent('Advance Payment')}&tr=${txnRef}`;
+                return (
+                  <>
+                    <p className="text-xs w-full" style={{ color: brand.colors.fontBody }}>Paying from <span className="font-semibold">{customerUpiId}</span> <button onClick={() => setUpiIdConfirmed(false)} className="underline">change</button></p>
+                    {payment?.showQRCode && <div className="bg-white p-3 rounded-lg border"><QRCodeSVG value={upiUri} size={140} /></div>}
+                    <a href={upiUri} className="w-full text-center py-2.5 rounded-lg font-semibold text-sm mt-1" style={{ backgroundColor: brand.colors.button || '#25D366', color: brand.colors.buttonLabel || '#FFFFFF' }}>Pay ₹{advanceAmount.toFixed(2)} Advance via UPI App</a>
+                    <p className="text-xs text-center max-w-[240px]" style={{ color: brand.colors.fontBody }}>Once done, tap "Place Order". We'll confirm after verifying payment.</p>
+                  </>
+                );
+              })()}
             </div>
           )}
           {selectedPayment === 'upi' && payment?.upiId && (
@@ -426,7 +574,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
 
         <button
           onClick={handlePlaceOrder}
-          disabled={paymentMethods.length === 0 || placingOrder || (selectedPayment === 'upi' && !upiIdConfirmed)}
+          disabled={paymentMethods.length === 0 || placingOrder || (selectedPayment === 'upi' && !upiIdConfirmed) || (selectedPayment === 'cod' && partialPaymentEnabled && !upiIdConfirmed)}
           className="w-full py-3 rounded-lg font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50 disabled:pointer-events-none"
           style={{ backgroundColor: brand.colors.button || '#25D366' }}
         >
@@ -439,7 +587,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
   // Cart view
   return (
     <div className="p-4 max-w-3xl mx-auto">
-      <h2 className="text-xl font-bold mb-4" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.heading || 'Inter' }}>
+      <h2 className="text-xl font-bold mb-4" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>
         My Cart ({items.length} {items.length === 1 ? 'item' : 'items'})
       </h2>
 
@@ -472,6 +620,8 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
           <div className="space-y-3 mb-4">
             {items.map((item) => {
               const itemTotal = item.price * item.quantity;
+              const itemGstRate = enableGST ? (item.gstRate != null && item.gstRate > 0 ? item.gstRate : (item.gstRate === null && gstRate ? 0 : null)) : null;
+              const itemGstAmt = enableGST && item.gstRate != null && item.gstRate > 0 ? item.price * item.quantity * (item.gstRate / 100) : null;
               return (
                 <div key={item.id} className="rounded-lg border p-4 flex items-center gap-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
                   <div className="w-16 h-16 rounded-lg bg-[#f2f4f7] flex items-center justify-center overflow-hidden flex-shrink-0">
@@ -482,15 +632,26 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                     )}
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-semibold text-sm" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.heading || 'Inter' }}>
+                    <h4 className="font-semibold text-sm" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>
                       {item.productName}
                     </h4>
                     <p className="text-xs" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>
                       {item.sizeLabel} • {item.variationName}
                     </p>
-                    <p className="text-sm font-bold" style={{ color: brand.colors.primary }}>
-                      ₹{itemTotal.toFixed(2)}
-                    </p>
+                    {itemGstAmt != null ? (
+                      <div>
+                        <p className="text-xs" style={{ color: brand.colors.fontBody }}>
+                          ₹{itemTotal.toFixed(2)} + {taxLabel} {item.gstRate}% (₹{itemGstAmt.toFixed(2)})
+                        </p>
+                        <p className="text-sm font-bold" style={{ color: brand.colors.primary }}>
+                          = ₹{(itemTotal + itemGstAmt).toFixed(2)}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-sm font-bold" style={{ color: brand.colors.primary }}>
+                        ₹{itemTotal.toFixed(2)}
+                      </p>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -520,89 +681,109 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
             })}
           </div>
 
-          {/* Booking date/time picker — service stores only */}
-          {isService && (
-            <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF', borderColor: brand.colors.secondary || '#e0e3e6' }}>
-              <p className="text-sm font-semibold mb-3" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>
-                📅 Select Appointment Date & Time
-              </p>
-              {/* Date picker */}
-              <div className="mb-3">
-                <p className="text-xs font-medium mb-2" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>Date</p>
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  {availableDates.map((d) => {
-                    const iso = d.toISOString().split('T')[0];
-                    const dayName = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
-                    const dateNum = d.getDate();
-                    const mon = d.toLocaleString('default', { month: 'short' });
-                    const isSelected = bookingDate === iso;
-                    return (
-                      <button key={iso} onClick={() => { setBookingDate(iso); setBookingTime(''); }}
-                        className="flex flex-col items-center px-3 py-2 rounded-xl border-2 flex-shrink-0 transition-all"
-                        style={{ borderColor: isSelected ? brand.colors.primary : brand.colors.secondary || '#e0e3e6', background: isSelected ? brand.colors.primary : 'transparent', minWidth: '52px' }}>
-                        <span className="text-[10px] font-semibold" style={{ color: isSelected ? '#fff' : brand.colors.fontBody }}>{dayName}</span>
-                        <span className="text-base font-bold" style={{ color: isSelected ? '#fff' : brand.colors.fontHeader }}>{dateNum}</span>
-                        <span className="text-[10px]" style={{ color: isSelected ? '#fff' : brand.colors.fontBody }}>{mon}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-              {/* Time slot picker */}
-              {bookingDate && (
-                <div>
-                  <p className="text-xs font-medium mb-2" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>Time</p>
-                  <div className="flex flex-wrap gap-2">
-                    {availableSlots.map((slot) => {
-                      const isSelected = bookingTime === slot.value;
-                      return (
-                        <button key={slot.value} onClick={() => setBookingTime(slot.value)}
-                          className="px-3 py-1.5 rounded-lg border-2 text-xs font-semibold transition-all"
-                          style={{ borderColor: isSelected ? brand.colors.primary : brand.colors.secondary || '#e0e3e6', background: isSelected ? brand.colors.primary : 'transparent', color: isSelected ? '#fff' : brand.colors.fontBody }}>
-                          {slot.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-              {bookingDate && bookingTime && (
-                <p className="text-xs mt-3 font-medium" style={{ color: brand.colors.primary }}>
-                  ✓ Appointment: {new Date(bookingDate).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })} at {availableSlots.find(s => s.value === bookingTime)?.label}
-                </p>
-              )}
-            </div>
-          )}
-
           {/* Dine-In / Delivery selector */}
           {!isService && enableDineIn && (
             <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
               <p className="text-sm font-semibold mb-3" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>
                 How would you like your order?
               </p>
-              <div className="flex gap-3">
+              <div className="flex gap-3 mb-3">
                 <button
-                  onClick={() => setOrderType('dine_in')}
+                  onClick={() => { setOrderType('dine_in'); setSelectedLocation(hasMultipleLocations ? null : mainStore); }}
                   className="flex-1 py-2 px-4 rounded-lg border-2 text-sm font-semibold transition-colors"
-                  style={{ borderColor: orderType === 'dine_in' ? brand.colors.primary : brand.colors.secondary, background: orderType === 'dine_in' ? brand.colors.primary : 'transparent', color: orderType === 'dine_in' ? '#fff' : brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}
+                  style={{
+                    borderColor: orderType === 'dine_in' ? brand.colors.primary : brand.colors.secondary,
+                    background: orderType === 'dine_in' ? brand.colors.primary : 'transparent',
+                    color: orderType === 'dine_in' ? '#fff' : brand.colors.fontBody,
+                    fontFamily: brand.fonts?.body || 'Inter'
+                  }}
                 >
                   🍽️ {dineInLabel || 'Dine In'}
                 </button>
                 <button
-                  onClick={() => setOrderType('delivery')}
+                  onClick={() => { setOrderType('delivery'); setSelectedLocation(null); }}
                   className="flex-1 py-2 px-4 rounded-lg border-2 text-sm font-semibold transition-colors"
-                  style={{ borderColor: orderType === 'delivery' ? brand.colors.primary : brand.colors.secondary, background: orderType === 'delivery' ? brand.colors.primary : 'transparent', color: orderType === 'delivery' ? '#fff' : brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}
+                  style={{
+                    borderColor: orderType === 'delivery' ? brand.colors.primary : brand.colors.secondary,
+                    background: orderType === 'delivery' ? brand.colors.primary : 'transparent',
+                    color: orderType === 'delivery' ? '#fff' : brand.colors.fontBody,
+                    fontFamily: brand.fonts?.body || 'Inter'
+                  }}
                 >
                   🚚 Delivery
                 </button>
               </div>
+
+              {/* Location selector for dine-in with multiple locations */}
+              {orderType === 'dine_in' && hasMultipleLocations && dineInEnabledLocations.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold mb-2" style={{ color: brand.colors.fontBody }}>Select Location</p>
+                  <div className="space-y-2">
+                    {dineInEnabledLocations.map(loc => (
+                      <button key={loc.id} onClick={() => setSelectedLocation(loc)}
+                        className="w-full text-left px-3 py-2 rounded-lg border-2 text-sm transition-colors"
+                        style={{
+                          borderColor: selectedLocation?.id === loc.id ? brand.colors.primary : brand.colors.secondary,
+                          background: selectedLocation?.id === loc.id ? brand.colors.primary + '15' : 'transparent',
+                          color: brand.colors.fontBody
+                        }}>
+                        <span className="font-semibold">{loc.name}</span>
+                        {loc.address && <span className="text-xs block opacity-70">{loc.address}</span>}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Dine-in customer name & phone */}
+              {orderType === 'dine_in' && (
+                <div className="space-y-3 pt-1">
+                  <p className="text-xs font-semibold" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>
+                    Customer Details
+                  </p>
+                  <div>
+                    <label className="block text-xs font-semibold mb-1" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>
+                      Customer Name <span style={{ color: '#ba1a1a' }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={dineInName}
+                      onChange={e => setDineInName(e.target.value)}
+                      placeholder="Enter customer name"
+                      className="w-full border rounded-lg px-3 py-2 text-sm outline-none"
+                      style={{
+                        borderColor: dineInName.trim() ? brand.colors.primary : '#d1d5db',
+                        color: brand.colors.fontBody,
+                        fontFamily: brand.fonts?.body || 'Inter',
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold mb-1" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>
+                      Mobile Number <span style={{ color: '#888', fontWeight: 400 }}>(optional)</span>
+                    </label>
+                    <input
+                      type="tel"
+                      value={dineInMobile}
+                      onChange={e => setDineInMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                      placeholder="10-digit mobile"
+                      className="w-full border rounded-lg px-3 py-2 text-sm outline-none"
+                      style={{
+                        borderColor: '#d1d5db',
+                        color: brand.colors.fontBody,
+                        fontFamily: brand.fonts?.body || 'Inter',
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
           {/* Delivery Address - From the shared address book (Step 5 config) */}
-          {!isService && orderType !== 'dine_in' && <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
+          {orderType !== 'dine_in' && <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-semibold" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.heading || 'Inter' }}>
+              <p className="text-sm font-semibold" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>
                 Deliver to {currentAddress?.label || 'Address'}
               </p>
               {addresses.length > 1 && (
@@ -651,7 +832,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                       : {}
                     }
                   >
-                    <p className="text-sm font-medium" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.heading || 'Inter' }}>
+                    <p className="text-sm font-medium" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>
                       {addr.label}
                     </p>
                     <p className="text-xs" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>
@@ -684,7 +865,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
 
           {/* Bill Details */}
           <div className="rounded-lg border p-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
-            <h3 className="font-semibold text-sm mb-3" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.heading || 'Inter' }}>
+            <h3 className="font-semibold text-sm mb-3" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>
               Bill Details
             </h3>
             <div className="space-y-2">
@@ -701,10 +882,19 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                     </span>
                   </div>}
                   {enableGST && (
-                    <div className="flex justify-between text-sm">
-                      <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>{taxLabel} ({gstRate}%)</span>
-                      <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>₹{gst.toFixed(2)}</span>
-                    </div>
+                    hasPerProductGST ? (
+                      Object.entries(gstByRate).sort((a,b) => a[0]-b[0]).map(([rate, amt]) => (
+                        <div key={rate} className="flex justify-between text-sm">
+                          <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>{taxLabel} ({rate}%)</span>
+                          <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>₹{amt.toFixed(2)}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="flex justify-between text-sm">
+                        <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>{taxLabel} ({gstRate}%)</span>
+                        <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>₹{gst.toFixed(2)}</span>
+                      </div>
+                    )
                   )}
                 </>
               ) : null}
