@@ -11,7 +11,7 @@ const RETURN_STATUS_LABELS = {
   refunded: 'Refunded',
 };
 
-const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart, storeId, customerToken, storeType = 'product' }) => {
+const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart, storeId, customerToken, storeType = 'product', ordersTabName = '' }) => {
   const isService = storeType === 'service';
   const [filter, setFilter] = useState('all');
   const [showReturnModal, setShowReturnModal] = useState(false);
@@ -286,7 +286,7 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart, storeId, c
   return (
     <div className="p-4 max-w-3xl mx-auto pb-24">
       <h2 className="text-xl font-bold mb-2" style={{ color: getFontHeaderColor(), fontFamily: data?.brand?.fonts?.body || 'Inter' }}>
-        {isService ? 'My Bookings' : 'My Orders'}
+        {ordersTabName || (isService ? 'My Bookings' : 'My Orders')}
       </h2>
       <p className="text-sm mb-4" style={{ color: getFontBodyColor() }}>
         {isService ? 'View and manage your appointments.' : 'Track and manage your customer fulfillments.'}

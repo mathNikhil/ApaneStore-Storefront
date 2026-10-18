@@ -357,6 +357,7 @@ const StorefrontApp = ({
             onRequireAuth={() => setCheckoutNeedsAuth(true)}
             storeType={storeData.storeType || 'product'}
             booking={storeData.booking || {}}
+            tabName={storeData.cart?.tabName || ''}
           />
         );
       case 'orders':
@@ -369,6 +370,7 @@ const StorefrontApp = ({
             storeId={storeId}
             customerToken={customerToken}
             storeType={storeData.storeType || 'product'}
+            ordersTabName={storeData.cart?.ordersTabName || ''}
           />
         );
       case 'profile':
