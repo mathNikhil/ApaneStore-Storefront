@@ -127,7 +127,11 @@ function App() {
     );
   }
 
-  const builderData = mapConfigToBuilderData(store.config);
+  const builderData = {
+    ...mapConfigToBuilderData(store.config),
+    storeType: store.store_type || 'product',
+    booking: store.config?.booking || {},
+  };
 
   return (
     <StorefrontApp

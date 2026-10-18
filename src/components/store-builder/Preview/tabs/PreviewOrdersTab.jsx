@@ -11,7 +11,8 @@ const RETURN_STATUS_LABELS = {
   refunded: 'Refunded',
 };
 
-const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart, storeId, customerToken }) => {
+const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart, storeId, customerToken, storeType }) => {
+  const isService = storeType === 'service';
   const [filter, setFilter] = useState('all');
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -29,37 +30,6 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart, storeId, c
   // SAFE: No optional chaining
   const orders = data && data.orders ? data.orders : [];
   const brandColors = data && data.brand && data.brand.colors ? data.brand.colors : {};
-  const storeName = data?.brand?.name || data?.brand?.storeName || data?.brand?.brandName || 'Store';
-  const storePhone = data && data.profile && data.profile.officeNumber ? data.profile.officeNumber : '';
-  const storeEmail = data && data.profile && data.profile.supportEmail ? data.profile.supportEmail : '';
-  const storeAddress = data && data.profile && data.profile.storeAddress ? data.profile.storeAddress : '';
-  const storeLogo = data && data.brand && data.brand.logo ? data.brand.logo : null;
-  const storeGST = data && data.cart && data.cart.gstNumber ? data.cart.gstNumber : '';
-  const storePAN = data?.cart?.panNumber || '';
-  const storeState = data?.cart?.storeState || '';
-  const hsnCode = data?.cart?.hsnCode || '';
-  const enableGST = data?.cart?.enableGST || false;
-  const gstRate = parseFloat(data?.cart?.gstRate || 0);
-  const cgstRate = gstRate / 2;
-  const sgstRate = gstRate / 2;
-
-  const amountInWords = (num) => {
-    const ones = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
-    const tens = ['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
-    if (num === 0) return 'Zero';
-    const convert = (n) => {
-      if (n < 20) return ones[n];
-      if (n < 100) return tens[Math.floor(n/10)] + (n%10 ? ' ' + ones[n%10] : '');
-      if (n < 1000) return ones[Math.floor(n/100)] + ' Hundred' + (n%100 ? ' ' + convert(n%100) : '');
-      if (n < 100000) return convert(Math.floor(n/1000)) + ' Thousand' + (n%1000 ? ' ' + convert(n%1000) : '');
-      if (n < 10000000) return convert(Math.floor(n/100000)) + ' Lakh' + (n%100000 ? ' ' + convert(n%100000) : '');
-      return convert(Math.floor(n/10000000)) + ' Crore' + (n%10000000 ? ' ' + convert(n%10000000) : '');
-    };
-    const rupees = Math.floor(num);
-    const paise = Math.round((num - rupees) * 100);
-    return convert(rupees) + ' Rupees' + (paise ? ' and ' + convert(paise) + ' Paise' : '') + ' Only';
-  };
-  const dineInLabel = data?.cart?.dineInLabel || 'Dine In';
   const returnConfig = data && data.return ? data.return : {};
 
   // Check if returns are enabled
@@ -237,7 +207,13 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart, storeId, c
     }
   };
 
-  const filters = [
+  const filters = isService ? [
+    { id: 'all', label: 'All Bookings' },
+    { id: 'pending', label: 'Pending' },
+    { id: 'confirmed', label: 'Confirmed' },
+    { id: 'processing', label: 'In Progress' },
+    { id: 'delivered', label: 'Completed' },
+  ] : [
     { id: 'all', label: 'All Orders' },
     { id: 'pending', label: 'Pending' },
     { id: 'processing', label: 'Processing' },
@@ -278,11 +254,11 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart, storeId, c
 
   return (
     <div className="p-4 max-w-3xl mx-auto pb-24">
-      <h2 className="text-xl font-bold mb-2" style={{ color: getFontHeaderColor(), fontFamily: data?.brand?.fonts?.body || 'Inter' }}>
-        My Orders
+      <h2 className="text-xl font-bold mb-2" style={{ color: getFontHeaderColor() }}>
+        {isService ? 'My Bookings' : 'My Orders'}
       </h2>
       <p className="text-sm mb-4" style={{ color: getFontBodyColor() }}>
-        Track and manage your customer fulfillments.
+        {isService ? 'View and manage your appointments.' : 'Track and manage your customer fulfillments.'}
       </p>
 
       {/* Filter Tabs */}
@@ -307,8 +283,8 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart, storeId, c
 
       {filteredOrders.length === 0 ? (
         <div className="text-center py-12" style={{ color: getFontBodyColor() }}>
-          <span className="material-symbols-outlined text-6xl block mb-4 opacity-30">receipt_long</span>
-          <p>{filter !== 'all' ? filter : ''} orders found</p>
+          <span className="material-symbols-outlined text-6xl block mb-4 opacity-30">{isService ? 'event_note' : 'receipt_long'}</span>
+          <p>No {filter !== 'all' ? filter : ''} {isService ? 'bookings' : 'orders'} found</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -438,198 +414,6 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart, storeId, c
                     >
                       {expandedOrderId === order.id ? 'Hide Details' : 'View Details'}
                     </button>
-                    <button
-                      onClick={function() {
-                        // Generate printable bill in new window
-                        const addr = order.deliveryAddress || {};
-                        const invoiceNo = 'INV-' + (order.id || '').slice(-10).toUpperCase();
-                        const taxableAmt = enableGST && gstRate > 0 ? (order.total / (1 + gstRate/100)).toFixed(2) : order.subtotal.toFixed(2);
-                        const cgstAmt = enableGST && order.gst > 0 ? (order.gst / 2).toFixed(2) : '0.00';
-                        const sgstAmt = cgstAmt;
-                        const paymentLabel = order.paymentMethodId === 'cod' || order.paymentMethod === 'cod' ? 'Cash on Delivery' : order.paymentMethodId === 'upi' || order.paymentMethod === 'upi' ? 'UPI' : order.paymentMethodId || order.paymentMethod || 'N/A';
-                        const shipTo = order.order_type === 'dine_in'
-                          ? '<div class="lbl">Order Type</div><div class="val">🍽️ '+dineInLabel+'</div>'
-                          : addr.addressLine1
-                            ? '<div class="lbl">Ship To</div><div class="val">'+(addr.recipientName||order.customerName||'')+'</div><div class="sub">'+addr.addressLine1+(addr.addressLine2?', '+addr.addressLine2:'')+'<br/>'+addr.city+', '+addr.state+' '+addr.pincode+'</div>'
-                            : '';
-                        const itemRows = order.items.map(item => {
-                          const itemTotal = item.price * item.quantity;
-                          const itemTaxable = enableGST && gstRate > 0 ? (itemTotal / (1 + gstRate/100)).toFixed(2) : itemTotal.toFixed(2);
-                          const img = item.image
-                            ? '<img src="'+item.image+'" style="width:26px;height:26px;object-fit:cover;border-radius:3px;flex-shrink:0;vertical-align:middle;margin-right:5px" />'
-                            : '<span style="display:inline-block;width:26px;height:26px;background:#f2f4f7;border-radius:3px;vertical-align:middle;margin-right:5px;text-align:center;line-height:26px;font-size:12px">📦</span>';
-                          const itemCgst = enableGST && gstRate > 0 ? ((itemTotal - parseFloat(itemTaxable)) / 2).toFixed(2) : '0.00';
-                          const itemSgst = itemCgst;
-                          return '<tr><td style="padding:4px 3px"><div style="display:flex;align-items:center">'+img+'<span style="font-size:8px">'+item.name+'</span></div></td>'
-                            +'<td style="padding:4px 3px;font-size:7.5px;color:#8e9eab;text-align:center">'+(hsnCode||'—')+'</td>'
-                            +'<td style="padding:4px 3px;font-size:7.5px;color:#8e9eab;text-align:center">'+(item.weight||item.variant||'S')+'</td>'
-                            +'<td style="padding:4px 3px;font-size:8px;text-align:right">₹'+itemTaxable+'</td>'
-                            +'<td style="padding:4px 3px;font-size:8px;text-align:center">'+item.quantity+'</td>'
-                            +'<td style="padding:4px 3px;font-size:8px;text-align:right">₹'+item.price.toFixed(2)+'</td>'
-                            +'<td style="padding:4px 3px;font-size:7.5px;text-align:right;color:#556067">'+cgstRate+'%<br/>₹'+itemCgst+'</td>'
-                            +'<td style="padding:4px 3px;font-size:7.5px;text-align:right;color:#556067">'+sgstRate+'%<br/>₹'+itemSgst+'</td>'
-                            +'<td style="padding:4px 3px;font-size:8px;font-weight:700;text-align:right">₹'+item.total.toFixed(2)+'</td></tr>';
-                        }).join('');
-                        const totalsHtml = (enableGST && order.gst > 0
-                          ? '<div class="totals-row"><span>Taxable Amount</span><span>₹'+taxableAmt+'</span></div>'
-                            +'<div class="totals-row"><span>CGST @ '+cgstRate+'%</span><span>₹'+cgstAmt+'</span></div>'
-                            +'<div class="totals-row"><span>SGST @ '+sgstRate+'%</span><span>₹'+sgstAmt+'</span></div>'
-                          : order.gst > 0 ? '<div class="totals-row"><span>GST</span><span>₹'+order.gst.toFixed(2)+'</span></div>' : '')
-                          + (order.delivery > 0
-                            ? '<div class="totals-row"><span>Delivery</span><span>₹'+order.delivery.toFixed(2)+'</span></div>'
-                            : '<div class="totals-row"><span>Delivery</span><span style="color:#16a34a">FREE</span></div>');
-                        const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Tax Invoice - ${invoiceNo}</title><style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Arial,sans-serif;color:#191c1e;background:#fff}
-.page{width:148mm;min-height:210mm;padding:8mm;background:#fff;margin:0 auto}
-/* HEADER: logo + store name + address in one row */
-.store-header{display:flex;align-items:flex-start;gap:10px;margin-bottom:6px}
-.store-logo{height:40px;width:40px;object-fit:contain;flex-shrink:0}
-.store-name{font-size:14px;font-weight:800;line-height:1.2}
-.store-sub{font-size:8px;color:#556067;margin-top:2px;line-height:1.6}
-/* TITLE BAND — kept for .t class used inline */
-.t{font-size:9px;font-weight:700;letter-spacing:3px;color:#191c1e}
-/* META GRID: 3 col pairs */
-.meta-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px 10px;margin-bottom:5px}
-.meta-grid .right-align{text-align:right}
-.lbl{font-size:7px;font-weight:700;text-transform:uppercase;color:#8e9eab;letter-spacing:.4px;margin-bottom:1px}
-.val{font-size:8.5px;font-weight:600;color:#191c1e}
-.sub{font-size:7.5px;color:#556067;margin-top:1px;line-height:1.4}
-/* BILL/SHIP ROW */
-.party-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:5px 0}
-.divider{border-top:1px solid #e5e7eb;margin:5px 0}
-/* ITEMS TABLE */
-table{width:100%;border-collapse:collapse;margin-top:4px}
-thead th{font-size:7px;font-weight:700;text-transform:uppercase;color:#556067;padding:3px 4px;border-bottom:1.5px solid #d1d5db;text-align:left;white-space:nowrap}
-tbody td{border-bottom:1px solid #f2f4f7;vertical-align:middle;padding:3px 4px}
-/* TOTALS */
-.totals-row{display:flex;justify-content:flex-end;gap:40px;font-size:8px;color:#556067;padding:1.5px 0}
-.grand{display:flex;justify-content:flex-end;gap:40px;font-size:10px;font-weight:800;color:#006d2f;padding-top:4px;border-top:1.5px solid #006d2f;margin-top:3px}
-.words{font-size:7.5px;color:#556067;font-style:italic;border-top:1px dashed #d1d5db;padding-top:4px;margin-top:5px}
-.bottom-row{display:flex;justify-content:space-between;align-items:flex-end;margin-top:8px}
-.footer{font-size:7px;color:#8e9eab}
-.sign-box{text-align:center;border-top:1px solid #556067;padding-top:3px;font-size:7.5px;color:#556067;width:90px}
-@media print{
-  @page{size:A5 portrait;margin:6mm}
-  body{margin:0;padding:0}
-  .page{width:100%;padding:0}
-  .no-print{display:none}
-}
-                        </style></head><body>
-<div class="no-print" style="text-align:center;padding:8px;background:#f9f9f9;border-bottom:1px solid #e5e7eb">
-  <button onclick="window.print()" style="padding:7px 20px;background:#191c1e;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">🖨️ Print Invoice</button>
-</div>
-<div class="page">
-
-  <!-- STORE HEADER + TITLE in one row -->
-  <div class="store-header">
-    ${storeLogo ? '<img src="'+storeLogo+'" class="store-logo" />' : ''}
-    <div style="flex:1">
-      <div class="store-name">${storeName}</div>
-      <div class="store-sub">
-        ${storeAddress ? storeAddress+'<br/>' : ''}
-        ${storePhone ? '📞 '+storePhone+'  ' : ''}${storeEmail ? '✉ '+storeEmail+'<br/>' : ''}
-        ${storeGST ? 'GSTIN: '+storeGST+'  ' : ''}${storePAN ? 'PAN: '+storePAN : ''}
-      </div>
-    </div>
-    <div style="text-align:right;flex-shrink:0">
-      <div class="t" style="font-size:11px;font-weight:700;letter-spacing:2px;color:#191c1e">TAX INVOICE</div>
-      <div style="font-size:7.5px;color:#8e9eab;margin-top:2px">Original for Recipient</div>
-    </div>
-  </div>
-
-  <!-- META: invoice no, date, payment, status, place of supply, reverse charge -->
-  <div class="meta-grid">
-    <div>
-      <div class="lbl">Invoice No.</div>
-      <div class="val">${invoiceNo}</div>
-      <div class="sub">Order: #${(order.id||'').slice(-8)}</div>
-    </div>
-    <div>
-      <div class="lbl">Payment</div>
-      <div class="val">${paymentLabel}</div>
-    </div>
-    <div>
-      <div class="lbl">Place of Supply</div>
-      <div class="val">${storeState || 'N/A'}</div>
-    </div>
-    <div>
-      <div class="lbl">Date</div>
-      <div class="val">${order.date}</div>
-    </div>
-    <div>
-      <div class="lbl">Status</div>
-      <div class="val">${order.statusText || order.status}</div>
-    </div>
-    <div>
-      <div class="lbl">Reverse Charge</div>
-      <div class="val">No</div>
-    </div>
-  </div>
-
-  <div class="divider"></div>
-
-  <!-- BILL TO + SHIP TO / ORDER TYPE -->
-  <div class="party-row">
-    <div>
-      <div class="lbl">Bill To</div>
-      <div class="val">${(order.order_type === 'dine_in' && order.dine_in_customer_name) ? order.dine_in_customer_name : (order.customerName || 'Customer')}</div>
-      ${(order.order_type === 'dine_in' && order.dine_in_customer_mobile) ? '<div class="sub">📞 '+order.dine_in_customer_mobile+'</div>' : (order.customerPhone ? '<div class="sub">📞 '+order.customerPhone+'</div>' : '')}
-    </div>
-    <div>
-      ${shipTo}
-    </div>
-  </div>
-
-  <div class="divider"></div>
-
-  <!-- ITEMS TABLE -->
-  <table>
-    <thead>
-      <tr>
-        <th>Item</th>
-        <th style="text-align:center">HSN/SAC</th>
-        <th style="text-align:center">Variant</th>
-        <th style="text-align:right">Taxable Value</th>
-        <th style="text-align:center">Qty</th>
-        <th style="text-align:right">Price</th>
-        <th style="text-align:right">CGST</th>
-        <th style="text-align:right">SGST</th>
-        <th style="text-align:right">Subtotal</th>
-      </tr>
-    </thead>
-    <tbody>${itemRows}</tbody>
-  </table>
-
-  <!-- TOTALS -->
-  <div style="margin-top:4px">
-    ${totalsHtml}
-    <div class="grand"><span>TOTAL</span><span>₹${order.total.toFixed(2)}</span></div>
-  </div>
-
-  <div class="words"><strong>Amount in Words:</strong> ${amountInWords(order.total)}</div>
-
-  <div class="bottom-row">
-    <div class="footer">
-      Thank you for your order!<br/>
-      This is a computer generated invoice. Powered by AapnaEstore · aapnaestore.com
-    </div>
-    <div class="sign-box">Authorized Signatory<br/>${storeName}</div>
-  </div>
-
-</div>
-                        </body></html>`;
-                        const w = window.open('', '_blank', 'width=900,height=700');
-                        w.document.write(html);
-                        w.document.close();
-                        setTimeout(() => w.print(), 500);
-                      }}
-                      className="px-3 py-1 text-xs font-semibold rounded-lg border-2 bg-transparent"
-                      style={{ borderColor: getPrimaryColor(), color: getPrimaryColor() }}
-                    >
-                      <span className="material-symbols-outlined text-xs align-middle mr-1">print</span>
-                      Print Bill
-                    </button>
                     {order.status === 'delivered' && (
                       <button
                         onClick={function() { handleReorder(order); }}
@@ -658,8 +442,6 @@ tbody td{border-bottom:1px solid #f2f4f7;vertical-align:middle;padding:3px 4px}
                       {order.order_type === 'dine_in' ? (
                         <div className="text-sm p-3 rounded-lg bg-[#fff8e1]" style={{ color: getFontBodyColor() }}>
                           <p className="font-medium">🍽️ {dineInLabel}</p>
-                          {order.dine_in_customer_name && <p className="mt-1">Guest: <strong>{order.dine_in_customer_name}</strong></p>}
-                          {order.dine_in_customer_mobile && <p>Mobile: {order.dine_in_customer_mobile}</p>}
                         </div>
                       ) : order.deliveryAddress ? (
                         <div className="text-sm p-3 rounded-lg bg-[#f7f9fc]" style={{ color: getFontBodyColor() }}>

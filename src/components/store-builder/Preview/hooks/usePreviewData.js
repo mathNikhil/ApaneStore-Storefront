@@ -224,6 +224,8 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
       requireReason: true,
       allowedReasons: [],
     },
+    storeType: 'product',
+    booking: {},
   });
 
   useEffect(() => {
@@ -371,6 +373,8 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
         // hardcoded defaults regardless of what a tenant actually
         // configured (or disabled) in the builder.
         return: builderData.return ? { ...prev.return, ...builderData.return } : prev.return,
+        storeType: builderData.storeType || prev.storeType || 'product',
+        booking: builderData.booking || prev.booking || {},
       }));
     }
   }, [builderData]);

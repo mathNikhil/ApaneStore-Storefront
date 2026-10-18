@@ -1,10 +1,11 @@
 import React from 'react';
 
-const PreviewFooter = ({ activeTab, onChange, brandColors, brandFonts = { heading: 'Inter', body: 'Inter' }, cartTabName = 'Cart', ordersTabName = 'Orders' }) => {
+const PreviewFooter = ({ activeTab, onChange, brandColors, brandFonts = { heading: 'Inter', body: 'Inter' }, cartTabName = 'Cart', ordersTabName = 'Orders', storeType = 'product', device = 'desktop' }) => {
+  const isService = storeType === 'service';
   const tabs = [
     { id: 'home', label: 'Home', icon: 'home' },
-    { id: 'cart', label: cartTabName || 'Cart', icon: 'shopping_cart' },
-    { id: 'orders', label: ordersTabName || 'Orders', icon: 'receipt_long' },
+    { id: 'cart', label: isService ? 'Service' : (cartTabName || 'Cart'), icon: isService ? 'spa' : 'shopping_cart' },
+    { id: 'orders', label: isService ? 'Booking' : (ordersTabName || 'Orders'), icon: isService ? 'event_note' : 'receipt_long' },
     { id: 'profile', label: 'Profile', icon: 'person' },
   ];
 
@@ -23,7 +24,7 @@ const PreviewFooter = ({ activeTab, onChange, brandColors, brandFonts = { headin
           className="flex flex-col items-center gap-0.5 py-2 px-4 rounded-lg transition-colors hover:bg-[#f2f4f7]"
         >
           <span 
-            className={`material-symbols-outlined text-2xl ${
+            className={`material-symbols-outlined ${device === "mobile" ? "text-xl" : "text-2xl"} ${
               activeTab === tab.id ? 'filled' : ''
             }`}
             style={{ 
@@ -33,7 +34,7 @@ const PreviewFooter = ({ activeTab, onChange, brandColors, brandFonts = { headin
             {tab.icon}
           </span>
           <span 
-            className="text-xs font-medium"
+            className={`font-medium ${device === "mobile" ? "text-[10px]" : "text-xs"}`}
             style={{ 
               color: activeTab === tab.id ? brandColors.primary : brandColors.secondary || '#556067',
               fontFamily: brandFonts?.body || 'Inter'
