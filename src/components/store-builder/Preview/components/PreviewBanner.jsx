@@ -24,11 +24,11 @@ const PreviewBanner = ({
   device = 'desktop',
   fonts = { body: 'Inter' },
 }) => {
-  // Normalise to array of { url } objects
+  // Normalise to array of { url, crop? } objects
   const allImages = (() => {
     const raw = (images && images.length > 0) ? images : image ? [image] : [];
     return raw.map(item =>
-      typeof item === 'string' ? { url: item } : { url: item.url }
+      typeof item === 'string' ? { url: item } : { url: item.url, crop: item.crop || null }
     );
   })();
 
@@ -94,6 +94,7 @@ const PreviewBanner = ({
         <SlideImage
           key={slide.url + i}
           slide={slide}
+          containerH={containerH}
           opacity={i === activeIdx ? 1 : 0}
         />
       ))}
@@ -205,31 +206,74 @@ const PreviewBanner = ({
   );
 };
 
-// SlideImage: image file is already server-side cropped by Sharp — just fill the container.
-const SlideImage = ({ slide, opacity }) => (
-  <div
-    style={{
-      position: 'absolute', inset: 0,
-      opacity,
-      transition: 'opacity 0.6s ease-in-out',
-      overflow: 'hidden',
+// SlideImage: renders the selected crop region without touching the original file.
+// If slide.crop = { cropX, cropY, cropW, cropH } (natural px), we scale+offset the
+// image so exactly that region fills the container. Otherwise falls back to cover.
+const SlideImage = ({ slide, containerH, opacity }) => {
+  const containerRef = useRef(null);
+  const [containerW, setContainerW] = useState(0);
+  const [natural, setNatural] = useState({ w: 0, h: 0 });
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const ro = new ResizeObserver(e => setContainerW(e[0].contentRect.width));
+    ro.observe(containerRef.current);
+    setContainerW(containerRef.current.getBoundingClientRect().width);
+    return () => ro.disconnect();
+  }, []);
+
+  const crop = slide.crop;
+  let imgStyle;
+
+  if (crop && natural.w > 0 && containerW > 0) {
+    // Scale image so cropW fills containerW (and cropH fills containerH)
+    const scaleX = containerW / crop.cropW;
+    const scaleY = containerH / crop.cropH;
+    // Use the larger scale so the crop area always fills both dimensions
+    const sc = Math.max(scaleX, scaleY);
+    const imgW = natural.w * sc;
+    const imgH = natural.h * sc;
+    const left = -(crop.cropX * sc) + (containerW - crop.cropW * sc) / 2;
+    const top  = -(crop.cropY * sc) + (containerH - crop.cropH * sc) / 2;
+    imgStyle = {
+      position: 'absolute',
+      width: `${imgW}px`,
+      height: `${imgH}px`,
+      left: `${left}px`,
+      top: `${top}px`,
       pointerEvents: 'none',
-    }}
-  >
-    <img
-      src={slide.url}
-      alt=""
-      draggable={false}
+    };
+  } else {
+    // No crop set — fill container with cover
+    imgStyle = {
+      position: 'absolute',
+      width: '100%', height: '100%',
+      objectFit: 'cover', objectPosition: 'center',
+      display: 'block',
+      pointerEvents: 'none',
+    };
+  }
+
+  return (
+    <div
+      ref={containerRef}
       style={{
-        width: '100%',
-        height: '100%',
-        objectFit: 'cover',
-        objectPosition: 'center',
-        display: 'block',
+        position: 'absolute', inset: 0,
+        opacity,
+        transition: 'opacity 0.6s ease-in-out',
+        overflow: 'hidden',
         pointerEvents: 'none',
       }}
-    />
-  </div>
-);
+    >
+      <img
+        src={slide.url}
+        alt=""
+        draggable={false}
+        onLoad={e => setNatural({ w: e.target.naturalWidth, h: e.target.naturalHeight })}
+        style={imgStyle}
+      />
+    </div>
+  );
+};
 
 export default PreviewBanner;
