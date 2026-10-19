@@ -150,6 +150,7 @@ const StorefrontApp = ({
       autoSlideProductImages: builderData.products.autoSlideProductImages || false,
     },
     bannerImage: builderData.products.banner.image,
+    bannerImages: builderData.products.banner.images || [],
     bannerTagline: builderData.products.banner.tagline,
     bannerSubtitle: builderData.products.banner.subtitle,
     bannerCta: builderData.products.banner.cta,

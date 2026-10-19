@@ -1,7 +1,12 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
+// Accepts either:
+//   image  — legacy single string (backward-compat)
+//   images — array of { url, focalX, focalY } objects OR plain strings (multi-banner)
+// Auto-slides when images.length > 1. Static when single.
 const PreviewBanner = ({
   image,
+  images,
   tagline,
   subtitle,
   cta,
@@ -16,6 +21,42 @@ const PreviewBanner = ({
   device = 'desktop',
   fonts = { body: 'Inter' },
 }) => {
+  // Normalise to array of { url, focalX, focalY } objects
+  const allImages = (() => {
+    const raw = (images && images.length > 0) ? images : image ? [image] : [];
+    return raw.map(item =>
+      typeof item === 'string'
+        ? { url: item, focalX: 50, focalY: 50 }
+        : { focalX: 50, focalY: 50, ...item }
+    );
+  })();
+
+  const isMulti = allImages.length > 1;
+  const [activeIdx, setActiveIdx] = useState(0);
+  const timerRef = useRef(null);
+
+  // Auto-slide every 3.5 s when multi-banner
+  useEffect(() => {
+    if (!isMulti) return;
+    timerRef.current = setInterval(() => {
+      setActiveIdx(prev => (prev + 1) % allImages.length);
+    }, 3500);
+    return () => clearInterval(timerRef.current);
+  }, [isMulti, allImages.length]);
+
+  const goTo = (idx) => {
+    clearInterval(timerRef.current);
+    setActiveIdx(idx);
+    if (isMulti) {
+      timerRef.current = setInterval(() => {
+        setActiveIdx(prev => (prev + 1) % allImages.length);
+      }, 3500);
+    }
+  };
+
+  const prev = () => goTo((activeIdx - 1 + allImages.length) % allImages.length);
+  const next = () => goTo((activeIdx + 1) % allImages.length);
+
   const getAlignmentClass = () => {
     switch(textAlignment) {
       case 'left': return 'items-start text-left';
@@ -24,9 +65,6 @@ const PreviewBanner = ({
     }
   };
 
-  // Same reasoning as the product grid: md:/lg: text classes watch the real
-  // browser window, not this simulated device box, so they'd stay oversized
-  // even in "Mobile" mode. Compute sizes from `device` directly instead.
   const headingSizeClass = {
     mobile: 'text-2xl',
     tablet: 'text-3xl',
@@ -39,72 +77,131 @@ const PreviewBanner = ({
     desktop: 'text-lg',
   }[device] || 'text-lg';
 
+  const currentImage = allImages[activeIdx] || null;
+
   return (
-    <div 
+    <div
       className="relative overflow-hidden mb-6"
-      style={{ 
+      style={{
         height: `${height || 400}px`,
         backgroundColor: bgColor || '#25D366',
       }}
     >
-      {image ? (
-        <>
-          <img 
-            src={image} 
-            alt="Store Banner" 
-            style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center" }}
-          />
-          <div className={`absolute inset-0 flex flex-col justify-center p-6 ${getAlignmentClass()}`}>
-            {showText && (
-              <div className="max-w-2xl" style={{ textShadow: (image && textShadow) ? '0 1px 2px rgba(0,0,0,0.8)' : 'none' }}>
-                <h1 
-                  className={`${headingSizeClass} font-bold mb-2`}
-                  style={{ color: textColor || '#FFFFFF', fontFamily: fonts?.body || 'Inter' }}
-                >
-                  {tagline}
-                </h1>
-                {subtitle && subtitle.trim() && (
-                <p 
-                  className={`${subtitleSizeClass}`}
-                  style={{ color: textColor || '#FFFFFF', opacity: 0.9 }}
-                >
-                  {subtitle.trim()}
-                </p>
-                )}
-              </div>
-            )}
-            {showCta && (
-              <button 
-                className="px-8 py-3 rounded-lg font-bold text-white shadow-lg hover:opacity-90 transition-opacity mt-4"
-                style={{ backgroundColor: primaryColor || '#25D366' }}
-              >
-                {cta || 'Shop Now'}
-              </button>
-            )}
-          </div>
-        </>
-      ) : (
-        <div className={`w-full h-full flex flex-col justify-center p-6 ${getAlignmentClass()}`}>
-          {showText && (
-            <div className="max-w-2xl">
-              <h1 
-                className={`${headingSizeClass} font-bold mb-2`}
-                style={{ color: textColor || '#FFFFFF', fontFamily: fonts?.body || 'Inter' }}
-              >
-                {tagline}
-              </h1>
-              {subtitle && subtitle.trim() && (
-              <p 
+      {/* Image layer — fade transition between slides */}
+      {allImages.map((slide, i) => (
+        <img
+          key={slide.url + i}
+          src={slide.url}
+          alt={`Banner ${i + 1}`}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            objectPosition: `${slide.focalX}% ${slide.focalY}%`,
+            opacity: i === activeIdx ? 1 : 0,
+            transition: 'opacity 0.6s ease-in-out',
+            pointerEvents: 'none',
+          }}
+        />
+      ))}
+
+      {/* Text + CTA overlay */}
+      <div
+        className={`absolute inset-0 flex flex-col justify-center p-6 ${getAlignmentClass()}`}
+        style={{ zIndex: 2 }}
+      >
+        {showText && (
+          <div
+            className="max-w-2xl"
+            style={{ textShadow: (currentImage?.url && textShadow) ? '0 1px 2px rgba(0,0,0,0.8)' : 'none' }}
+          >
+            <h1
+              className={`${headingSizeClass} font-bold mb-2`}
+              style={{ color: textColor || '#FFFFFF', fontFamily: fonts?.body || 'Inter' }}
+            >
+              {tagline}
+            </h1>
+            {subtitle && subtitle.trim() && (
+              <p
                 className={`${subtitleSizeClass}`}
                 style={{ color: textColor || '#FFFFFF', opacity: 0.9 }}
               >
-                {subtitle && subtitle.trim()}
+                {subtitle.trim()}
               </p>
+            )}
+          </div>
+        )}
+        {showCta && (
+          <button
+            className="px-8 py-3 rounded-lg font-bold text-white shadow-lg hover:opacity-90 transition-opacity mt-4"
+            style={{ backgroundColor: primaryColor || '#25D366' }}
+          >
+            {cta || 'Shop Now'}
+          </button>
+        )}
+      </div>
+
+      {/* Prev / Next arrows — only for multi */}
+      {isMulti && (
+        <>
+          <button
+            onClick={prev}
+            className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-1 transition-all"
+            style={{ zIndex: 3 }}
+            aria-label="Previous banner"
+          >
+            <span className="material-symbols-outlined text-lg">chevron_left</span>
+          </button>
+          <button
+            onClick={next}
+            className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-1 transition-all"
+            style={{ zIndex: 3 }}
+            aria-label="Next banner"
+          >
+            <span className="material-symbols-outlined text-lg">chevron_right</span>
+          </button>
+
+          {/* Dot indicators */}
+          <div
+            className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5"
+            style={{ zIndex: 3 }}
+          >
+            {allImages.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => goTo(i)}
+                className="rounded-full transition-all"
+                style={{
+                  width: i === activeIdx ? '20px' : '8px',
+                  height: '8px',
+                  backgroundColor: i === activeIdx ? '#ffffff' : 'rgba(255,255,255,0.5)',
+                }}
+                aria-label={`Go to slide ${i + 1}`}
+              />
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* No-image fallback (colour bg + text only) */}
+      {allImages.length === 0 && (
+        <div className={`w-full h-full flex flex-col justify-center p-6 ${getAlignmentClass()}`} style={{ position: 'relative', zIndex: 2 }}>
+          {showText && (
+            <div className="max-w-2xl">
+              <h1 className={`${headingSizeClass} font-bold mb-2`} style={{ color: textColor || '#FFFFFF', fontFamily: fonts?.body || 'Inter' }}>
+                {tagline}
+              </h1>
+              {subtitle && subtitle.trim() && (
+                <p className={`${subtitleSizeClass}`} style={{ color: textColor || '#FFFFFF', opacity: 0.9 }}>
+                  {subtitle.trim()}
+                </p>
               )}
             </div>
           )}
           {showCta && (
-            <button 
+            <button
               className="px-8 py-3 rounded-lg font-bold text-white shadow-lg hover:opacity-90 transition-opacity mt-4"
               style={{ backgroundColor: primaryColor || '#25D366' }}
             >

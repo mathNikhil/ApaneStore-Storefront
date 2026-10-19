@@ -79,6 +79,7 @@ const PreviewHomeTab = ({
     <div className="p-4 max-w-7xl mx-auto">
       <PreviewBanner
         image={banner.image}
+        images={banner.images}
         tagline={banner.tagline}
         subtitle={banner.subtitle}
         cta={banner.cta}

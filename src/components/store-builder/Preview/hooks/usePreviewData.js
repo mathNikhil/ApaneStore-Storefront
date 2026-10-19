@@ -255,6 +255,7 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
         banner: {
           ...prev.banner,
           image: builderData.bannerImage || prev.banner.image,
+          images: builderData.bannerImages || prev.banner.images || [],
           tagline: builderData.bannerTagline || prev.banner.tagline,
           subtitle: builderData.bannerSubtitle || prev.banner.subtitle,
           cta: builderData.bannerCta || prev.banner.cta,
