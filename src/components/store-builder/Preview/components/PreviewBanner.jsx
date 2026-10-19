@@ -235,11 +235,11 @@ const SlideImage = ({ slide, containerH, naturalSizes, onLoad, opacity }) => {
 
   let imgStyle;
   if (nat && containerW > 0) {
-    // Base: fill container width at scale=1
-    const baseW = containerW;
-    const baseH = containerW * (nat.h / nat.w);
-    const imgW = baseW * scale;
-    const imgH = baseH * scale;
+    // Cover geometry: scale image until it fills both container dimensions,
+    // then multiply by user zoom (scale). Same as adjuster in Step2.
+    const coverSc = Math.max(containerW / nat.w, containerH / nat.h);
+    const imgW = nat.w * coverSc * scale;
+    const imgH = nat.h * coverSc * scale;
     const focalPxX = (focalX / 100) * imgW;
     const focalPxY = (focalY / 100) * imgH;
     const left = containerW / 2 - focalPxX;
