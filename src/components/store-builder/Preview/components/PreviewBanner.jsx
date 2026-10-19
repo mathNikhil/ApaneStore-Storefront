@@ -2,8 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 
 // Accepts either:
 //   image  — legacy single string (backward-compat)
-//   images — array of { url, focalX, focalY } objects OR plain strings (multi-banner)
+//   images — array of { url, focalX, focalY, scale } objects OR plain strings (multi-banner)
 // Auto-slides when images.length > 1. Static when single.
+//
+// Image rendering: no objectFit — uses naturalWidth/naturalHeight to compute explicit
+// pixel dimensions so zoom (scale) shows the full raw image, not a pre-cropped version.
 const PreviewBanner = ({
   image,
   images,
@@ -21,7 +24,7 @@ const PreviewBanner = ({
   device = 'desktop',
   fonts = { body: 'Inter' },
 }) => {
-  // Normalise to array of { url, focalX, focalY } objects
+  // Normalise to array of { url, focalX, focalY, scale } objects
   const allImages = (() => {
     const raw = (images && images.length > 0) ? images : image ? [image] : [];
     return raw.map(item =>
@@ -34,6 +37,8 @@ const PreviewBanner = ({
   const isMulti = allImages.length > 1;
   const [activeIdx, setActiveIdx] = useState(0);
   const timerRef = useRef(null);
+  // naturalWidth/Height keyed by image url
+  const [naturalSizes, setNaturalSizes] = useState({});
 
   // Auto-slide every 3.5 s when multi-banner
   useEffect(() => {
@@ -78,36 +83,25 @@ const PreviewBanner = ({
   }[device] || 'text-lg';
 
   const currentImage = allImages[activeIdx] || null;
+  const containerH = height || 400;
 
   return (
     <div
       className="relative overflow-hidden mb-6"
       style={{
-        height: `${height || 400}px`,
+        height: `${containerH}px`,
         backgroundColor: bgColor || '#25D366',
       }}
     >
       {/* Image layer — fade transition between slides */}
       {allImages.map((slide, i) => (
-        <img
+        <SlideImage
           key={slide.url + i}
-          src={slide.url}
-          alt={`Banner ${i + 1}`}
-          style={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            width: `${(slide.scale ?? 1) * 100}%`,
-            height: `${(slide.scale ?? 1) * 100}%`,
-            left: `${(1 - (slide.scale ?? 1)) * 50}%`,
-            top: `${(1 - (slide.scale ?? 1)) * 50}%`,
-            objectFit: (slide.scale ?? 1) < 1 ? 'contain' : 'cover',
-            objectPosition: `${slide.focalX}% ${slide.focalY}%`,
-            opacity: i === activeIdx ? 1 : 0,
-            transition: 'opacity 0.6s ease-in-out',
-            pointerEvents: 'none',
-          }}
+          slide={slide}
+          containerH={containerH}
+          naturalSizes={naturalSizes}
+          onLoad={(url, w, h) => setNaturalSizes(prev => ({ ...prev, [url]: { w, h } }))}
+          opacity={i === activeIdx ? 1 : 0}
         />
       ))}
 
@@ -214,6 +208,72 @@ const PreviewBanner = ({
           )}
         </div>
       )}
+    </div>
+  );
+};
+
+// SlideImage: measures its own container width to compute pixel-exact placement.
+// Same math as the adjuster in Step2_ProductConfig.jsx.
+const SlideImage = ({ slide, containerH, naturalSizes, onLoad, opacity }) => {
+  const containerRef = useRef(null);
+  const [containerW, setContainerW] = useState(0);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const ro = new ResizeObserver(entries => {
+      setContainerW(entries[0].contentRect.width);
+    });
+    ro.observe(containerRef.current);
+    setContainerW(containerRef.current.getBoundingClientRect().width);
+    return () => ro.disconnect();
+  }, []);
+
+  const nat = naturalSizes[slide.url];
+  const scale = slide.scale ?? 1;
+  const focalX = slide.focalX ?? 50;
+  const focalY = slide.focalY ?? 50;
+
+  let imgStyle;
+  if (nat && containerW > 0) {
+    // Base: fill container width at scale=1
+    const baseW = containerW;
+    const baseH = containerW * (nat.h / nat.w);
+    const imgW = baseW * scale;
+    const imgH = baseH * scale;
+    const focalPxX = (focalX / 100) * imgW;
+    const focalPxY = (focalY / 100) * imgH;
+    const left = containerW / 2 - focalPxX;
+    const top  = containerH / 2 - focalPxY;
+    imgStyle = {
+      position: 'absolute',
+      width: `${imgW}px`,
+      height: `${imgH}px`,
+      left: `${left}px`,
+      top: `${top}px`,
+    };
+  } else {
+    // Before natural size is known — fill container temporarily
+    imgStyle = { position: 'absolute', width: '100%', height: '100%', left: 0, top: 0, objectFit: 'cover' };
+  }
+
+  return (
+    <div
+      ref={containerRef}
+      style={{
+        position: 'absolute', inset: 0,
+        opacity,
+        transition: 'opacity 0.6s ease-in-out',
+        overflow: 'hidden',
+        pointerEvents: 'none',
+      }}
+    >
+      <img
+        src={slide.url}
+        alt=""
+        draggable={false}
+        onLoad={(e) => onLoad(slide.url, e.target.naturalWidth, e.target.naturalHeight)}
+        style={{ ...imgStyle, pointerEvents: 'none' }}
+      />
     </div>
   );
 };
