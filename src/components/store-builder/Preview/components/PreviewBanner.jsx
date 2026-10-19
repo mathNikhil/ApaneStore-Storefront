@@ -2,11 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 
 // Accepts either:
 //   image  — legacy single string (backward-compat)
-//   images — array of { url, focalX, focalY, scale } objects OR plain strings (multi-banner)
+//   images — array of { url } objects OR plain strings (multi-banner)
 // Auto-slides when images.length > 1. Static when single.
 //
-// Image rendering: no objectFit — uses naturalWidth/naturalHeight to compute explicit
-// pixel dimensions so zoom (scale) shows the full raw image, not a pre-cropped version.
+// Image rendering: object-fit: cover — the image file is already cropped server-side
+// by Sharp, so we just need it to fill the container. No focal/zoom math needed.
 const PreviewBanner = ({
   image,
   images,
@@ -24,21 +24,17 @@ const PreviewBanner = ({
   device = 'desktop',
   fonts = { body: 'Inter' },
 }) => {
-  // Normalise to array of { url, focalX, focalY, scale } objects
+  // Normalise to array of { url } objects
   const allImages = (() => {
     const raw = (images && images.length > 0) ? images : image ? [image] : [];
     return raw.map(item =>
-      typeof item === 'string'
-        ? { url: item, focalX: 50, focalY: 50, scale: 1 }
-        : { focalX: 50, focalY: 50, scale: 1, ...item }
+      typeof item === 'string' ? { url: item } : { url: item.url }
     );
   })();
 
   const isMulti = allImages.length > 1;
   const [activeIdx, setActiveIdx] = useState(0);
   const timerRef = useRef(null);
-  // naturalWidth/Height keyed by image url
-  const [naturalSizes, setNaturalSizes] = useState({});
 
   // Auto-slide every 3.5 s when multi-banner
   useEffect(() => {
@@ -98,9 +94,6 @@ const PreviewBanner = ({
         <SlideImage
           key={slide.url + i}
           slide={slide}
-          containerH={containerH}
-          naturalSizes={naturalSizes}
-          onLoad={(url, w, h) => setNaturalSizes(prev => ({ ...prev, [url]: { w, h } }))}
           opacity={i === activeIdx ? 1 : 0}
         />
       ))}
@@ -212,70 +205,31 @@ const PreviewBanner = ({
   );
 };
 
-// SlideImage: measures its own container width to compute pixel-exact placement.
-// Same math as the adjuster in Step2_ProductConfig.jsx.
-const SlideImage = ({ slide, containerH, naturalSizes, onLoad, opacity }) => {
-  const containerRef = useRef(null);
-  const [containerW, setContainerW] = useState(0);
-
-  useEffect(() => {
-    if (!containerRef.current) return;
-    const ro = new ResizeObserver(entries => {
-      setContainerW(entries[0].contentRect.width);
-    });
-    ro.observe(containerRef.current);
-    setContainerW(containerRef.current.getBoundingClientRect().width);
-    return () => ro.disconnect();
-  }, []);
-
-  const nat = naturalSizes[slide.url];
-  const scale = slide.scale ?? 1;
-  const focalX = slide.focalX ?? 50;
-  const focalY = slide.focalY ?? 50;
-
-  let imgStyle;
-  if (nat && containerW > 0) {
-    // Cover geometry: scale image until it fills both container dimensions,
-    // then multiply by user zoom (scale). Same as adjuster in Step2.
-    const coverSc = Math.max(containerW / nat.w, containerH / nat.h);
-    const imgW = nat.w * coverSc * scale;
-    const imgH = nat.h * coverSc * scale;
-    const focalPxX = (focalX / 100) * imgW;
-    const focalPxY = (focalY / 100) * imgH;
-    const left = containerW / 2 - focalPxX;
-    const top  = containerH / 2 - focalPxY;
-    imgStyle = {
-      position: 'absolute',
-      width: `${imgW}px`,
-      height: `${imgH}px`,
-      left: `${left}px`,
-      top: `${top}px`,
-    };
-  } else {
-    // Before natural size is known — fill container temporarily
-    imgStyle = { position: 'absolute', width: '100%', height: '100%', left: 0, top: 0, objectFit: 'cover' };
-  }
-
-  return (
-    <div
-      ref={containerRef}
+// SlideImage: image file is already server-side cropped by Sharp — just fill the container.
+const SlideImage = ({ slide, opacity }) => (
+  <div
+    style={{
+      position: 'absolute', inset: 0,
+      opacity,
+      transition: 'opacity 0.6s ease-in-out',
+      overflow: 'hidden',
+      pointerEvents: 'none',
+    }}
+  >
+    <img
+      src={slide.url}
+      alt=""
+      draggable={false}
       style={{
-        position: 'absolute', inset: 0,
-        opacity,
-        transition: 'opacity 0.6s ease-in-out',
-        overflow: 'hidden',
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover',
+        objectPosition: 'center',
+        display: 'block',
         pointerEvents: 'none',
       }}
-    >
-      <img
-        src={slide.url}
-        alt=""
-        draggable={false}
-        onLoad={(e) => onLoad(slide.url, e.target.naturalWidth, e.target.naturalHeight)}
-        style={{ ...imgStyle, pointerEvents: 'none' }}
-      />
-    </div>
-  );
-};
+    />
+  </div>
+);
 
 export default PreviewBanner;
