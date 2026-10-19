@@ -14,7 +14,7 @@ const PreviewBanner = ({
   subtitle,
   cta,
   height = 400,
-  bgColor = '#25D366',
+  bgColor = '#1a1a1a',
   showText = true,
   showCta = true,
   textAlignment = 'center',
@@ -24,12 +24,12 @@ const PreviewBanner = ({
   device = 'desktop',
   fonts = { body: 'Inter' },
 }) => {
-  // Normalise to array of { url, crop? } objects
+  // Normalise to array of { url, crop? } objects — skip entries with no url
   const allImages = (() => {
     const raw = (images && images.length > 0) ? images : image ? [image] : [];
-    return raw.map(item =>
-      typeof item === 'string' ? { url: item } : { url: item.url, crop: item.crop || null }
-    );
+    return raw
+      .map(item => typeof item === 'string' ? { url: item } : { url: item.url, crop: item.crop || null })
+      .filter(item => !!item.url);
   })();
 
   const isMulti = allImages.length > 1;
