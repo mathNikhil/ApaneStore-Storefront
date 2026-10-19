@@ -98,7 +98,7 @@ const PreviewBanner = ({
             inset: 0,
             width: '100%',
             height: '100%',
-            objectFit: 'cover',
+            objectFit: (slide.scale ?? 1) < 1 ? 'contain' : 'cover',
             objectPosition: `${slide.focalX}% ${slide.focalY}%`,
             transform: `scale(${slide.scale ?? 1})`,
             transformOrigin: `${slide.focalX}% ${slide.focalY}%`,
