@@ -26,8 +26,8 @@ const PreviewBanner = ({
     const raw = (images && images.length > 0) ? images : image ? [image] : [];
     return raw.map(item =>
       typeof item === 'string'
-        ? { url: item, focalX: 50, focalY: 50 }
-        : { focalX: 50, focalY: 50, ...item }
+        ? { url: item, focalX: 50, focalY: 50, scale: 1 }
+        : { focalX: 50, focalY: 50, scale: 1, ...item }
     );
   })();
 
@@ -100,6 +100,8 @@ const PreviewBanner = ({
             height: '100%',
             objectFit: 'cover',
             objectPosition: `${slide.focalX}% ${slide.focalY}%`,
+            transform: `scale(${slide.scale ?? 1})`,
+            transformOrigin: `${slide.focalX}% ${slide.focalY}%`,
             opacity: i === activeIdx ? 1 : 0,
             transition: 'opacity 0.6s ease-in-out',
             pointerEvents: 'none',
