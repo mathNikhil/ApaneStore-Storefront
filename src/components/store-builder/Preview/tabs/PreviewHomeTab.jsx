@@ -85,8 +85,8 @@ const PreviewHomeTab = ({
         cta={banner.cta}
         height={banner.height}
         bgColor={banner.bgColor}
-        showText={banner.showText}
-        showCta={banner.showCta}
+        showText={false}
+        showCta={false}
         textAlignment={banner.textAlignment}
         textColor={banner.textColor}
         textShadow={banner.textShadow !== undefined ? banner.textShadow : true}
