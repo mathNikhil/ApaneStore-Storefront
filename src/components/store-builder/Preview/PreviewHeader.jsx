@@ -43,7 +43,7 @@ const PreviewHeader = ({ brand, cartCount = 0, qrActive = false, onScanClick }) 
                 color: colors.fontBody || '#556067', fontFamily: fonts?.body || 'Inter'
               }}
             >
-              {tagline || 'Your tagline here'}
+              {tagline}
             </p>
           </div>
         </div>
