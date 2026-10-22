@@ -671,7 +671,7 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
   // this is now async and returns {success, order, error} instead of the
   // order object directly, so the checkout screen can show a real success
   // or failure instead of always assuming success after a fixed delay.
-  const placeOrder = async ({ address, paymentMethodId, paymentMethodLabel, customerUpiId, orderType, branchId, branchName, deliveryZone, deliveryCost, isScanOrder, walkInCustomerName, walkInCustomerMobile, dineInCustomerName, dineInCustomerMobile }) => {
+  const placeOrder = async ({ address, paymentMethodId, paymentMethodLabel, customerUpiId, orderType, branchId, branchName, deliveryZone, deliveryCost, isScanOrder, walkInCustomerName, walkInCustomerMobile, dineInCustomerName, dineInCustomerMobile, couponCode, discountAmount }) => {
     const items = storeData.cart.items;
     if (items.length === 0) return { success: false, error: 'Your cart is empty' };
     if (!storeId || !customerToken) {
@@ -715,6 +715,7 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
           dineInCustomerName: dineInCustomerName || '',
           dineInCustomerMobile: dineInCustomerMobile || null,
         } : {}),
+        ...(couponCode ? { couponCode, discountAmount: discountAmount || 0 } : {}),
       });
 
       if (!result.success) {
