@@ -701,7 +701,7 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
         subtotal: parseFloat(totals.subtotal),
         deliveryCharge: deliveryCost !== undefined ? parseFloat(deliveryCost) : parseFloat(totals.delivery),
         taxAmount: parseFloat(totals.gst),
-        totalAmount: parseFloat(totals.total),
+        totalAmount: parseFloat(Math.max(0, totals.total - (discountAmount || 0)).toFixed(2)),
         branchId: branchId || null,
         branchName: branchName || null,
         deliveryZone: deliveryZone || null,
