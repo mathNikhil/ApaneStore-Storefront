@@ -152,14 +152,14 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
           'Content-Type': 'application/json',
           ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ code: couponCode.trim().toUpperCase(), order_value: subtotal }),
+        body: JSON.stringify({ code: couponCode.trim().toUpperCase(), order_value: parseFloat(subtotal) || 0 }),
       });
       const data = await res.json();
       if (data.success && data.data) {
         const c = data.data;
         let discountAmount = 0;
-        if (c.unit === 'percentage') {
-          discountAmount = subtotal * (c.value / 100);
+        if (c.unit === 'percentage' || c.unit === 'percent') {
+          discountAmount = subtotal * (parseFloat(c.value) / 100);
         } else {
           discountAmount = parseFloat(c.value) || 0;
         }
