@@ -152,17 +152,16 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
           'Content-Type': 'application/json',
           ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ code: couponCode.trim().toUpperCase(), orderTotal: subtotal }),
+        body: JSON.stringify({ code: couponCode.trim().toUpperCase(), order_value: subtotal }),
       });
       const data = await res.json();
-      if (data.success && data.coupon) {
-        const c = data.coupon;
+      if (data.success && data.data) {
+        const c = data.data;
         let discountAmount = 0;
-        if (c.discount_type === 'percentage') {
-          discountAmount = subtotal * (c.discount_value / 100);
-          if (c.max_discount_amount) discountAmount = Math.min(discountAmount, c.max_discount_amount);
+        if (c.unit === 'percentage') {
+          discountAmount = subtotal * (c.value / 100);
         } else {
-          discountAmount = c.discount_value;
+          discountAmount = parseFloat(c.value) || 0;
         }
         discountAmount = Math.min(discountAmount, subtotal);
         setCouponApplied({ code: couponCode.trim().toUpperCase(), discountAmount: parseFloat(discountAmount.toFixed(2)), couponName: c.name });
