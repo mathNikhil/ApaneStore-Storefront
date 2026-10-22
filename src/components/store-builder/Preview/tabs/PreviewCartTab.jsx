@@ -37,6 +37,12 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
   const [deliveryZoneInfo, setDeliveryZoneInfo] = useState(null); // { allowed, storeAddressId, storeAddressName, deliveryZone, deliveryCost }
   const [pincodeChecked, setPincodeChecked] = useState(false);
 
+  // Coupon / promo code
+  const [couponCode, setCouponCode] = useState('');
+  const [couponApplied, setCouponApplied] = useState(null); // { code, discountAmount, couponName }
+  const [couponError, setCouponError] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
+
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   // Detect if any item has per-product GST
   const hasPerProductGST = items.some(item => item.gstRate != null && item.gstRate > 0);
@@ -60,7 +66,8 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
   const delivery = orderType === 'dine_in' ? 0 : (freeDelivery
     ? (subtotal >= freeDeliveryThreshold ? 0 : (deliveryZoneInfo?.deliveryCost ?? deliveryCharge))
     : (deliveryZoneInfo?.deliveryCost ?? deliveryCharge));
-  const total = subtotal + gst + delivery;
+  const discount = couponApplied?.discountAmount || 0;
+  const total = Math.max(0, subtotal + gst + delivery - discount);
   const remainingForFree = freeDeliveryThreshold - subtotal;
 
   // Same address book the customer manages on the Profile tab (Step 5 config)
@@ -131,6 +138,51 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
       setPincodeChecked(false);
     }
   }, [currentAddress, orderType, deliveryZones]);
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setCouponLoading(true);
+    setCouponError('');
+    try {
+      const storeId = window.location.hostname.split('.')[0];
+      const token = localStorage.getItem('customer_token');
+      const res = await fetch(`https://api.aapnaestore.com/api/store/${storeId}/coupons/validate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ code: couponCode.trim().toUpperCase(), orderTotal: subtotal }),
+      });
+      const data = await res.json();
+      if (data.success && data.coupon) {
+        const c = data.coupon;
+        let discountAmount = 0;
+        if (c.discount_type === 'percentage') {
+          discountAmount = subtotal * (c.discount_value / 100);
+          if (c.max_discount_amount) discountAmount = Math.min(discountAmount, c.max_discount_amount);
+        } else {
+          discountAmount = c.discount_value;
+        }
+        discountAmount = Math.min(discountAmount, subtotal);
+        setCouponApplied({ code: couponCode.trim().toUpperCase(), discountAmount: parseFloat(discountAmount.toFixed(2)), couponName: c.name });
+        setCouponError('');
+      } else {
+        setCouponError(data.error || data.message || 'Invalid or expired coupon');
+        setCouponApplied(null);
+      }
+    } catch (e) {
+      setCouponError('Could not validate coupon. Please try again.');
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setCouponApplied(null);
+    setCouponCode('');
+    setCouponError('');
+  };
 
   const handleCheckout = () => {
     if (items.length === 0) {
@@ -285,6 +337,8 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
       branchName,
       deliveryZone: deliveryZoneName,
       deliveryCost: finalDeliveryCost,
+      couponCode: couponApplied?.code || null,
+      discountAmount: couponApplied?.discountAmount || 0,
       // Walk-in customer (scan orders only)
       ...(isScanOrder ? {
         isScanOrder: true,
@@ -863,6 +917,45 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
             )}
           </div>}
 
+          {/* Promo / Coupon Code */}
+          <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
+            <h3 className="font-semibold text-sm mb-3" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>
+              🏷️ Promo Code
+            </h3>
+            {couponApplied ? (
+              <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                <div>
+                  <p className="text-sm font-semibold text-green-800">{couponApplied.code} applied!</p>
+                  <p className="text-xs text-green-700">You save ₹{couponApplied.discountAmount.toFixed(2)}</p>
+                </div>
+                <button onClick={handleRemoveCoupon} className="text-xs text-red-500 underline font-medium ml-3">Remove</button>
+              </div>
+            ) : (
+              <>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={couponCode}
+                    onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponError(''); }}
+                    onKeyDown={e => e.key === 'Enter' && handleApplyCoupon()}
+                    placeholder="Enter promo code"
+                    className="flex-1 border rounded-lg px-3 py-2 text-sm outline-none uppercase"
+                    style={{ borderColor: couponError ? '#ba1a1a' : '#d1d5db', color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}
+                  />
+                  <button
+                    onClick={handleApplyCoupon}
+                    disabled={couponLoading || !couponCode.trim()}
+                    className="px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50"
+                    style={{ backgroundColor: brand.colors.primary, color: '#fff', fontFamily: brand.fonts?.body || 'Inter' }}
+                  >
+                    {couponLoading ? '...' : 'Apply'}
+                  </button>
+                </div>
+                {couponError && <p className="text-xs text-red-600 mt-1">{couponError}</p>}
+              </>
+            )}
+          </div>
+
           {/* Bill Details */}
           <div className="rounded-lg border p-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
             <h3 className="font-semibold text-sm mb-3" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>
@@ -898,6 +991,12 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                   )}
                 </>
               ) : null}
+              {couponApplied && (
+                <div className="flex justify-between text-sm text-green-700">
+                  <span>Discount ({couponApplied.code})</span>
+                  <span>-₹{couponApplied.discountAmount.toFixed(2)}</span>
+                </div>
+              )}
               <div className="border-t pt-2 flex justify-between font-bold">
                 <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>Total</span>
                 <span style={{ color: brand.colors.primary }}>₹{total.toFixed(2)}</span>
