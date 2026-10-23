@@ -85,6 +85,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
     setCouponLoading(true);
     setCouponError('');
     try {
+      console.log('[coupon] items sample:', JSON.stringify(items[0]));
       const productIds = [...new Set(items.map(i => i.productId || i.product_id).filter(Boolean))];
       const categoryIds = [...new Set(items.map(i => i.categoryId || i.category_id).filter(Boolean))];
       const res = await fetch(`${API}/api/store/${storeId}/coupons/validate`, {
