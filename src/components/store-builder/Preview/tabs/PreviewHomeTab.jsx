@@ -25,6 +25,7 @@ const PreviewHomeTab = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [qrActive, setQrActive] = useState(false);
   const [showQRScanner, setShowQRScanner] = useState(false);
+  const [allCoupons, setAllCoupons] = useState([]);
 
   useEffect(() => {
     if (!storeId) return;
@@ -33,6 +34,33 @@ const PreviewHomeTab = ({
       .then(d => setQrActive(d.active || false))
       .catch(() => {});
   }, [storeId]);
+
+  // Fetch all active coupons once for the store (no cart context needed here)
+  useEffect(() => {
+    if (!storeId) return;
+    fetch(`${API}/api/store/${storeId}/coupons/available`)
+      .then(r => r.json())
+      .then(d => { if (d.success) setAllCoupons(d.coupons || []); })
+      .catch(() => {});
+  }, [storeId]);
+
+  // Returns coupons applicable to a product (by product id)
+  const getCouponsForProduct = (product) => {
+    const pid = String(product.id);
+    return allCoupons.filter(c => {
+      if (c.scope === 'all') return true;
+      if (c.scope === 'product' && c.scope_items?.length) {
+        const scopePids = c.scope_items.map(k => String(k).split(':')[0]);
+        return scopePids.includes(pid);
+      }
+      // category scope — match if product belongs to any of the coupon's categories
+      if (c.scope === 'category' && c.scope_items?.length) {
+        const productCatIds = (product.categoryIds || product.category_ids || []).map(String);
+        return productCatIds.some(cid => c.scope_items.map(String).includes(cid));
+      }
+      return false;
+    });
+  };
 
   const allProducts = products || [];
   const allCategories = categories || [];
@@ -257,6 +285,7 @@ const PreviewHomeTab = ({
               addToCartLabel={data.addToCartLabel || 'Add to Cart'}
               stockMap={stockMap}
               autoOpen={initialProductId !== null && String(product.id) === String(initialProductId)}
+              applicableCoupons={getCouponsForProduct(product)}
             />
           ))}
         </div>

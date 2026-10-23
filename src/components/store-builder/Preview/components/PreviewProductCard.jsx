@@ -11,6 +11,7 @@ const PreviewProductCard = ({
   addToCartLabel = 'Add to Cart',
   autoOpen = false,
   stockMap = {},
+  applicableCoupons = [],
 }) => {
   const [selectedVariation, setSelectedVariation] = useState(product.variations?.[0] || null);
   const [selectedSize, setSelectedSize] = useState(product.variations?.[0]?.sizes?.[0] || null);
@@ -35,6 +36,15 @@ const PreviewProductCard = ({
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [quickViewOpen, setQuickViewOpen] = useState(false);
+  const [couponModalOpen, setCouponModalOpen] = useState(false);
+
+  // Best coupon label for banner (highest value)
+  const bestCoupon = applicableCoupons.length > 0 ? applicableCoupons[0] : null;
+  const bestCouponLabel = bestCoupon
+    ? bestCoupon.unit === 'percent'
+      ? `${bestCoupon.value}% off with ${bestCoupon.code}`
+      : `₹${bestCoupon.value} off with ${bestCoupon.code}`
+    : null;
 
   const hasMultipleOptions = (product.variations?.length || 0) > 1 ||
     (product.variations?.[0]?.sizes?.length || 0) > 1;
@@ -219,10 +229,65 @@ const PreviewProductCard = ({
     </div>
   );
 
+  // ── COUPON MODAL ─────────────────────────────────────────────────────────
+  const couponModal = couponModalOpen && applicableCoupons.length > 0 && (
+    <div
+      className="fixed inset-0 bg-black/60 z-[300] flex items-end sm:items-center justify-center"
+      onClick={() => setCouponModalOpen(false)}
+    >
+      <div
+        className="w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl overflow-hidden"
+        style={{ backgroundColor: brandColors.background || '#fff', maxHeight: '80vh', overflowY: 'auto' }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div style={{ padding: '16px 16px 10px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ fontWeight: '800', fontSize: '15px', color: primaryColor }}>🏷️ Available Offers</div>
+            <div style={{ fontSize: '11px', color: fontBodyColor, marginTop: '2px' }}>Apply at checkout for instant savings</div>
+          </div>
+          <button onClick={() => setCouponModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: fontBodyColor, fontSize: '20px', lineHeight: 1, padding: '4px' }}>×</button>
+        </div>
+        {/* Coupon list */}
+        {applicableCoupons.map((c, i) => {
+          const label = c.unit === 'percent' ? `${c.value}% OFF` : `₹${c.value} OFF`;
+          return (
+            <div key={c.code} style={{ padding: '14px 16px', borderBottom: i < applicableCoupons.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {/* Dashed code chip */}
+                  <span style={{ border: `1.5px dashed ${primaryColor}`, borderRadius: '6px', padding: '3px 10px', fontWeight: '800', fontSize: '13px', color: primaryColor, letterSpacing: '0.5px' }}>{c.code}</span>
+                  {c.applicable_to && c.applicable_to !== 'both' && (
+                    <span style={{ fontSize: '10px', background: c.applicable_to === 'dine_in' ? '#fef3c7' : '#dbeafe', color: c.applicable_to === 'dine_in' ? '#92400e' : '#1e40af', borderRadius: '4px', padding: '1px 5px', fontWeight: '600' }}>
+                      {c.applicable_to === 'dine_in' ? '🍽️ Dine-in' : '🚚 Delivery'}
+                    </span>
+                  )}
+                </div>
+                <span style={{ fontWeight: '800', fontSize: '14px', color: '#15803d' }}>{label}</span>
+              </div>
+              {c.name && c.name !== c.code && (
+                <div style={{ fontSize: '12px', color: fontBodyColor, marginBottom: '4px' }}>{c.name}</div>
+              )}
+              {c.min_order_value > 0 && (
+                <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
+                  Min. order ₹{c.min_order_value}
+                </div>
+              )}
+            </div>
+          );
+        })}
+        <div style={{ padding: '12px 16px', textAlign: 'center', fontSize: '11px', color: '#94a3b8' }}>
+          Add this product to cart and apply coupon at checkout
+        </div>
+      </div>
+    </div>
+  );
+
   // ── INLINE CARD (zoom OFF) ────────────────────────────────────────────────
   if (!zoomEnabled) {
     return (
       <div className="rounded-lg border overflow-hidden flex flex-col" style={{ backgroundColor: brandColors.background || '#FFFFFF' }}>
+        {couponModal}
         {/* Image */}
         <div className="aspect-square relative overflow-hidden" style={{ backgroundColor: brandColors.background || '#FFFFFF' }}>
           {images.length > 0 ? (
@@ -316,6 +381,25 @@ const PreviewProductCard = ({
             </div>
           )}
 
+          {/* Coupon banner */}
+          {bestCouponLabel && (
+            <button
+              onClick={e => { e.stopPropagation(); setCouponModalOpen(true); }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '4px',
+                background: `${primaryColor}12`, border: `1px dashed ${primaryColor}`,
+                borderRadius: '6px', padding: '3px 8px', cursor: 'pointer', width: '100%',
+                textAlign: 'left',
+              }}
+            >
+              <span style={{ fontSize: '11px' }}>🏷️</span>
+              <span style={{ fontSize: '11px', fontWeight: '700', color: primaryColor, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bestCouponLabel}</span>
+              {applicableCoupons.length > 1 && (
+                <span style={{ fontSize: '10px', color: primaryColor, fontWeight: '600', flexShrink: 0 }}>+{applicableCoupons.length - 1} more</span>
+              )}
+            </button>
+          )}
+
           {/* Qty + Price row */}
           <div className="flex items-center justify-between mt-1">
             <div className="flex items-center gap-2">
@@ -388,6 +472,7 @@ const PreviewProductCard = ({
       </div>
 
       {quickViewModal}
+      {couponModal}
 
       <div className="p-3 flex-1 flex flex-col">
         {isProductOutOfStock && (
@@ -403,6 +488,24 @@ const PreviewProductCard = ({
             </>
           )}
         </div>
+        {/* Coupon banner — only if applicable coupons exist */}
+        {bestCouponLabel && (
+          <button
+            onClick={e => { e.stopPropagation(); setCouponModalOpen(true); }}
+            style={{
+              marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px',
+              background: `${primaryColor}12`, border: `1px dashed ${primaryColor}`,
+              borderRadius: '6px', padding: '3px 8px', cursor: 'pointer', width: '100%',
+              textAlign: 'left',
+            }}
+          >
+            <span style={{ fontSize: '11px' }}>🏷️</span>
+            <span style={{ fontSize: '11px', fontWeight: '700', color: primaryColor, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bestCouponLabel}</span>
+            {applicableCoupons.length > 1 && (
+              <span style={{ fontSize: '10px', color: primaryColor, fontWeight: '600', flexShrink: 0 }}>+{applicableCoupons.length - 1} more</span>
+            )}
+          </button>
+        )}
         {hasMultipleOptions && (
           <button onClick={() => setQuickViewOpen(true)} className="text-xs mt-1 text-left underline decoration-dotted" style={{ color: fontBodyColor, fontFamily: bodyFont }}>
             {product.variations.length > 1 ? `${product.variations.length} options` : `${product.variations[0].sizes.length} sizes`} available
