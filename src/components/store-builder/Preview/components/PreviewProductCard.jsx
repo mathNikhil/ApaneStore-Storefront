@@ -12,6 +12,7 @@ const PreviewProductCard = ({
   autoOpen = false,
   stockMap = {},
   applicableCoupons = [],
+  dineInLabel = 'Dine In',
 }) => {
   const [selectedVariation, setSelectedVariation] = useState(product.variations?.[0] || null);
   const [selectedSize, setSelectedSize] = useState(product.variations?.[0]?.sizes?.[0] || null);
@@ -259,7 +260,7 @@ const PreviewProductCard = ({
                   <span style={{ border: `1.5px dashed ${primaryColor}`, borderRadius: '6px', padding: '3px 10px', fontWeight: '800', fontSize: '13px', color: primaryColor, letterSpacing: '0.5px' }}>{c.code}</span>
                   {c.applicable_to && c.applicable_to !== 'both' && (
                     <span style={{ fontSize: '10px', background: c.applicable_to === 'dine_in' ? '#fef3c7' : '#dbeafe', color: c.applicable_to === 'dine_in' ? '#92400e' : '#1e40af', borderRadius: '4px', padding: '1px 5px', fontWeight: '600' }}>
-                      {c.applicable_to === 'dine_in' ? '🍽️ Dine-in' : '🚚 Delivery'}
+                      {c.applicable_to === 'dine_in' ? `🍽️ ${dineInLabel}` : '🚚 Delivery'}
                     </span>
                   )}
                 </div>

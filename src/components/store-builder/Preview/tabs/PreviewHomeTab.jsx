@@ -15,7 +15,8 @@ const PreviewHomeTab = ({
   customerToken,
   isLoggedIn = false,
 }) => {
-  const { banner, categories, brand, products, enableProductSearch, settings = {} } = data;
+  const { banner, categories, brand, products, enableProductSearch, settings = {}, cart = {} } = data;
+  const dineInLabel = cart.dineInLabel || 'Dine In';
   const brandFonts = brand.fonts || { heading: 'Inter', body: 'Inter' };
   const imgSize = settings.categoryImageSize || 'S';
   const imgShape = settings.categoryImageShape || 'circle';
@@ -284,6 +285,7 @@ const PreviewHomeTab = ({
               stockMap={stockMap}
               autoOpen={initialProductId !== null && String(product.id) === String(initialProductId)}
               applicableCoupons={getCouponsForProduct(product)}
+              dineInLabel={dineInLabel}
             />
           ))}
         </div>

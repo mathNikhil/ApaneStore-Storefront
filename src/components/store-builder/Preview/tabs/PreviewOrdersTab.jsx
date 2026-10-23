@@ -661,7 +661,7 @@ tbody td{border-bottom:1px solid #f2f4f7;vertical-align:middle;padding:3px 4px}
                   <div className="mt-3 pt-3 border-t border-[#f2f4f7] space-y-3">
                     {/* Delivery Address */}
                     <div>
-                      <p className="text-xs font-semibold mb-1" style={{ color: getFontHeaderColor() }}>{order.order_type === 'dine_in' ? '🍽️ Order Type' : '📍 Delivery Address'}</p>
+                      <p className="text-xs font-semibold mb-1" style={{ color: getFontHeaderColor() }}>{order.order_type === 'dine_in' ? `🍽️ ${dineInLabel}` : '📍 Delivery Address'}</p>
                       {order.order_type === 'dine_in' ? (
                         <div className="text-sm p-3 rounded-lg bg-[#fff8e1]" style={{ color: getFontBodyColor() }}>
                           <p className="font-medium">🍽️ {dineInLabel}</p>

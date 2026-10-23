@@ -1080,7 +1080,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                               {c.name && c.name !== c.code && <span style={{ marginLeft: '8px', fontSize: '12px', color: '#64748b' }}>{c.name}</span>}
                               {c.applicable_to && c.applicable_to !== 'both' && (
                                 <span style={{ marginLeft: '6px', fontSize: '10px', background: c.applicable_to === 'dine_in' ? '#fef3c7' : '#dbeafe', color: c.applicable_to === 'dine_in' ? '#92400e' : '#1e40af', borderRadius: '4px', padding: '1px 5px', fontWeight: '600' }}>
-                                  {c.applicable_to === 'dine_in' ? '🍽️ Dine-in' : '🚚 Delivery'}
+                                  {c.applicable_to === 'dine_in' ? `🍽️ ${dineInLabel}` : '🚚 Delivery'}
                                 </span>
                               )}
                             </div>
