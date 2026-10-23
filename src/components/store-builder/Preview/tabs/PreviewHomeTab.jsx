@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import PreviewBanner from '../components/PreviewBanner';
 import PreviewProductCard from '../components/PreviewProductCard';
 import QRScannerModal from '../components/qr/QRScannerModal';
@@ -37,7 +37,7 @@ const PreviewHomeTab = ({
   }, [storeId]);
 
   // Build productId → categoryId map from categories data
-  const productCategoryMap = React.useMemo(() => {
+  const productCategoryMap = useMemo(() => {
     const map = {};
     (allCategories || []).forEach(cat => {
       (cat.products || []).forEach(p => {
