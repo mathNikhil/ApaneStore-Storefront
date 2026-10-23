@@ -107,11 +107,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
   const [deliveryZoneInfo, setDeliveryZoneInfo] = useState(null); // { allowed, storeAddressId, storeAddressName, deliveryZone, deliveryCost }
   const [pincodeChecked, setPincodeChecked] = useState(false);
 
-  // Coupon / promo code
-  const [couponCode, setCouponCode] = useState('');
-  const [couponApplied, setCouponApplied] = useState(null); // { code, discountAmount, couponName }
-  const [couponError, setCouponError] = useState('');
-  const [couponLoading, setCouponLoading] = useState(false);
+  // coupon state managed above in the ── Coupon state ── block
 
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   // Detect if any item has per-product GST
@@ -405,8 +401,8 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
       branchName,
       deliveryZone: deliveryZoneName,
       deliveryCost: finalDeliveryCost,
-      couponCode: couponApplied?.code || null,
-      discountAmount: couponApplied?.discountAmount || 0,
+      couponCode: appliedCoupon?.code || null,
+      discountAmount: appliedCoupon?.discount || 0,
       // Walk-in customer (scan orders only)
       ...(isScanOrder ? {
         isScanOrder: true,
@@ -1108,11 +1104,11 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
             <h3 className="font-semibold text-sm mb-3" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>
               🏷️ Promo Code
             </h3>
-            {couponApplied ? (
+            {appliedCoupon ? (
               <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-3 py-2">
                 <div>
-                  <p className="text-sm font-semibold text-green-800">{couponApplied.code} applied!</p>
-                  <p className="text-xs text-green-700">You save ₹{couponApplied.discountAmount.toFixed(2)}</p>
+                  <p className="text-sm font-semibold text-green-800">{appliedCoupon.code} applied!</p>
+                  <p className="text-xs text-green-700">You save ₹{appliedCoupon.discount.toFixed(2)}</p>
                 </div>
                 <button onClick={handleRemoveCoupon} className="text-xs text-red-500 underline font-medium ml-3">Remove</button>
               </div>
@@ -1177,10 +1173,10 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                   )}
                 </>
               ) : null}
-              {couponApplied && (
+              {appliedCoupon && (
                 <div className="flex justify-between text-sm text-green-700">
-                  <span>Discount ({couponApplied.code})</span>
-                  <span>-₹{couponApplied.discountAmount.toFixed(2)}</span>
+                  <span>Discount ({appliedCoupon.code})</span>
+                  <span>-₹{appliedCoupon.discount.toFixed(2)}</span>
                 </div>
               )}
               <div className="border-t pt-2 flex justify-between font-bold">
