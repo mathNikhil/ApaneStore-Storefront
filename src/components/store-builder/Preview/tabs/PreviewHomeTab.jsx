@@ -36,6 +36,17 @@ const PreviewHomeTab = ({
       .catch(() => {});
   }, [storeId]);
 
+  // Build productId → categoryId map from categories data
+  const productCategoryMap = React.useMemo(() => {
+    const map = {};
+    (allCategories || []).forEach(cat => {
+      (cat.products || []).forEach(p => {
+        map[String(p.id)] = String(cat.id);
+      });
+    });
+    return map;
+  }, [allCategories]);
+
   // Fetch all active coupons once for the store (no cart context needed here)
   useEffect(() => {
     if (!storeId) return;
@@ -45,14 +56,17 @@ const PreviewHomeTab = ({
       .catch(() => {});
   }, [storeId]);
 
-  // Returns coupons applicable to a product (by product id)
-  // For category-scoped coupons we show on all products since product objects
-  // don't carry categoryId — validation happens at cart/checkout
+  // Returns coupons applicable to a product (by product id + its category)
   const getCouponsForProduct = (product) => {
     const pid = String(product.id);
+    const catId = productCategoryMap[pid];
     return allCoupons.filter(c => {
       if (c.scope === 'all') return true;
-      if (c.scope === 'category') return true; // show on all; cart validates
+      if (c.scope === 'category' && c.scope_items?.length) {
+        // Show banner only if this product's category is in scope_items
+        return catId && c.scope_items.map(String).includes(catId);
+      }
+      if (c.scope === 'category' && !c.scope_items?.length) return true; // no restriction = all
       if (c.scope === 'product' && c.scope_items?.length) {
         const scopePids = c.scope_items.map(k => String(k).split(':')[0]);
         return scopePids.includes(pid);
