@@ -568,16 +568,11 @@ const PreviewProductCard = ({
             )}
           </button>
         )}
-        {hasMultipleOptions && (
-          <button onClick={() => setQuickViewOpen(true)} className="text-xs mt-1 text-left underline decoration-dotted" style={{ color: fontBodyColor, fontFamily: bodyFont }}>
-            {product.variations.length > 1 ? `${product.variations.length} options` : `${product.variations[0].sizes.length} sizes`} available
-          </button>
-        )}
         <button onClick={isProductOutOfStock ? undefined : handleAddToCart}
           disabled={isProductOutOfStock}
           className="w-full mt-auto pt-2 py-1.5 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
           style={{ backgroundColor: isProductOutOfStock ? '#e5e7eb' : buttonColor, color: isProductOutOfStock ? '#9ca3af' : buttonLabelColor, marginTop: '0.5rem', cursor: isProductOutOfStock ? 'not-allowed' : 'pointer' }}>
-          {isProductOutOfStock ? 'Out of Stock' : hasMultipleOptions ? `${product.variations?.length > 1 ? product.variations.length : product.variations?.[0]?.sizes?.length || ''} Options Available` : addToCartLabel}
+          {isProductOutOfStock ? 'Out of Stock' : addToCartLabel}
         </button>
       </div>
     </div>
