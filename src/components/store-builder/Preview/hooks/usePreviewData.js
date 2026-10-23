@@ -719,7 +719,8 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
       });
 
       if (!result.success) {
-        return { success: false, error: result.error || 'Failed to place order' };
+        // Pass coupon_error flag through so checkout screen can clear the coupon
+        return { success: false, error: result.error || 'Failed to place order', coupon_error: result.coupon_error || false };
       }
 
       const saved = result.data;

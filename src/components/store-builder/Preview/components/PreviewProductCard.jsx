@@ -231,6 +231,28 @@ const PreviewProductCard = ({
   );
 
   // ── COUPON MODAL ─────────────────────────────────────────────────────────
+  // Helper: format expiry as "Ends 23 Oct 5:00 PM" or countdown if < 24h
+  const formatExpiry = (end_at) => {
+    if (!end_at) return null;
+    const end = new Date(end_at);
+    const now = new Date();
+    const diffMs = end - now;
+    if (diffMs <= 0) return null;
+    if (diffMs < 60 * 60 * 1000) {
+      const mins = Math.floor(diffMs / 60000);
+      return { text: `Expires in ${mins}m`, urgent: true };
+    }
+    if (diffMs < 24 * 60 * 60 * 1000) {
+      const hrs = Math.floor(diffMs / 3600000);
+      const mins = Math.floor((diffMs % 3600000) / 60000);
+      return { text: `Expires in ${hrs}h ${mins}m`, urgent: true };
+    }
+    return {
+      text: `Valid till ${end.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} ${end.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}`,
+      urgent: false,
+    };
+  };
+
   const couponModal = couponModalOpen && applicableCoupons.length > 0 && (
     <div
       className="fixed inset-0 bg-black/60 z-[300] flex items-end sm:items-center justify-center"
@@ -238,47 +260,86 @@ const PreviewProductCard = ({
     >
       <div
         className="w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl overflow-hidden"
-        style={{ backgroundColor: brandColors.background || '#fff', maxHeight: '80vh', overflowY: 'auto' }}
+        style={{ backgroundColor: brandColors.background || '#fff', maxHeight: '85vh', overflowY: 'auto' }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
         <div style={{ padding: '16px 16px 10px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <div style={{ fontWeight: '800', fontSize: '15px', color: primaryColor }}>🏷️ Available Offers</div>
-            <div style={{ fontSize: '11px', color: fontBodyColor, marginTop: '2px' }}>Apply at checkout for instant savings</div>
+            <div style={{ fontSize: '11px', color: fontBodyColor, marginTop: '2px' }}>Add to cart and apply at checkout</div>
           </div>
           <button onClick={() => setCouponModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: fontBodyColor, fontSize: '20px', lineHeight: 1, padding: '4px' }}>×</button>
         </div>
+
         {/* Coupon list */}
         {applicableCoupons.map((c, i) => {
-          const label = c.unit === 'percent' ? `${c.value}% OFF` : `₹${c.value} OFF`;
+          const discountLabel = c.unit === 'percent' ? `${c.value}% OFF` : `₹${c.value} OFF`;
+          const expiry = formatExpiry(c.end_at);
+          const usesLeft = c.max_uses != null ? c.max_uses - (c.current_uses || 0) : null;
+          const scopeLabel = c.scope === 'category' && c.scope_items?.length
+            ? c.scope_items.join(', ')
+            : c.scope === 'product' ? 'Selected products only' : null;
+
           return (
             <div key={c.code} style={{ padding: '14px 16px', borderBottom: i < applicableCoupons.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  {/* Dashed code chip */}
-                  <span style={{ border: `1.5px dashed ${primaryColor}`, borderRadius: '6px', padding: '3px 10px', fontWeight: '800', fontSize: '13px', color: primaryColor, letterSpacing: '0.5px' }}>{c.code}</span>
-                  {c.applicable_to && c.applicable_to !== 'both' && (
-                    <span style={{ fontSize: '10px', background: c.applicable_to === 'dine_in' ? '#fef3c7' : '#dbeafe', color: c.applicable_to === 'dine_in' ? '#92400e' : '#1e40af', borderRadius: '4px', padding: '1px 5px', fontWeight: '600' }}>
-                      {c.applicable_to === 'dine_in' ? `🍽️ ${dineInLabel}` : '🚚 Delivery'}
-                    </span>
-                  )}
-                </div>
-                <span style={{ fontWeight: '800', fontSize: '14px', color: '#15803d' }}>{label}</span>
+              {/* Top row: code chip + discount */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ border: `1.5px dashed ${primaryColor}`, borderRadius: '6px', padding: '3px 10px', fontWeight: '800', fontSize: '13px', color: primaryColor, letterSpacing: '0.5px' }}>
+                  {c.code}
+                </span>
+                <span style={{ fontWeight: '800', fontSize: '15px', color: '#15803d' }}>{discountLabel}</span>
               </div>
+
+              {/* Offer name */}
               {c.name && c.name !== c.code && (
-                <div style={{ fontSize: '12px', color: fontBodyColor, marginBottom: '4px' }}>{c.name}</div>
+                <div style={{ fontSize: '12px', fontWeight: '600', color: fontBodyColor, marginBottom: '8px' }}>{c.name}</div>
               )}
-              {c.min_order_value > 0 && (
-                <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
-                  Min. order ₹{c.min_order_value}
-                </div>
-              )}
+
+              {/* Condition chips */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                {/* Min order */}
+                {c.min_order_value > 0 && (
+                  <span style={{ fontSize: '10px', background: '#f1f5f9', color: '#475569', borderRadius: '4px', padding: '2px 7px', fontWeight: '600' }}>
+                    🛒 Min ₹{c.min_order_value}
+                  </span>
+                )}
+
+                {/* Mode of shopping */}
+                {c.applicable_to && c.applicable_to !== 'both' && (
+                  <span style={{ fontSize: '10px', background: c.applicable_to === 'dine_in' ? '#fef3c7' : '#dbeafe', color: c.applicable_to === 'dine_in' ? '#92400e' : '#1e40af', borderRadius: '4px', padding: '2px 7px', fontWeight: '600' }}>
+                    {c.applicable_to === 'dine_in' ? `🍽️ ${dineInLabel} only` : '🚚 Delivery only'}
+                  </span>
+                )}
+
+                {/* Scope / category */}
+                {scopeLabel && (
+                  <span style={{ fontSize: '10px', background: '#f0fdf4', color: '#166534', borderRadius: '4px', padding: '2px 7px', fontWeight: '600' }}>
+                    📂 {scopeLabel}
+                  </span>
+                )}
+
+                {/* Expiry */}
+                {expiry && (
+                  <span style={{ fontSize: '10px', background: expiry.urgent ? '#fef2f2' : '#f8fafc', color: expiry.urgent ? '#b91c1c' : '#64748b', borderRadius: '4px', padding: '2px 7px', fontWeight: '600' }}>
+                    ⏰ {expiry.text}
+                  </span>
+                )}
+
+                {/* Uses remaining — only show if limited AND few left */}
+                {usesLeft !== null && usesLeft <= 10 && (
+                  <span style={{ fontSize: '10px', background: usesLeft <= 3 ? '#fef2f2' : '#fff7ed', color: usesLeft <= 3 ? '#b91c1c' : '#c2410c', borderRadius: '4px', padding: '2px 7px', fontWeight: '600' }}>
+                    🔥 {usesLeft <= 1 ? 'Last 1 use!' : `Only ${usesLeft} left`}
+                  </span>
+                )}
+              </div>
             </div>
           );
         })}
-        <div style={{ padding: '12px 16px', textAlign: 'center', fontSize: '11px', color: '#94a3b8' }}>
-          Add this product to cart and apply coupon at checkout
+
+        {/* Footer note */}
+        <div style={{ padding: '10px 16px 14px', textAlign: 'center', fontSize: '11px', color: '#94a3b8', borderTop: '1px solid #f1f5f9' }}>
+          Discount is applied automatically when you enter the code at checkout
         </div>
       </div>
     </div>

@@ -431,6 +431,11 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
         setShowCheckout(false);
         setOrderPlaced(false);
       }, 1200);
+    } else if (result.coupon_error) {
+      // Coupon became invalid between validate and checkout (expired or ran out of uses)
+      setAppliedCoupon(null);
+      setCouponError(result.error || 'This offer is no longer valid. Please try again without it.');
+      setShowCheckout(false); // return to cart so customer can see the error
     } else {
       alert(result.error || 'Failed to place your order. Please try again.');
     }
@@ -1069,34 +1074,68 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                       const discountLabel = c.unit === 'percent' ? `${c.value}% off` : `₹${c.value} off`;
                       const progress = c.min_order_value > 0 ? Math.min(100, (subtotal / c.min_order_value) * 100) : 100;
                       const eligible = subtotal >= (c.min_order_value || 0);
+                      // Expiry display
+                      const now = new Date();
+                      const end = c.end_at ? new Date(c.end_at) : null;
+                      const diffMs = end ? end - now : null;
+                      let expiryChip = null;
+                      if (diffMs !== null && diffMs > 0) {
+                        if (diffMs < 60 * 60 * 1000) {
+                          expiryChip = { text: `Expires in ${Math.floor(diffMs/60000)}m`, urgent: true };
+                        } else if (diffMs < 24 * 60 * 60 * 1000) {
+                          expiryChip = { text: `Expires in ${Math.floor(diffMs/3600000)}h`, urgent: true };
+                        } else {
+                          expiryChip = { text: `Till ${end.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`, urgent: false };
+                        }
+                      }
+                      const usesLeft = c.max_uses != null ? c.max_uses - (c.current_uses || 0) : null;
                       return (
                         <div key={c.code}
                           onClick={() => eligible && applyCouponCode(c.code)}
                           style={{
                             padding: '12px 14px', borderBottom: '1px solid #f8fafc',
                             cursor: eligible ? 'pointer' : 'default',
-                            opacity: eligible ? 1 : 0.6,
+                            opacity: eligible ? 1 : 0.65,
                             background: '#fff',
                           }}
                           onMouseEnter={e => { if (eligible) e.currentTarget.style.background = '#f8fafc'; }}
                           onMouseLeave={e => { e.currentTarget.style.background = '#fff'; }}
                         >
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                            <div>
-                              <span style={{ fontWeight: '800', fontSize: '13px', color: brand.colors.primary, letterSpacing: '0.5px' }}>{c.code}</span>
-                              {c.name && c.name !== c.code && <span style={{ marginLeft: '8px', fontSize: '12px', color: '#64748b' }}>{c.name}</span>}
-                              {c.applicable_to && c.applicable_to !== 'both' && (
-                                <span style={{ marginLeft: '6px', fontSize: '10px', background: c.applicable_to === 'dine_in' ? '#fef3c7' : '#dbeafe', color: c.applicable_to === 'dine_in' ? '#92400e' : '#1e40af', borderRadius: '4px', padding: '1px 5px', fontWeight: '600' }}>
-                                  {c.applicable_to === 'dine_in' ? `🍽️ ${dineInLabel}` : '🚚 Delivery'}
-                                </span>
-                              )}
-                            </div>
-                            <span style={{ fontWeight: '700', fontSize: '13px', color: '#15803d', flexShrink: 0, marginLeft: '8px' }}>{discountLabel}</span>
+                          {/* Code + discount row */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                            <span style={{ fontWeight: '800', fontSize: '13px', color: brand.colors.primary, letterSpacing: '0.5px' }}>{c.code}</span>
+                            <span style={{ fontWeight: '700', fontSize: '13px', color: '#15803d', flexShrink: 0 }}>{discountLabel}</span>
                           </div>
+
+                          {/* Name */}
+                          {c.name && c.name !== c.code && (
+                            <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '6px' }}>{c.name}</div>
+                          )}
+
+                          {/* Condition chips */}
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: c.min_order_value > 0 ? '6px' : '0' }}>
+                            {c.applicable_to && c.applicable_to !== 'both' && (
+                              <span style={{ fontSize: '10px', background: c.applicable_to === 'dine_in' ? '#fef3c7' : '#dbeafe', color: c.applicable_to === 'dine_in' ? '#92400e' : '#1e40af', borderRadius: '4px', padding: '1px 6px', fontWeight: '600' }}>
+                                {c.applicable_to === 'dine_in' ? `🍽️ ${dineInLabel} only` : '🚚 Delivery only'}
+                              </span>
+                            )}
+                            {expiryChip && (
+                              <span style={{ fontSize: '10px', background: expiryChip.urgent ? '#fef2f2' : '#f8fafc', color: expiryChip.urgent ? '#b91c1c' : '#64748b', borderRadius: '4px', padding: '1px 6px', fontWeight: '600' }}>
+                                ⏰ {expiryChip.text}
+                              </span>
+                            )}
+                            {usesLeft !== null && usesLeft <= 10 && (
+                              <span style={{ fontSize: '10px', background: usesLeft <= 3 ? '#fef2f2' : '#fff7ed', color: usesLeft <= 3 ? '#b91c1c' : '#c2410c', borderRadius: '4px', padding: '1px 6px', fontWeight: '600' }}>
+                                🔥 {usesLeft <= 1 ? 'Last 1 use!' : `Only ${usesLeft} left`}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Min order progress bar */}
                           {c.min_order_value > 0 && (
-                            <div style={{ marginTop: '6px' }}>
+                            <div>
                               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#94a3b8', marginBottom: '3px' }}>
-                                <span>{eligible ? '✓ Eligible' : `Add ₹${(c.min_order_value - subtotal).toFixed(0)} more`}</span>
+                                <span>{eligible ? '✓ Eligible — tap to apply' : `Add ₹${(c.min_order_value - subtotal).toFixed(0)} more to unlock`}</span>
                                 <span>₹{subtotal.toFixed(0)} / ₹{c.min_order_value}</span>
                               </div>
                               <div style={{ height: '4px', borderRadius: '2px', background: '#e2e8f0', overflow: 'hidden' }}>
@@ -1104,10 +1143,8 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                               </div>
                             </div>
                           )}
-                          {!eligible && (
-                            <div style={{ fontSize: '11px', color: '#f59e0b', marginTop: '4px', fontWeight: '600' }}>
-                              Min. order ₹{c.min_order_value}
-                            </div>
+                          {eligible && c.min_order_value === 0 && (
+                            <div style={{ fontSize: '11px', color: '#16a34a', fontWeight: '600', marginTop: '2px' }}>✓ Tap to apply</div>
                           )}
                         </div>
                       );
