@@ -39,8 +39,26 @@ const PreviewProductCard = ({
   const [quickViewOpen, setQuickViewOpen] = useState(false);
   const [couponModalOpen, setCouponModalOpen] = useState(false);
 
+  // Filter coupons down to those valid for the currently selected variant/size.
+  // scope_items keys are "pid:vid:sid" — a coupon scoped to a specific variant
+  // should only show when that variant (and optionally that size) is selected.
+  const visibleCoupons = applicableCoupons.filter(c => {
+    if (c.scope !== 'product' || !c.scope_items?.length) return true; // all/category coupons always show
+    const pid = String(product.id);
+    const vid = selectedVariation ? String(selectedVariation.id) : null;
+    const sid = selectedSize ? String(selectedSize.id) : null;
+    return c.scope_items.some(key => {
+      const parts = String(key).split(':');
+      if (parts[0] !== pid) return false;          // wrong product
+      if (parts.length === 1) return true;          // product-level, no variant restriction
+      if (parts[1] && vid && parts[1] !== vid) return false; // wrong variation
+      if (parts[2] && sid && parts[2] !== sid) return false; // wrong size
+      return true;
+    });
+  });
+
   // Best coupon label for banner (highest value)
-  const bestCoupon = applicableCoupons.length > 0 ? applicableCoupons[0] : null;
+  const bestCoupon = visibleCoupons.length > 0 ? visibleCoupons[0] : null;
   const bestCouponLabel = bestCoupon
     ? bestCoupon.unit === 'percent'
       ? `${bestCoupon.value}% off with ${bestCoupon.code}`
@@ -253,7 +271,7 @@ const PreviewProductCard = ({
     };
   };
 
-  const couponModal = couponModalOpen && applicableCoupons.length > 0 && (
+  const couponModal = couponModalOpen && visibleCoupons.length > 0 && (
     <div
       className="fixed inset-0 bg-black/60 z-[300] flex items-end sm:items-center justify-center"
       onClick={() => setCouponModalOpen(false)}
@@ -273,7 +291,7 @@ const PreviewProductCard = ({
         </div>
 
         {/* Coupon list */}
-        {applicableCoupons.map((c, i) => {
+        {visibleCoupons.map((c, i) => {
           const discountLabel = c.unit === 'percent' ? `${c.value}% OFF` : `₹${c.value} OFF`;
           const expiry = formatExpiry(c.end_at);
           const usesLeft = c.max_uses != null ? c.max_uses - (c.current_uses || 0) : null;
@@ -282,7 +300,7 @@ const PreviewProductCard = ({
             : c.scope === 'product' ? 'Selected products only' : null;
 
           return (
-            <div key={c.code} style={{ padding: '14px 16px', borderBottom: i < applicableCoupons.length - 1 ? `1px solid ${primaryColor}15` : 'none' }}>
+            <div key={c.code} style={{ padding: '14px 16px', borderBottom: i < visibleCoupons.length - 1 ? `1px solid ${primaryColor}15` : 'none' }}>
               {/* Top row: code chip + discount */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <span style={{ border: `1.5px dashed ${primaryColor}`, borderRadius: '6px', padding: '3px 10px', fontWeight: '800', fontSize: '13px', color: primaryColor, letterSpacing: '0.5px' }}>
@@ -456,8 +474,8 @@ const PreviewProductCard = ({
             >
               <span style={{ fontSize: '11px' }}>🏷️</span>
               <span style={{ fontSize: '11px', fontWeight: '700', color: primaryColor, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bestCouponLabel}</span>
-              {applicableCoupons.length > 1 && (
-                <span style={{ fontSize: '10px', color: primaryColor, fontWeight: '600', flexShrink: 0 }}>+{applicableCoupons.length - 1} more</span>
+              {visibleCoupons.length > 1 && (
+                <span style={{ fontSize: '10px', color: primaryColor, fontWeight: '600', flexShrink: 0 }}>+{visibleCoupons.length - 1} more</span>
               )}
             </button>
           )}
@@ -563,8 +581,8 @@ const PreviewProductCard = ({
           >
             <span style={{ fontSize: '11px' }}>🏷️</span>
             <span style={{ fontSize: '11px', fontWeight: '700', color: primaryColor, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bestCouponLabel}</span>
-            {applicableCoupons.length > 1 && (
-              <span style={{ fontSize: '10px', color: primaryColor, fontWeight: '600', flexShrink: 0 }}>+{applicableCoupons.length - 1} more</span>
+            {visibleCoupons.length > 1 && (
+              <span style={{ fontSize: '10px', color: primaryColor, fontWeight: '600', flexShrink: 0 }}>+{visibleCoupons.length - 1} more</span>
             )}
           </button>
         )}
