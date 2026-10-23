@@ -349,7 +349,7 @@ const StorefrontApp = ({
           />
         ) : (
           <PreviewCartTab
-            data={storeData}
+            data={{ ...storeData, storeId, apiBase: API }}
             updateQuantity={updateQuantity}
             removeFromCart={removeFromCart}
             placeOrder={placeOrder}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 
 // ✅ New brand color system (see design discussion): brand.colors.font
@@ -23,6 +23,76 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
   const [customerUpiId, setCustomerUpiId] = useState('');
   const [upiIdConfirmed, setUpiIdConfirmed] = useState(false);
   const [cashfreeLoading, setCashfreeLoading] = useState(false);
+
+  // ── Coupon state ──────────────────────────────────────────────────────────
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState(null); // { code, discount, name, unit }
+  const [couponError, setCouponError] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [availableCoupons, setAvailableCoupons] = useState([]);
+  const [showCouponDropdown, setShowCouponDropdown] = useState(false);
+  const couponRef = useRef(null);
+  const storeId = data?.profile?.storeId || data?.storeId;
+  const API = data?.apiBase || '';
+
+  // Fetch available coupons whenever cart items change
+  const fetchAvailableCoupons = useCallback(async () => {
+    if (!storeId || !items?.length) return;
+    try {
+      const productIds = [...new Set(items.map(i => i.productId || i.product_id).filter(Boolean))];
+      const categoryIds = [...new Set(items.map(i => i.categoryId || i.category_id).filter(Boolean))];
+      const res = await fetch(
+        `${API}/api/store/${storeId}/coupons/available?order_value=${subtotal}&product_ids=${productIds.join(',')}&category_ids=${categoryIds.join(',')}`,
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+      if (res.ok) {
+        const d = await res.json();
+        setAvailableCoupons(d.coupons || []);
+      }
+    } catch (e) { /* silent */ }
+  }, [storeId, items, subtotal, API]);
+
+  useEffect(() => { fetchAvailableCoupons(); }, [fetchAvailableCoupons]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e) => { if (couponRef.current && !couponRef.current.contains(e.target)) setShowCouponDropdown(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const applyCouponCode = async (code) => {
+    const c = (code || couponCode).trim().toUpperCase();
+    if (!c) return;
+    setCouponLoading(true);
+    setCouponError('');
+    try {
+      const productIds = [...new Set(items.map(i => i.productId || i.product_id).filter(Boolean))];
+      const categoryIds = [...new Set(items.map(i => i.categoryId || i.category_id).filter(Boolean))];
+      const res = await fetch(`${API}/api/store/${storeId}/admin/coupons/validate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: c, order_value: subtotal, product_ids: productIds, category_ids: categoryIds }),
+      });
+      const d = await res.json();
+      if (d.valid) {
+        setAppliedCoupon({ code: c, discount: d.discount, name: d.coupon?.name || c, unit: d.coupon?.unit || 'flat' });
+        setCouponCode('');
+        setShowCouponDropdown(false);
+      } else {
+        setCouponError(d.message || 'Invalid or expired coupon');
+      }
+    } catch (e) {
+      setCouponError('Could not apply coupon. Please try again.');
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const removeCoupon = () => { setAppliedCoupon(null); setCouponError(''); };
+  const couponDiscount = appliedCoupon?.discount || 0;
+
+  // ── End Coupon state ───────────────────────────────────────────────────────
 
   // Walk-in customer details — shown only for scan orders
   const isScanOrder = cart.items?.some(item => item.isScanOrder);
@@ -60,7 +130,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
   const delivery = orderType === 'dine_in' ? 0 : (freeDelivery
     ? (subtotal >= freeDeliveryThreshold ? 0 : (deliveryZoneInfo?.deliveryCost ?? deliveryCharge))
     : (deliveryZoneInfo?.deliveryCost ?? deliveryCharge));
-  const total = subtotal + gst + delivery;
+  const total = Math.max(0, subtotal + gst + delivery - (appliedCoupon?.discount || 0));
   const remainingForFree = freeDeliveryThreshold - subtotal;
 
   // Same address book the customer manages on the Profile tab (Step 5 config)
@@ -329,6 +399,118 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
 
         <h2 className="text-xl font-bold mb-4" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>Payment</h2>
 
+        {/* ── Coupon / Promo Section ── */}
+        <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }} ref={couponRef}>
+          <h3 className="font-semibold text-sm mb-3" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>🏷️ Coupons & Offers</h3>
+
+          {appliedCoupon ? (
+            /* Applied coupon chip */
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '10px', padding: '10px 14px' }}>
+              <div>
+                <div style={{ fontWeight: '700', fontSize: '13px', color: '#15803d' }}>✓ {appliedCoupon.code} applied</div>
+                <div style={{ fontSize: '12px', color: '#16a34a', marginTop: '2px' }}>You save ₹{appliedCoupon.discount.toFixed(2)}</div>
+              </div>
+              <button onClick={removeCoupon} style={{ background: 'none', border: '1px solid #86efac', borderRadius: '8px', padding: '4px 10px', fontSize: '12px', color: '#15803d', cursor: 'pointer', fontWeight: '600' }}>Remove</button>
+            </div>
+          ) : (
+            <div style={{ position: 'relative' }}>
+              {/* Text input + Apply button */}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  value={couponCode}
+                  onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponError(''); }}
+                  onFocus={() => setShowCouponDropdown(true)}
+                  onKeyDown={e => { if (e.key === 'Enter') applyCouponCode(); }}
+                  placeholder="Enter or select coupon code"
+                  style={{
+                    flex: 1, border: `1px solid ${couponError ? '#f87171' : '#d1d5db'}`, borderRadius: '8px',
+                    padding: '9px 12px', fontSize: '13px', fontWeight: '600', letterSpacing: '0.5px',
+                    outline: 'none', color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter',
+                    background: brand.colors.background || '#fff',
+                  }}
+                />
+                <button
+                  onClick={() => applyCouponCode()}
+                  disabled={couponLoading || !couponCode.trim()}
+                  style={{
+                    padding: '9px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer',
+                    background: couponCode.trim() ? brand.colors.primary : '#e2e8f0',
+                    color: couponCode.trim() ? '#fff' : '#94a3b8',
+                    fontSize: '13px', fontWeight: '700', whiteSpace: 'nowrap',
+                  }}
+                >
+                  {couponLoading ? '…' : 'Apply'}
+                </button>
+              </div>
+
+              {/* Error */}
+              {couponError && <div style={{ fontSize: '12px', color: '#ef4444', marginTop: '6px', fontWeight: '500' }}>⚠ {couponError}</div>}
+
+              {/* Dropdown — available coupons */}
+              {showCouponDropdown && availableCoupons.length > 0 && (
+                <div style={{
+                  position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 50,
+                  background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.12)', overflow: 'hidden',
+                }}>
+                  <div style={{ padding: '8px 12px', fontSize: '11px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #f1f5f9' }}>
+                    Available Offers
+                  </div>
+                  {availableCoupons.map(c => {
+                    const discountLabel = c.unit === 'percent' ? `${c.value}% off` : `₹${c.value} off`;
+                    const progress = c.min_order_value > 0 ? Math.min(100, (subtotal / c.min_order_value) * 100) : 100;
+                    const eligible = subtotal >= (c.min_order_value || 0);
+                    return (
+                      <div key={c.code}
+                        onClick={() => eligible && applyCouponCode(c.code)}
+                        style={{
+                          padding: '12px 14px', borderBottom: '1px solid #f8fafc',
+                          cursor: eligible ? 'pointer' : 'default',
+                          opacity: eligible ? 1 : 0.6,
+                          background: '#fff',
+                        }}
+                        onMouseEnter={e => { if (eligible) e.currentTarget.style.background = '#f8fafc'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = '#fff'; }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div>
+                            <span style={{ fontWeight: '800', fontSize: '13px', color: brand.colors.primary, letterSpacing: '0.5px' }}>{c.code}</span>
+                            {c.name && c.name !== c.code && <span style={{ marginLeft: '8px', fontSize: '12px', color: '#64748b' }}>{c.name}</span>}
+                          </div>
+                          <span style={{ fontWeight: '700', fontSize: '13px', color: '#15803d', flexShrink: 0, marginLeft: '8px' }}>{discountLabel}</span>
+                        </div>
+                        {c.min_order_value > 0 && (
+                          <div style={{ marginTop: '6px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#94a3b8', marginBottom: '3px' }}>
+                              <span>{eligible ? '✓ Eligible' : `Add ₹${(c.min_order_value - subtotal).toFixed(0)} more`}</span>
+                              <span>₹{subtotal.toFixed(0)} / ₹{c.min_order_value}</span>
+                            </div>
+                            <div style={{ height: '4px', borderRadius: '2px', background: '#e2e8f0', overflow: 'hidden' }}>
+                              <div style={{ height: '100%', width: `${progress}%`, background: eligible ? '#16a34a' : brand.colors.primary, borderRadius: '2px', transition: 'width 0.3s' }} />
+                            </div>
+                          </div>
+                        )}
+                        {!eligible && (
+                          <div style={{ fontSize: '11px', color: '#f59e0b', marginTop: '4px', fontWeight: '600' }}>
+                            Min. order ₹{c.min_order_value}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* No offers available hint */}
+              {showCouponDropdown && availableCoupons.length === 0 && (
+                <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 50, background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', textAlign: 'center', fontSize: '12px', color: '#94a3b8', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
+                  No offers available for your cart right now
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Order Summary */}
         <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
           <h3 className="font-semibold text-sm mb-3" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>Order Summary</h3>
@@ -358,6 +540,12 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                   </div>}
                 </>
               ) : null}
+              {appliedCoupon && (
+                <div className="flex justify-between text-sm" style={{ color: '#15803d' }}>
+                  <span style={{ fontFamily: brand.fonts?.body || 'Inter' }}>Coupon ({appliedCoupon.code})</span>
+                  <span style={{ fontWeight: '700' }}>− ₹{appliedCoupon.discount.toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between font-bold mt-2 pt-2 border-t">
                 <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>Total</span>
                 <span style={{ color: brand.colors.primary }}>₹{total.toFixed(2)}</span>
