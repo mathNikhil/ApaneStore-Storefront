@@ -465,7 +465,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                   onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponError(''); }}
                   onFocus={() => setShowCouponDropdown(true)}
                   onKeyDown={e => { if (e.key === 'Enter') applyCouponCode(); }}
-                  placeholder="Enter or select coupon code"
+                  placeholder="ENTER PROMO CODE"
                   style={{
                     flex: 1, border: `1px solid ${couponError ? '#f87171' : '#d1d5db'}`, borderRadius: '8px',
                     padding: '9px 12px', fontSize: '13px', fontWeight: '600', letterSpacing: '0.5px',
@@ -486,6 +486,24 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                   {couponLoading ? '…' : 'Apply'}
                 </button>
               </div>
+
+              {/* View offers toggle */}
+              {availableCoupons.length > 0 && !showCouponDropdown && (
+                <button
+                  onClick={() => setShowCouponDropdown(true)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', marginTop: '4px', fontSize: '12px', color: brand.colors.primary, fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}
+                >
+                  🏷️ View {availableCoupons.length} available offer{availableCoupons.length > 1 ? 's' : ''} ▾
+                </button>
+              )}
+              {showCouponDropdown && availableCoupons.length > 0 && (
+                <button
+                  onClick={() => setShowCouponDropdown(false)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', marginTop: '4px', fontSize: '12px', color: '#94a3b8', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}
+                >
+                  Hide offers ▴
+                </button>
+              )}
 
               {/* Error */}
               {couponError && <div style={{ fontSize: '12px', color: '#ef4444', marginTop: '6px', fontWeight: '500' }}>⚠ {couponError}</div>}
