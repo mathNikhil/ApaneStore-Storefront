@@ -36,13 +36,18 @@ const PreviewHomeTab = ({
       .catch(() => {});
   }, [storeId]);
 
-  // Fetch all active coupons once for the store (no cart context needed here)
+  // Fetch active coupons; re-fetch every 3 minutes so expired ones drop off
   useEffect(() => {
     if (!storeId) return;
-    fetch(`${API}/api/store/${storeId}/coupons/available`)
-      .then(r => r.json())
-      .then(d => { if (d.success) setAllCoupons(d.coupons || []); })
-      .catch(() => {});
+    const fetchCoupons = () => {
+      fetch(`${API}/api/store/${storeId}/coupons/available`)
+        .then(r => r.json())
+        .then(d => { if (d.success) setAllCoupons(d.coupons || []); })
+        .catch(() => {});
+    };
+    fetchCoupons();
+    const intervalId = setInterval(fetchCoupons, 3 * 60 * 1000); // every 3 min
+    return () => clearInterval(intervalId);
   }, [storeId]);
 
   // Returns coupons applicable to a product (by product id + its category name)
@@ -59,7 +64,10 @@ const PreviewHomeTab = ({
         break;
       }
     }
+    const now = Date.now();
     return allCoupons.filter(c => {
+      // Client-side expiry guard: drop coupons that expired since last fetch
+      if (c.end_at && new Date(c.end_at).getTime() < now) return false;
       if (c.scope === 'all') return true;
       if (c.scope === 'category' && c.scope_items?.length) {
         // scope_items holds category name strings

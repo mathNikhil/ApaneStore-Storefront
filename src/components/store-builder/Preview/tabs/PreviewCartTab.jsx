@@ -61,8 +61,10 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
       );
       if (res.ok) {
         const d = await res.json();
-        // Filter by applicable_to based on current order type
+        const now = Date.now();
+        // Filter by applicable_to AND client-side expiry guard
         const filtered = (d.coupons || []).filter(c => {
+          if (c.end_at && new Date(c.end_at).getTime() < now) return false;
           if (!c.applicable_to || c.applicable_to === 'both') return true;
           return c.applicable_to === orderType;
         });
@@ -71,7 +73,12 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
     } catch (e) { /* silent */ }
   }, [storeId, items, subtotal, API, orderType]);
 
-  useEffect(() => { fetchAvailableCoupons(); }, [fetchAvailableCoupons]);
+  useEffect(() => {
+    fetchAvailableCoupons();
+    // Re-fetch every 3 minutes so expired coupons drop off automatically
+    const intervalId = setInterval(fetchAvailableCoupons, 3 * 60 * 1000);
+    return () => clearInterval(intervalId);
+  }, [fetchAvailableCoupons]);
 
   useEffect(() => {
     const handler = (e) => { if (couponRef.current && !couponRef.current.contains(e.target)) setShowCouponDropdown(false); };
