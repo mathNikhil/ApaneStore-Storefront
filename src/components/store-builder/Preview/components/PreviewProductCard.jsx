@@ -264,12 +264,12 @@ const PreviewProductCard = ({
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div style={{ padding: '16px 16px 10px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ padding: '16px 16px 10px', borderBottom: `1px solid ${primaryColor}20`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: `${primaryColor}08` }}>
           <div>
             <div style={{ fontWeight: '800', fontSize: '15px', color: primaryColor }}>🏷️ Available Offers</div>
             <div style={{ fontSize: '11px', color: fontBodyColor, marginTop: '2px' }}>Add to cart and apply at checkout</div>
           </div>
-          <button onClick={() => setCouponModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: fontBodyColor, fontSize: '20px', lineHeight: 1, padding: '4px' }}>×</button>
+          <button onClick={() => setCouponModalOpen(false)} style={{ background: `${primaryColor}15`, border: 'none', cursor: 'pointer', color: primaryColor, fontSize: '18px', lineHeight: 1, padding: '4px 8px', borderRadius: '6px', fontWeight: '700' }}>×</button>
         </div>
 
         {/* Coupon list */}
@@ -282,13 +282,13 @@ const PreviewProductCard = ({
             : c.scope === 'product' ? 'Selected products only' : null;
 
           return (
-            <div key={c.code} style={{ padding: '14px 16px', borderBottom: i < applicableCoupons.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
+            <div key={c.code} style={{ padding: '14px 16px', borderBottom: i < applicableCoupons.length - 1 ? `1px solid ${primaryColor}15` : 'none' }}>
               {/* Top row: code chip + discount */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <span style={{ border: `1.5px dashed ${primaryColor}`, borderRadius: '6px', padding: '3px 10px', fontWeight: '800', fontSize: '13px', color: primaryColor, letterSpacing: '0.5px' }}>
                   {c.code}
                 </span>
-                <span style={{ fontWeight: '800', fontSize: '15px', color: '#15803d' }}>{discountLabel}</span>
+                <span style={{ fontWeight: '800', fontSize: '15px', color: primaryColor }}>{discountLabel}</span>
               </div>
 
               {/* Offer name */}
@@ -300,35 +300,35 @@ const PreviewProductCard = ({
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
                 {/* Min order */}
                 {c.min_order_value > 0 && (
-                  <span style={{ fontSize: '10px', background: '#f1f5f9', color: '#475569', borderRadius: '4px', padding: '2px 7px', fontWeight: '600' }}>
+                  <span style={{ fontSize: '10px', background: `${primaryColor}12`, color: primaryColor, border: `1px solid ${primaryColor}30`, borderRadius: '4px', padding: '2px 7px', fontWeight: '600' }}>
                     🛒 Min ₹{c.min_order_value}
                   </span>
                 )}
 
                 {/* Mode of shopping */}
                 {c.applicable_to && c.applicable_to !== 'both' && (
-                  <span style={{ fontSize: '10px', background: c.applicable_to === 'dine_in' ? '#fef3c7' : '#dbeafe', color: c.applicable_to === 'dine_in' ? '#92400e' : '#1e40af', borderRadius: '4px', padding: '2px 7px', fontWeight: '600' }}>
+                  <span style={{ fontSize: '10px', background: `${primaryColor}12`, color: primaryColor, border: `1px solid ${primaryColor}30`, borderRadius: '4px', padding: '2px 7px', fontWeight: '600' }}>
                     {c.applicable_to === 'dine_in' ? `🍽️ ${dineInLabel} only` : '🚚 Delivery only'}
                   </span>
                 )}
 
                 {/* Scope / category */}
                 {scopeLabel && (
-                  <span style={{ fontSize: '10px', background: '#f0fdf4', color: '#166534', borderRadius: '4px', padding: '2px 7px', fontWeight: '600' }}>
+                  <span style={{ fontSize: '10px', background: `${primaryColor}12`, color: primaryColor, border: `1px solid ${primaryColor}30`, borderRadius: '4px', padding: '2px 7px', fontWeight: '600' }}>
                     📂 {scopeLabel}
                   </span>
                 )}
 
-                {/* Expiry */}
+                {/* Expiry — urgent uses a warning red tint, normal uses brand tint */}
                 {expiry && (
-                  <span style={{ fontSize: '10px', background: expiry.urgent ? '#fef2f2' : '#f8fafc', color: expiry.urgent ? '#b91c1c' : '#64748b', borderRadius: '4px', padding: '2px 7px', fontWeight: '600' }}>
+                  <span style={{ fontSize: '10px', background: expiry.urgent ? '#fef2f2' : `${primaryColor}12`, color: expiry.urgent ? '#b91c1c' : primaryColor, border: `1px solid ${expiry.urgent ? '#fca5a5' : `${primaryColor}30`}`, borderRadius: '4px', padding: '2px 7px', fontWeight: '600' }}>
                     ⏰ {expiry.text}
                   </span>
                 )}
 
                 {/* Uses remaining — only show if limited AND few left */}
                 {usesLeft !== null && usesLeft <= 10 && (
-                  <span style={{ fontSize: '10px', background: usesLeft <= 3 ? '#fef2f2' : '#fff7ed', color: usesLeft <= 3 ? '#b91c1c' : '#c2410c', borderRadius: '4px', padding: '2px 7px', fontWeight: '600' }}>
+                  <span style={{ fontSize: '10px', background: usesLeft <= 3 ? '#fef2f2' : `${primaryColor}12`, color: usesLeft <= 3 ? '#b91c1c' : primaryColor, border: `1px solid ${usesLeft <= 3 ? '#fca5a5' : `${primaryColor}30`}`, borderRadius: '4px', padding: '2px 7px', fontWeight: '600' }}>
                     🔥 {usesLeft <= 1 ? 'Last 1 use!' : `Only ${usesLeft} left`}
                   </span>
                 )}
@@ -338,7 +338,7 @@ const PreviewProductCard = ({
         })}
 
         {/* Footer note */}
-        <div style={{ padding: '10px 16px 14px', textAlign: 'center', fontSize: '11px', color: '#94a3b8', borderTop: '1px solid #f1f5f9' }}>
+        <div style={{ padding: '10px 16px 14px', textAlign: 'center', fontSize: '11px', color: fontBodyColor, borderTop: `1px solid ${primaryColor}20`, background: `${primaryColor}08` }}>
           Discount is applied automatically when you enter the code at checkout
         </div>
       </div>

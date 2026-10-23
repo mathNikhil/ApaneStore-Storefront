@@ -490,7 +490,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                 </>
               ) : null}
               {appliedCoupon && (
-                <div className="flex justify-between text-sm" style={{ color: '#15803d' }}>
+                <div className="flex justify-between text-sm" style={{ color: brand.colors.primary }}>
                   <span style={{ fontFamily: brand.fonts?.body || 'Inter' }}>Coupon ({appliedCoupon.code})</span>
                   <span style={{ fontWeight: '700' }}>− ₹{appliedCoupon.discount.toFixed(2)}</span>
                 </div>
@@ -1005,12 +1005,12 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
             <h3 className="font-semibold text-sm mb-3" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>🏷️ Coupons & Offers</h3>
 
             {appliedCoupon ? (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '10px', padding: '10px 14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: `${brand.colors.primary}12`, border: `1px solid ${brand.colors.primary}40`, borderRadius: '10px', padding: '10px 14px' }}>
                 <div>
-                  <div style={{ fontWeight: '700', fontSize: '13px', color: '#15803d' }}>✓ {appliedCoupon.code} applied</div>
-                  <div style={{ fontSize: '12px', color: '#16a34a', marginTop: '2px' }}>You save ₹{appliedCoupon.discount.toFixed(2)}</div>
+                  <div style={{ fontWeight: '700', fontSize: '13px', color: brand.colors.primary }}>✓ {appliedCoupon.code} applied</div>
+                  <div style={{ fontSize: '12px', color: brand.colors.primary, marginTop: '2px', opacity: 0.8 }}>You save ₹{appliedCoupon.discount.toFixed(2)}</div>
                 </div>
-                <button onClick={removeCoupon} style={{ background: 'none', border: '1px solid #86efac', borderRadius: '8px', padding: '4px 10px', fontSize: '12px', color: '#15803d', cursor: 'pointer', fontWeight: '600' }}>Remove</button>
+                <button onClick={removeCoupon} style={{ background: 'none', border: `1px solid ${brand.colors.primary}50`, borderRadius: '8px', padding: '4px 10px', fontSize: '12px', color: brand.colors.primary, cursor: 'pointer', fontWeight: '600' }}>Remove</button>
               </div>
             ) : (
               <div style={{ position: 'relative' }}>
@@ -1034,7 +1034,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                     style={{
                       padding: '9px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer',
                       background: couponCode.trim() ? brand.colors.primary : '#e2e8f0',
-                      color: couponCode.trim() ? '#fff' : '#94a3b8',
+                      color: couponCode.trim() ? (brand.colors.buttonLabel || '#fff') : brand.colors.fontBody,
                       fontSize: '13px', fontWeight: '700', whiteSpace: 'nowrap',
                     }}
                   >
@@ -1053,7 +1053,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                 {showCouponDropdown && availableCoupons.length > 0 && (
                   <button
                     onClick={() => setShowCouponDropdown(false)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', marginTop: '4px', fontSize: '12px', color: '#94a3b8', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', marginTop: '4px', fontSize: '12px', color: brand.colors.fontBody, fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}
                   >
                     Hide offers ▴
                   </button>
@@ -1064,10 +1064,10 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                 {showCouponDropdown && availableCoupons.length > 0 && (
                   <div style={{
                     position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 50,
-                    background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px',
+                    background: brand.colors.background || '#fff', border: `1px solid ${brand.colors.primary}20`, borderRadius: '10px',
                     boxShadow: '0 8px 24px rgba(0,0,0,0.12)', overflow: 'hidden',
                   }}>
-                    <div style={{ padding: '8px 12px', fontSize: '11px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #f1f5f9' }}>
+                    <div style={{ padding: '8px 12px', fontSize: '11px', fontWeight: '700', color: brand.colors.primary, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: `1px solid ${brand.colors.primary}20`, background: `${brand.colors.primary}08` }}>
                       Available Offers
                     </div>
                     {availableCoupons.map(c => {
@@ -1093,39 +1093,39 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                         <div key={c.code}
                           onClick={() => eligible && applyCouponCode(c.code)}
                           style={{
-                            padding: '12px 14px', borderBottom: '1px solid #f8fafc',
+                            padding: '12px 14px', borderBottom: `1px solid ${brand.colors.primary}12`,
                             cursor: eligible ? 'pointer' : 'default',
                             opacity: eligible ? 1 : 0.65,
-                            background: '#fff',
+                            background: brand.colors.background || '#fff',
                           }}
-                          onMouseEnter={e => { if (eligible) e.currentTarget.style.background = '#f8fafc'; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = '#fff'; }}
+                          onMouseEnter={e => { if (eligible) e.currentTarget.style.background = `${brand.colors.primary}08`; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = brand.colors.background || '#fff'; }}
                         >
                           {/* Code + discount row */}
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                             <span style={{ fontWeight: '800', fontSize: '13px', color: brand.colors.primary, letterSpacing: '0.5px' }}>{c.code}</span>
-                            <span style={{ fontWeight: '700', fontSize: '13px', color: '#15803d', flexShrink: 0 }}>{discountLabel}</span>
+                            <span style={{ fontWeight: '700', fontSize: '13px', color: brand.colors.primary, flexShrink: 0 }}>{discountLabel}</span>
                           </div>
 
                           {/* Name */}
                           {c.name && c.name !== c.code && (
-                            <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '6px' }}>{c.name}</div>
+                            <div style={{ fontSize: '11px', color: brand.colors.fontBody, marginBottom: '6px' }}>{c.name}</div>
                           )}
 
                           {/* Condition chips */}
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: c.min_order_value > 0 ? '6px' : '0' }}>
                             {c.applicable_to && c.applicable_to !== 'both' && (
-                              <span style={{ fontSize: '10px', background: c.applicable_to === 'dine_in' ? '#fef3c7' : '#dbeafe', color: c.applicable_to === 'dine_in' ? '#92400e' : '#1e40af', borderRadius: '4px', padding: '1px 6px', fontWeight: '600' }}>
+                              <span style={{ fontSize: '10px', background: `${brand.colors.primary}12`, color: brand.colors.primary, border: `1px solid ${brand.colors.primary}30`, borderRadius: '4px', padding: '1px 6px', fontWeight: '600' }}>
                                 {c.applicable_to === 'dine_in' ? `🍽️ ${dineInLabel} only` : '🚚 Delivery only'}
                               </span>
                             )}
                             {expiryChip && (
-                              <span style={{ fontSize: '10px', background: expiryChip.urgent ? '#fef2f2' : '#f8fafc', color: expiryChip.urgent ? '#b91c1c' : '#64748b', borderRadius: '4px', padding: '1px 6px', fontWeight: '600' }}>
+                              <span style={{ fontSize: '10px', background: expiryChip.urgent ? '#fef2f2' : `${brand.colors.primary}12`, color: expiryChip.urgent ? '#b91c1c' : brand.colors.primary, border: `1px solid ${expiryChip.urgent ? '#fca5a5' : `${brand.colors.primary}30`}`, borderRadius: '4px', padding: '1px 6px', fontWeight: '600' }}>
                                 ⏰ {expiryChip.text}
                               </span>
                             )}
                             {usesLeft !== null && usesLeft <= 10 && (
-                              <span style={{ fontSize: '10px', background: usesLeft <= 3 ? '#fef2f2' : '#fff7ed', color: usesLeft <= 3 ? '#b91c1c' : '#c2410c', borderRadius: '4px', padding: '1px 6px', fontWeight: '600' }}>
+                              <span style={{ fontSize: '10px', background: usesLeft <= 3 ? '#fef2f2' : `${brand.colors.primary}12`, color: usesLeft <= 3 ? '#b91c1c' : brand.colors.primary, border: `1px solid ${usesLeft <= 3 ? '#fca5a5' : `${brand.colors.primary}30`}`, borderRadius: '4px', padding: '1px 6px', fontWeight: '600' }}>
                                 🔥 {usesLeft <= 1 ? 'Last 1 use!' : `Only ${usesLeft} left`}
                               </span>
                             )}
@@ -1134,17 +1134,17 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                           {/* Min order progress bar */}
                           {c.min_order_value > 0 && (
                             <div>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#94a3b8', marginBottom: '3px' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: brand.colors.fontBody, marginBottom: '3px' }}>
                                 <span>{eligible ? '✓ Eligible — tap to apply' : `Add ₹${(c.min_order_value - subtotal).toFixed(0)} more to unlock`}</span>
                                 <span>₹{subtotal.toFixed(0)} / ₹{c.min_order_value}</span>
                               </div>
-                              <div style={{ height: '4px', borderRadius: '2px', background: '#e2e8f0', overflow: 'hidden' }}>
-                                <div style={{ height: '100%', width: `${progress}%`, background: eligible ? '#16a34a' : brand.colors.primary, borderRadius: '2px', transition: 'width 0.3s' }} />
+                              <div style={{ height: '4px', borderRadius: '2px', background: `${brand.colors.primary}20`, overflow: 'hidden' }}>
+                                <div style={{ height: '100%', width: `${progress}%`, background: brand.colors.primary, borderRadius: '2px', transition: 'width 0.3s' }} />
                               </div>
                             </div>
                           )}
                           {eligible && c.min_order_value === 0 && (
-                            <div style={{ fontSize: '11px', color: '#16a34a', fontWeight: '600', marginTop: '2px' }}>✓ Tap to apply</div>
+                            <div style={{ fontSize: '11px', color: brand.colors.primary, fontWeight: '600', marginTop: '2px' }}>✓ Tap to apply</div>
                           )}
                         </div>
                       );
@@ -1153,7 +1153,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                 )}
 
                 {showCouponDropdown && availableCoupons.length === 0 && (
-                  <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 50, background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', textAlign: 'center', fontSize: '12px', color: '#94a3b8', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
+                  <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 50, background: brand.colors.background || '#fff', border: `1px solid ${brand.colors.primary}20`, borderRadius: '10px', padding: '14px', textAlign: 'center', fontSize: '12px', color: brand.colors.fontBody, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
                     No offers available for your cart right now
                   </div>
                 )}
