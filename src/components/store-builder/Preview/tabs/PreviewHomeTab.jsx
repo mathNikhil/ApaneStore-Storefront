@@ -51,8 +51,9 @@ const PreviewHomeTab = ({
   const getCouponsForProduct = (product) => {
     const pid = String(product.id);
     // Find this product's category name from the categories tree
+    // Use `categories` directly (from data destructure at top) to avoid TDZ issue
     let catName = null;
-    for (const cat of (allCategories || [])) {
+    for (const cat of (categories || [])) {
       if ((cat.products || []).some(p => String(p.id) === pid)) {
         catName = cat.name;
         break;
