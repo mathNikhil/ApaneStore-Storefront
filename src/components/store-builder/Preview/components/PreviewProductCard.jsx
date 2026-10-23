@@ -577,7 +577,7 @@ const PreviewProductCard = ({
           disabled={isProductOutOfStock}
           className="w-full mt-auto pt-2 py-1.5 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
           style={{ backgroundColor: isProductOutOfStock ? '#e5e7eb' : buttonColor, color: isProductOutOfStock ? '#9ca3af' : buttonLabelColor, marginTop: '0.5rem', cursor: isProductOutOfStock ? 'not-allowed' : 'pointer' }}>
-          {isProductOutOfStock ? 'Out of Stock' : hasMultipleOptions ? 'View Options' : addToCartLabel}
+          {isProductOutOfStock ? 'Out of Stock' : hasMultipleOptions ? `${product.variations?.length > 1 ? product.variations.length : product.variations?.[0]?.sizes?.length || ''} Options Available` : addToCartLabel}
         </button>
       </div>
     </div>
