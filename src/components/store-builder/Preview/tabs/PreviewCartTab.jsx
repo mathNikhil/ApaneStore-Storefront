@@ -61,10 +61,15 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
       );
       if (res.ok) {
         const d = await res.json();
-        setAvailableCoupons(d.coupons || []);
+        // Filter by applicable_to based on current order type
+        const filtered = (d.coupons || []).filter(c => {
+          if (!c.applicable_to || c.applicable_to === 'both') return true;
+          return c.applicable_to === orderType;
+        });
+        setAvailableCoupons(filtered);
       }
     } catch (e) { /* silent */ }
-  }, [storeId, items, subtotal, API]);
+  }, [storeId, items, subtotal, API, orderType]);
 
   useEffect(() => { fetchAvailableCoupons(); }, [fetchAvailableCoupons]);
 
@@ -538,6 +543,11 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                           <div>
                             <span style={{ fontWeight: '800', fontSize: '13px', color: brand.colors.primary, letterSpacing: '0.5px' }}>{c.code}</span>
                             {c.name && c.name !== c.code && <span style={{ marginLeft: '8px', fontSize: '12px', color: '#64748b' }}>{c.name}</span>}
+                            {c.applicable_to && c.applicable_to !== 'both' && (
+                              <span style={{ marginLeft: '6px', fontSize: '10px', background: c.applicable_to === 'dine_in' ? '#fef3c7' : '#dbeafe', color: c.applicable_to === 'dine_in' ? '#92400e' : '#1e40af', borderRadius: '4px', padding: '1px 5px', fontWeight: '600' }}>
+                                {c.applicable_to === 'dine_in' ? '🍽️ Dine-in' : '🚚 Delivery'}
+                              </span>
+                            )}
                           </div>
                           <span style={{ fontWeight: '700', fontSize: '13px', color: '#15803d', flexShrink: 0, marginLeft: '8px' }}>{discountLabel}</span>
                         </div>
