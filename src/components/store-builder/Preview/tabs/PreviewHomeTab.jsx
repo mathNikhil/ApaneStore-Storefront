@@ -45,18 +45,16 @@ const PreviewHomeTab = ({
   }, [storeId]);
 
   // Returns coupons applicable to a product (by product id)
+  // For category-scoped coupons we show on all products since product objects
+  // don't carry categoryId — validation happens at cart/checkout
   const getCouponsForProduct = (product) => {
     const pid = String(product.id);
     return allCoupons.filter(c => {
       if (c.scope === 'all') return true;
+      if (c.scope === 'category') return true; // show on all; cart validates
       if (c.scope === 'product' && c.scope_items?.length) {
         const scopePids = c.scope_items.map(k => String(k).split(':')[0]);
         return scopePids.includes(pid);
-      }
-      // category scope — match if product belongs to any of the coupon's categories
-      if (c.scope === 'category' && c.scope_items?.length) {
-        const productCatIds = (product.categoryIds || product.category_ids || []).map(String);
-        return productCatIds.some(cid => c.scope_items.map(String).includes(cid));
       }
       return false;
     });
