@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import PreviewBanner from '../components/PreviewBanner';
 import PreviewProductCard from '../components/PreviewProductCard';
 import QRScannerModal from '../components/qr/QRScannerModal';
@@ -36,17 +36,6 @@ const PreviewHomeTab = ({
       .catch(() => {});
   }, [storeId]);
 
-  // Build productId → categoryId map from categories data
-  const productCategoryMap = useMemo(() => {
-    const map = {};
-    (allCategories || []).forEach(cat => {
-      (cat.products || []).forEach(p => {
-        map[String(p.id)] = String(cat.id);
-      });
-    });
-    return map;
-  }, [allCategories]);
-
   // Fetch all active coupons once for the store (no cart context needed here)
   useEffect(() => {
     if (!storeId) return;
@@ -59,14 +48,20 @@ const PreviewHomeTab = ({
   // Returns coupons applicable to a product (by product id + its category)
   const getCouponsForProduct = (product) => {
     const pid = String(product.id);
-    const catId = productCategoryMap[pid];
+    // Find this product's category id from the categories tree
+    let catId = null;
+    for (const cat of (allCategories || [])) {
+      if ((cat.products || []).some(p => String(p.id) === pid)) {
+        catId = String(cat.id);
+        break;
+      }
+    }
     return allCoupons.filter(c => {
       if (c.scope === 'all') return true;
       if (c.scope === 'category' && c.scope_items?.length) {
-        // Show banner only if this product's category is in scope_items
-        return catId && c.scope_items.map(String).includes(catId);
+        return catId !== null && c.scope_items.map(String).includes(catId);
       }
-      if (c.scope === 'category' && !c.scope_items?.length) return true; // no restriction = all
+      if (c.scope === 'category' && !c.scope_items?.length) return true;
       if (c.scope === 'product' && c.scope_items?.length) {
         const scopePids = c.scope_items.map(k => String(k).split(':')[0]);
         return scopePids.includes(pid);
