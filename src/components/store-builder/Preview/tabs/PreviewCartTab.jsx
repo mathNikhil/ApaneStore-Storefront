@@ -24,7 +24,24 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
   const [upiIdConfirmed, setUpiIdConfirmed] = useState(false);
   const [cashfreeLoading, setCashfreeLoading] = useState(false);
 
+  // Walk-in customer details — shown only for scan orders
+  const isScanOrder = cart.items?.some(item => item.isScanOrder);
+  const [walkInName, setWalkInName] = useState('');
+  const [walkInMobile, setWalkInMobile] = useState('');
+  const [dineInName, setDineInName] = useState('');
+  const [dineInMobile, setDineInMobile] = useState('');
+
+  const { items, freeDelivery, freeDeliveryThreshold, deliveryCharge, showProgressBar, enableGST, gstRate, taxLabel, showGSTBreakdownCart, showGSTBreakdownCheckout, gstNumber, enableDineIn, dineInLabel } = cart;
+  const [orderType, setOrderType] = useState('delivery'); // 'dine_in' or 'delivery'
+  const [selectedLocation, setSelectedLocation] = useState(null); // for dine-in location selection
+  const [deliveryZoneInfo, setDeliveryZoneInfo] = useState(null); // { allowed, storeAddressId, storeAddressName, deliveryZone, deliveryCost }
+  const [pincodeChecked, setPincodeChecked] = useState(false);
+
+  const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
   // ── Coupon state ──────────────────────────────────────────────────────────
+  const storeId = data?.profile?.storeId || data?.storeId;
+  const API = data?.apiBase || '';
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState(null); // { code, discount, name, unit }
   const [couponError, setCouponError] = useState('');
@@ -32,10 +49,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
   const [availableCoupons, setAvailableCoupons] = useState([]);
   const [showCouponDropdown, setShowCouponDropdown] = useState(false);
   const couponRef = useRef(null);
-  const storeId = data?.profile?.storeId || data?.storeId;
-  const API = data?.apiBase || '';
 
-  // Fetch available coupons whenever cart items change
   const fetchAvailableCoupons = useCallback(async () => {
     if (!storeId || !items?.length) return;
     try {
@@ -54,7 +68,6 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
 
   useEffect(() => { fetchAvailableCoupons(); }, [fetchAvailableCoupons]);
 
-  // Close dropdown on outside click
   useEffect(() => {
     const handler = (e) => { if (couponRef.current && !couponRef.current.contains(e.target)) setShowCouponDropdown(false); };
     document.addEventListener('mousedown', handler);
@@ -69,7 +82,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
     try {
       const productIds = [...new Set(items.map(i => i.productId || i.product_id).filter(Boolean))];
       const categoryIds = [...new Set(items.map(i => i.categoryId || i.category_id).filter(Boolean))];
-      const res = await fetch(`${API}/api/store/${storeId}/admin/coupons/validate`, {
+      const res = await fetch(`${API}/api/store/${storeId}/coupons/validate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: c, order_value: subtotal, product_ids: productIds, category_ids: categoryIds }),
@@ -80,7 +93,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
         setCouponCode('');
         setShowCouponDropdown(false);
       } else {
-        setCouponError(d.message || 'Invalid or expired coupon');
+        setCouponError(d.error || d.message || 'Invalid or expired coupon');
       }
     } catch (e) {
       setCouponError('Could not apply coupon. Please try again.');
@@ -91,25 +104,8 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
 
   const removeCoupon = () => { setAppliedCoupon(null); setCouponError(''); };
   const couponDiscount = appliedCoupon?.discount || 0;
-
   // ── End Coupon state ───────────────────────────────────────────────────────
 
-  // Walk-in customer details — shown only for scan orders
-  const isScanOrder = cart.items?.some(item => item.isScanOrder);
-  const [walkInName, setWalkInName] = useState('');
-  const [walkInMobile, setWalkInMobile] = useState('');
-  const [dineInName, setDineInName] = useState('');
-  const [dineInMobile, setDineInMobile] = useState('');
-
-  const { items, freeDelivery, freeDeliveryThreshold, deliveryCharge, showProgressBar, enableGST, gstRate, taxLabel, showGSTBreakdownCart, showGSTBreakdownCheckout, gstNumber, enableDineIn, dineInLabel } = cart;
-  const [orderType, setOrderType] = useState('delivery'); // 'dine_in' or 'delivery'
-  const [selectedLocation, setSelectedLocation] = useState(null); // for dine-in location selection
-  const [deliveryZoneInfo, setDeliveryZoneInfo] = useState(null); // { allowed, storeAddressId, storeAddressName, deliveryZone, deliveryCost }
-  const [pincodeChecked, setPincodeChecked] = useState(false);
-
-  // coupon state managed above in the ── Coupon state ── block
-
-  const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   // Detect if any item has per-product GST
   const hasPerProductGST = items.some(item => item.gstRate != null && item.gstRate > 0);
   // Per-product GST breakdown grouped by rate
