@@ -45,21 +45,24 @@ const PreviewHomeTab = ({
       .catch(() => {});
   }, [storeId]);
 
-  // Returns coupons applicable to a product (by product id + its category)
+  // Returns coupons applicable to a product (by product id + its category name)
+  // NOTE: scope_items for category-scoped coupons stores category NAMES (e.g. "Bottoms"),
+  // not numeric IDs — matching must be done by cat.name
   const getCouponsForProduct = (product) => {
     const pid = String(product.id);
-    // Find this product's category id from the categories tree
-    let catId = null;
+    // Find this product's category name from the categories tree
+    let catName = null;
     for (const cat of (allCategories || [])) {
       if ((cat.products || []).some(p => String(p.id) === pid)) {
-        catId = String(cat.id);
+        catName = cat.name;
         break;
       }
     }
     return allCoupons.filter(c => {
       if (c.scope === 'all') return true;
       if (c.scope === 'category' && c.scope_items?.length) {
-        return catId !== null && c.scope_items.map(String).includes(catId);
+        // scope_items holds category name strings
+        return catName !== null && c.scope_items.includes(catName);
       }
       if (c.scope === 'category' && !c.scope_items?.length) return true;
       if (c.scope === 'product' && c.scope_items?.length) {
