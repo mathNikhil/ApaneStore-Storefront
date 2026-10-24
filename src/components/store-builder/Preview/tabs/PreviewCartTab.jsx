@@ -39,14 +39,15 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
 
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-  // ── Coupon state ──────────────────────────────────────────────────────────
+  // ── Coupon / Promo state ──────────────────────────────────────────────────
   const storeId = data?.profile?.storeId || data?.storeId;
   const API = data?.apiBase || '';
   const [couponCode, setCouponCode] = useState('');
-  const [appliedCoupon, setAppliedCoupon] = useState(null); // { code, discount, name, unit }
+  const [appliedCoupon, setAppliedCoupon] = useState(null);   // manually entered coupon
+  const [appliedPromos, setAppliedPromos] = useState([]);      // auto-applied promos
   const [couponError, setCouponError] = useState('');
   const [couponLoading, setCouponLoading] = useState(false);
-  const [availableCoupons, setAvailableCoupons] = useState([]);
+  const [availableCoupons, setAvailableCoupons] = useState([]); // only type=coupon
   const [showCouponDropdown, setShowCouponDropdown] = useState(false);
   const couponRef = useRef(null);
 
@@ -62,20 +63,41 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
       if (res.ok) {
         const d = await res.json();
         const now = Date.now();
-        // Filter by applicable_to AND client-side expiry guard
         const filtered = (d.coupons || []).filter(c => {
           if (c.end_at && new Date(c.end_at).getTime() < now) return false;
           if (!c.applicable_to || c.applicable_to === 'both') return true;
           return c.applicable_to === orderType;
         });
-        setAvailableCoupons(filtered);
+
+        // Split: promos auto-apply, coupons go in the dropdown
+        const promos = filtered.filter(c => c.type === 'promo' && subtotal >= (c.min_order_value || 0));
+        const coupons = filtered.filter(c => c.type === 'coupon');
+        setAvailableCoupons(coupons);
+
+        // Auto-apply all eligible promos (validate each to get discount amount)
+        if (promos.length > 0) {
+          const validated = await Promise.all(promos.map(async (p) => {
+            try {
+              const vr = await fetch(`${API}/api/store/${storeId}/coupons/validate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code: p.code, order_value: subtotal, product_ids: productIds, category_ids: categoryIds }),
+              });
+              const vd = await vr.json();
+              if (vd.valid) return { code: p.code, name: p.name, discount: vd.discount, unit: p.unit };
+            } catch { /* silent */ }
+            return null;
+          }));
+          setAppliedPromos(validated.filter(Boolean));
+        } else {
+          setAppliedPromos([]);
+        }
       }
     } catch (e) { /* silent */ }
   }, [storeId, items, subtotal, API, orderType]);
 
   useEffect(() => {
     fetchAvailableCoupons();
-    // Re-fetch every 3 minutes so expired coupons drop off automatically
     const intervalId = setInterval(fetchAvailableCoupons, 3 * 60 * 1000);
     return () => clearInterval(intervalId);
   }, [fetchAvailableCoupons]);
@@ -101,9 +123,13 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
       });
       const d = await res.json();
       if (d.valid) {
-        setAppliedCoupon({ code: c, discount: d.discount, name: d.coupon?.name || c, unit: d.coupon?.unit || 'flat' });
-        setCouponCode('');
-        setShowCouponDropdown(false);
+        if (d.coupon?.type === 'promo') {
+          setCouponError('This is a promotional offer — it is applied automatically. No code needed!');
+        } else {
+          setAppliedCoupon({ code: c, discount: d.discount, name: d.coupon?.name || c, unit: d.coupon?.unit || 'flat' });
+          setCouponCode('');
+          setShowCouponDropdown(false);
+        }
       } else {
         setCouponError(d.error || d.message || 'Invalid or expired coupon');
       }
@@ -115,8 +141,9 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
   };
 
   const removeCoupon = () => { setAppliedCoupon(null); setCouponError(''); };
-  const couponDiscount = appliedCoupon?.discount || 0;
-  // ── End Coupon state ───────────────────────────────────────────────────────
+  const promoDiscount = appliedPromos.reduce((sum, p) => sum + (p.discount || 0), 0);
+  const couponDiscount = (appliedCoupon?.discount || 0) + promoDiscount;
+  // ── End Coupon / Promo state ───────────────────────────────────────────────
 
   // Detect if any item has per-product GST
   const hasPerProductGST = items.some(item => item.gstRate != null && item.gstRate > 0);
@@ -140,7 +167,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
   const delivery = orderType === 'dine_in' ? 0 : (freeDelivery
     ? (subtotal >= freeDeliveryThreshold ? 0 : (deliveryZoneInfo?.deliveryCost ?? deliveryCharge))
     : (deliveryZoneInfo?.deliveryCost ?? deliveryCharge));
-  const total = Math.max(0, subtotal + gst + delivery - (appliedCoupon?.discount || 0));
+  const total = Math.max(0, subtotal + gst + delivery - couponDiscount);
   const remainingForFree = freeDeliveryThreshold - subtotal;
 
   // Same address book the customer manages on the Profile tab (Step 5 config)
@@ -410,7 +437,8 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
       deliveryZone: deliveryZoneName,
       deliveryCost: finalDeliveryCost,
       couponCode: appliedCoupon?.code || null,
-      discountAmount: appliedCoupon?.discount || 0,
+      promoCodes: appliedPromos.map(p => p.code),
+      discountAmount: couponDiscount,
       // Walk-in customer (scan orders only)
       ...(isScanOrder ? {
         isScanOrder: true,
@@ -489,9 +517,15 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                   </div>}
                 </>
               ) : null}
+              {appliedPromos.map(p => (
+                <div key={p.code} className="flex justify-between text-sm" style={{ color: brand.colors.primary }}>
+                  <span style={{ fontFamily: brand.fonts?.body || 'Inter' }}>🎉 {p.name || p.code}</span>
+                  <span style={{ fontWeight: '700' }}>− ₹{p.discount.toFixed(2)}</span>
+                </div>
+              ))}
               {appliedCoupon && (
                 <div className="flex justify-between text-sm" style={{ color: brand.colors.primary }}>
-                  <span style={{ fontFamily: brand.fonts?.body || 'Inter' }}>Coupon ({appliedCoupon.code})</span>
+                  <span style={{ fontFamily: brand.fonts?.body || 'Inter' }}>🏷️ Coupon ({appliedCoupon.code})</span>
                   <span style={{ fontWeight: '700' }}>− ₹{appliedCoupon.discount.toFixed(2)}</span>
                 </div>
               )}
@@ -1004,6 +1038,18 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
           <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }} ref={couponRef}>
             <h3 className="font-semibold text-sm mb-3" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>🏷️ Coupons & Offers</h3>
 
+            {appliedPromos.length > 0 && (
+              <div style={{ marginBottom: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {appliedPromos.map(p => (
+                  <div key={p.code} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '10px', padding: '10px 14px' }}>
+                    <div>
+                      <div style={{ fontWeight: '700', fontSize: '13px', color: '#16a34a' }}>🎉 {p.name || p.code} applied automatically</div>
+                      <div style={{ fontSize: '12px', color: '#16a34a', marginTop: '2px', opacity: 0.85 }}>You save ₹{p.discount.toFixed(2)}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
             {appliedCoupon ? (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: `${brand.colors.primary}12`, border: `1px solid ${brand.colors.primary}40`, borderRadius: '10px', padding: '10px 14px' }}>
                 <div>
@@ -1020,7 +1066,7 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                     onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponError(''); }}
                     onFocus={() => setShowCouponDropdown(true)}
                     onKeyDown={e => { if (e.key === 'Enter') applyCouponCode(); }}
-                    placeholder="ENTER PROMO CODE"
+                    placeholder="ENTER COUPON CODE"
                     style={{
                       flex: 1, border: `1px solid ${couponError ? '#f87171' : '#d1d5db'}`, borderRadius: '8px',
                       padding: '9px 12px', fontSize: '13px', fontWeight: '600', letterSpacing: '0.5px',
@@ -1196,9 +1242,15 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
                   )}
                 </>
               ) : null}
+              {appliedPromos.map(p => (
+                <div key={p.code} className="flex justify-between text-sm text-green-700">
+                  <span>🎉 {p.name || p.code}</span>
+                  <span>-₹{p.discount.toFixed(2)}</span>
+                </div>
+              ))}
               {appliedCoupon && (
                 <div className="flex justify-between text-sm text-green-700">
-                  <span>Discount ({appliedCoupon.code})</span>
+                  <span>🏷️ Coupon ({appliedCoupon.code})</span>
                   <span>-₹{appliedCoupon.discount.toFixed(2)}</span>
                 </div>
               )}
