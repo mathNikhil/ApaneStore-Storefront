@@ -60,9 +60,13 @@ const PreviewProductCard = ({
   // Best coupon label for banner (highest value)
   const bestCoupon = visibleCoupons.length > 0 ? visibleCoupons[0] : null;
   const bestCouponLabel = bestCoupon
-    ? bestCoupon.unit === 'percent'
-      ? `${bestCoupon.value}% off with ${bestCoupon.code}`
-      : `₹${bestCoupon.value} off with ${bestCoupon.code}`
+    ? bestCoupon.type === 'promo'
+      ? bestCoupon.unit === 'percent'
+        ? `${bestCoupon.value}% off — ${bestCoupon.name || 'Promo'}`
+        : `₹${bestCoupon.value} off — ${bestCoupon.name || 'Promo'}`
+      : bestCoupon.unit === 'percent'
+        ? `${bestCoupon.value}% off with ${bestCoupon.code}`
+        : `₹${bestCoupon.value} off with ${bestCoupon.code}`
     : null;
 
   const hasMultipleOptions = (product.variations?.length || 0) > 1 ||
