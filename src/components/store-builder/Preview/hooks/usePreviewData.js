@@ -381,9 +381,26 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
   }, [builderData]);
 
   // ============================================
+  // LOAD CART FROM BACKEND on mount / login
+  // ============================================
+  useEffect(() => {
+    if (!storeId || !customerToken) return;
+    customerCartAPI.getCart(storeId, customerToken)
+      .then(result => {
+        const items = result?.data?.items;
+        if (Array.isArray(items) && items.length > 0) {
+          setStoreData(prev => ({
+            ...prev,
+            cart: { ...prev.cart, items },
+          }));
+        }
+      })
+      .catch(() => {}); // fail silently — customer just gets empty cart
+  }, [storeId, customerToken]);
+
+  // ============================================
   // AUTO-SAVE CART — persists cart to backend on every change
   // Only saves when customer is logged in (token exists)
-  // Cart expires after 12 hours matching session expiry
   // ============================================
   useEffect(() => {
     if (!storeId || !customerToken) return;
