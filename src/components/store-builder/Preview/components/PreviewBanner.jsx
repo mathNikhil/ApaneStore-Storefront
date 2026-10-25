@@ -81,11 +81,15 @@ const PreviewBanner = ({
   const currentImage = allImages[activeIdx] || null;
   const containerH = height || 400;
 
+  // On mobile viewports, cap the banner height so it doesn't eat the whole screen.
+  // We use a CSS clamp via inline style: min(containerH, 55vw) but with a floor of 180px.
+  const responsiveHeight = `clamp(180px, 55vw, ${containerH}px)`;
+
   return (
     <div
       className="relative overflow-hidden mb-6"
       style={{
-        height: `${containerH}px`,
+        height: responsiveHeight,
         backgroundColor: bgColor || '#25D366',
       }}
     >
@@ -211,26 +215,41 @@ const PreviewBanner = ({
 const SlideImage = ({ slide, containerH, opacity }) => {
   const containerRef = useRef(null);
   const [containerW, setContainerW] = useState(0);
+  const [containerActualH, setContainerActualH] = useState(containerH);
   const [natural, setNatural] = useState({ w: 0, h: 0 });
 
   useEffect(() => {
     if (!containerRef.current) return;
-    const ro = new ResizeObserver(e => setContainerW(e[0].contentRect.width));
+    const ro = new ResizeObserver(e => {
+      setContainerW(e[0].contentRect.width);
+      setContainerActualH(e[0].contentRect.height);
+    });
     ro.observe(containerRef.current);
-    setContainerW(containerRef.current.getBoundingClientRect().width);
+    const rect = containerRef.current.getBoundingClientRect();
+    setContainerW(rect.width);
+    setContainerActualH(rect.height);
     return () => ro.disconnect();
   }, []);
 
   const crop = slide.crop;
   let imgStyle;
 
+  const actualH = containerActualH || containerH;
+
   if (crop && natural.w > 0 && containerW > 0) {
-    const sc = Math.max(containerW / crop.cropW, containerH / crop.cropH);
+    // Scale crop region to fill the current container (responsive)
+    const sc = Math.max(containerW / crop.cropW, actualH / crop.cropH);
     const imgW = natural.w * sc;
     const imgH = natural.h * sc;
     const left = -(crop.cropX * sc) + (containerW - crop.cropW * sc) / 2;
-    const top  = -(crop.cropY * sc) + (containerH - crop.cropH * sc) / 2;
-    imgStyle = { position: 'absolute', width: `${imgW}px`, height: `${imgH}px`, left: `${left}px`, top: `${top}px`, pointerEvents: 'none' };
+    const top  = -(crop.cropY * sc) + (actualH - crop.cropH * sc) / 2;
+    // Sanity-check: if crop would render image entirely off-screen, fall back to cover
+    const wouldBeOffScreen = (left + imgW < 0) || (left > containerW) || (top + imgH < 0) || (top > actualH);
+    if (wouldBeOffScreen) {
+      imgStyle = { position: 'absolute', width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block', pointerEvents: 'none' };
+    } else {
+      imgStyle = { position: 'absolute', width: `${imgW}px`, height: `${imgH}px`, left: `${left}px`, top: `${top}px`, pointerEvents: 'none' };
+    }
   } else {
     imgStyle = { position: 'absolute', width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block', pointerEvents: 'none' };
   }
