@@ -7,7 +7,7 @@ import { QRCodeSVG } from 'qrcode.react';
 // used to double as muted text color; that job moved entirely to fontBody.
 // Secondary is now purely a UI-state color (e.g. the free-delivery
 // progress bar's track, quantity-stepper borders).
-const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGoToProfile, isAuthenticated, onRequireAuth, storeType = 'product', booking = {}, tabName = '' }) => {
+const PreviewCartTab = ({ data, updateQuantity, updateSlots, removeFromCart, placeOrder, onGoToProfile, isAuthenticated, onRequireAuth, storeType = 'product', booking = {}, tabName = '' }) => {
   const isService = storeType === 'service';
   const { cart, brand, payment, profile } = data;
   const [showCheckout, setShowCheckout] = useState(false);
@@ -745,11 +745,11 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
 
         <button
           onClick={handlePlaceOrder}
-          disabled={paymentMethods.length === 0 || placingOrder || (selectedPayment === 'upi' && !upiIdConfirmed) || (selectedPayment === 'cod' && partialPaymentEnabled && !upiIdConfirmed)}
+          disabled={paymentMethods.length === 0 || placingOrder || (selectedPayment === 'upi' && !upiIdConfirmed) || (selectedPayment === 'cod' && partialPaymentEnabled && !upiIdConfirmed) || (isService && items.some(i => (i.selectedSlots || []).length < i.quantity))}
           className="w-full py-3 rounded-lg font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50 disabled:pointer-events-none"
           style={{ backgroundColor: brand.colors.button || '#25D366' }}
         >
-          {placingOrder ? 'Placing Order...' : 'Place Order'}
+          {placingOrder ? 'Placing Order...' : isService && items.some(i => (i.selectedSlots || []).length < i.quantity) ? 'Select all appointment slots to continue' : 'Place Order'}
         </button>
       </div>
     );
@@ -793,60 +793,87 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
               const itemTotal = item.price * item.quantity;
               const itemGstRate = enableGST ? (item.gstRate != null && item.gstRate > 0 ? item.gstRate : (item.gstRate === null && gstRate ? 0 : null)) : null;
               const itemGstAmt = enableGST && item.gstRate != null && item.gstRate > 0 ? item.price * item.quantity * (item.gstRate / 100) : null;
+              const slotsNeeded = item.quantity;
+              const slotsSelected = (item.selectedSlots || []).length;
+              const slotsMissing = isService && slotsNeeded > slotsSelected;
+
               return (
-                <div key={item.id} className="rounded-lg border p-4 flex items-center gap-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
-                  <div className="w-16 h-16 rounded-lg bg-[#f2f4f7] flex items-center justify-center overflow-hidden flex-shrink-0">
-                    {item.image ? (
-                      <img src={item.image} alt={item.productName} className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="material-symbols-outlined text-[#bbcbb9]">image</span>
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-sm" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>
-                      {item.productName}
-                    </h4>
-                    <p className="text-xs" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>
-                      {item.sizeLabel} • {item.variationName}
-                    </p>
-                    {itemGstAmt != null ? (
-                      <div>
-                        <p className="text-xs" style={{ color: brand.colors.fontBody }}>
-                          ₹{itemTotal.toFixed(2)} + {taxLabel} {item.gstRate}% (₹{itemGstAmt.toFixed(2)})
-                        </p>
-                        <p className="text-sm font-bold" style={{ color: brand.colors.primary }}>
-                          = ₹{(itemTotal + itemGstAmt).toFixed(2)}
-                        </p>
-                      </div>
-                    ) : (
-                      <p className="text-sm font-bold" style={{ color: brand.colors.primary }}>
-                        ₹{itemTotal.toFixed(2)}
+                <div key={item.id} className="rounded-lg border overflow-hidden" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
+                  {/* Item row */}
+                  <div className="p-4 flex items-center gap-4">
+                    <div className="w-16 h-16 rounded-lg bg-[#f2f4f7] flex items-center justify-center overflow-hidden flex-shrink-0">
+                      {item.image ? (
+                        <img src={item.image} alt={item.productName} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="material-symbols-outlined text-[#bbcbb9]">image</span>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-sm" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>
+                        {item.productName}
+                      </h4>
+                      <p className="text-xs" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>
+                        {item.sizeLabel} • {item.variationName}
                       </p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
+                      {itemGstAmt != null ? (
+                        <div>
+                          <p className="text-xs" style={{ color: brand.colors.fontBody }}>
+                            ₹{itemTotal.toFixed(2)} + {taxLabel} {item.gstRate}% (₹{itemGstAmt.toFixed(2)})
+                          </p>
+                          <p className="text-sm font-bold" style={{ color: brand.colors.primary }}>
+                            = ₹{(itemTotal + itemGstAmt).toFixed(2)}
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="text-sm font-bold" style={{ color: brand.colors.primary }}>
+                          ₹{itemTotal.toFixed(2)}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          const newQty = item.quantity - 1;
+                          updateQuantity(item.id, newQty);
+                          // trim slots if qty reduced
+                          if (updateSlots && (item.selectedSlots || []).length > newQty) {
+                            updateSlots(item.id, (item.selectedSlots || []).slice(0, newQty));
+                          }
+                        }}
+                        className="w-8 h-8 rounded-full border flex items-center justify-center hover:bg-[#f2f4f7] transition-colors"
+                        style={{ borderColor: brand.colors.secondary }}
+                      >
+                        <span className="material-symbols-outlined text-sm">remove</span>
+                      </button>
+                      <span className="w-6 text-center font-medium">{item.quantity}</span>
+                      <button
+                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                        className="w-8 h-8 rounded-full border flex items-center justify-center hover:bg-[#f2f4f7] transition-colors"
+                        style={{ borderColor: brand.colors.secondary }}
+                      >
+                        <span className="material-symbols-outlined text-sm">add</span>
+                      </button>
+                    </div>
                     <button
-                      onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                      className="w-8 h-8 rounded-full border flex items-center justify-center hover:bg-[#f2f4f7] transition-colors"
-                      style={{ borderColor: brand.colors.secondary }}
+                      onClick={() => removeFromCart(item.id)}
+                      className="text-[#ba1a1a] hover:bg-[#ffdad6]/50 p-1 rounded-full transition-colors"
                     >
-                      <span className="material-symbols-outlined text-sm">remove</span>
-                    </button>
-                    <span className="w-6 text-center font-medium">{item.quantity}</span>
-                    <button
-                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      className="w-8 h-8 rounded-full border flex items-center justify-center hover:bg-[#f2f4f7] transition-colors"
-                      style={{ borderColor: brand.colors.secondary }}
-                    >
-                      <span className="material-symbols-outlined text-sm">add</span>
+                      <span className="material-symbols-outlined text-sm">close</span>
                     </button>
                   </div>
-                  <button
-                    onClick={() => removeFromCart(item.id)}
-                    className="text-[#ba1a1a] hover:bg-[#ffdad6]/50 p-1 rounded-full transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-sm">close</span>
-                  </button>
+
+                  {/* Slot picker — service stores only */}
+                  {isService && (
+                    <ServiceSlotPicker
+                      item={item}
+                      booking={booking}
+                      storeId={data.storeId}
+                      apiBase={data.apiBase}
+                      primaryColor={brand.colors.primary}
+                      fontBody={brand.fonts?.body || 'Inter'}
+                      onSlotsChange={(slots) => updateSlots && updateSlots(item.id, slots)}
+                    />
+                  )}
                 </div>
               );
             })}
@@ -1269,6 +1296,164 @@ const PreviewCartTab = ({ data, updateQuantity, removeFromCart, placeOrder, onGo
             Proceed to Checkout
           </button>
         </>
+      )}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ServiceSlotPicker
+// Shows a date strip + time slots. Customer must pick exactly `item.quantity`
+// slots. Same slot can be picked multiple times (staff capacity handled server-side).
+// ─────────────────────────────────────────────────────────────────────────────
+const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, fontBody, onSlotsChange }) => {
+  const quantity = item.quantity;
+  const selectedSlots = item.selectedSlots || [];
+  const duration = item.duration || 60;
+
+  // Build date options: today + advanceDays
+  const advanceDays = parseInt(booking.advanceDays) || 7;
+  const workingDays = booking.workingDays || ['Mon','Tue','Wed','Thu','Fri','Sat'];
+  const dayMap = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  const dateOptions = React.useMemo(() => {
+    const dates = [];
+    const today = new Date();
+    for (let i = 0; i < advanceDays + 7 && dates.length < advanceDays; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      const dayName = dayMap[d.getDay()];
+      if (workingDays.includes(dayName)) {
+        dates.push({
+          iso: d.toISOString().split('T')[0],
+          label: i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : dayName,
+          sub: d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
+        });
+      }
+    }
+    return dates;
+  }, [advanceDays, workingDays]);
+
+  const [selectedDate, setSelectedDate] = React.useState(dateOptions[0]?.iso || '');
+  const [slots, setSlots] = React.useState([]);
+  const [loading, setLoading] = React.useState(false);
+
+  // Fetch slots when date changes
+  React.useEffect(() => {
+    if (!selectedDate || !storeId) return;
+    setLoading(true);
+    fetch(`${apiBase}/api/store/${storeId}/slots?date=${selectedDate}&serviceDuration=${duration}`)
+      .then(r => r.json())
+      .then(res => {
+        setSlots(res.success ? res.data : []);
+      })
+      .catch(() => setSlots([]))
+      .finally(() => setLoading(false));
+  }, [selectedDate, storeId, duration, apiBase]);
+
+  const addSlot = (slot) => {
+    if (selectedSlots.length >= quantity) return;
+    const newSlots = [...selectedSlots, { date: selectedDate, startTime: slot.startTime, endTime: slot.endTime }];
+    onSlotsChange(newSlots);
+  };
+
+  const removeSlot = (idx) => {
+    const newSlots = selectedSlots.filter((_, i) => i !== idx);
+    onSlotsChange(newSlots);
+  };
+
+  const slotsNeeded = quantity - selectedSlots.length;
+
+  return (
+    <div className="border-t px-4 pb-4 pt-3" style={{ backgroundColor: '#f8fdf9' }}>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs font-semibold" style={{ color: primaryColor, fontFamily: fontBody }}>
+          📅 Pick {quantity} appointment slot{quantity > 1 ? 's' : ''}
+        </p>
+        <span className="text-xs font-medium px-2 py-0.5 rounded-full"
+          style={{ backgroundColor: selectedSlots.length === quantity ? '#dcfce7' : '#fef9c3', color: selectedSlots.length === quantity ? '#15803d' : '#854d0e' }}>
+          {selectedSlots.length}/{quantity} selected
+        </span>
+      </div>
+
+      {/* Selected slots chips */}
+      {selectedSlots.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          {selectedSlots.map((s, i) => (
+            <span key={i} className="flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium"
+              style={{ backgroundColor: primaryColor + '20', color: primaryColor, fontFamily: fontBody }}>
+              {s.date === new Date().toISOString().split('T')[0] ? 'Today' : s.date} {s.startTime}
+              <button onClick={() => removeSlot(i)} className="ml-0.5 opacity-60 hover:opacity-100">✕</button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {slotsNeeded > 0 && (
+        <>
+          {/* Date strip */}
+          <div className="flex gap-2 overflow-x-auto pb-1 mb-3 scrollbar-hide">
+            {dateOptions.map(d => (
+              <button key={d.iso}
+                onClick={() => setSelectedDate(d.iso)}
+                className="flex-shrink-0 flex flex-col items-center px-3 py-2 rounded-xl border-2 transition-all text-xs"
+                style={{
+                  borderColor: selectedDate === d.iso ? primaryColor : '#e0e3e6',
+                  backgroundColor: selectedDate === d.iso ? primaryColor + '15' : '#fff',
+                  color: selectedDate === d.iso ? primaryColor : '#556067',
+                  fontFamily: fontBody,
+                }}>
+                <span className="font-semibold">{d.label}</span>
+                <span className="opacity-70">{d.sub}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Time slots grid */}
+          {loading ? (
+            <p className="text-xs text-center py-3 opacity-50" style={{ fontFamily: fontBody }}>Loading slots…</p>
+          ) : slots.length === 0 ? (
+            <p className="text-xs text-center py-3 opacity-50" style={{ fontFamily: fontBody }}>No slots available for this date</p>
+          ) : (
+            <div className="grid grid-cols-3 gap-2">
+              {slots.map((slot, i) => {
+                const isAvailable = slot.available;
+                const alreadyPickedCount = selectedSlots.filter(s => s.date === selectedDate && s.startTime === slot.startTime).length;
+                const canPick = isAvailable && selectedSlots.length < quantity;
+                return (
+                  <button key={i}
+                    disabled={!canPick}
+                    onClick={() => addSlot(slot)}
+                    className="py-2 px-1 rounded-lg border text-xs font-medium transition-all"
+                    style={{
+                      borderColor: alreadyPickedCount > 0 ? primaryColor : isAvailable ? '#d1fae5' : '#e0e3e6',
+                      backgroundColor: alreadyPickedCount > 0 ? primaryColor + '20' : isAvailable ? '#f0fdf4' : '#f5f5f5',
+                      color: alreadyPickedCount > 0 ? primaryColor : isAvailable ? '#15803d' : '#9ca3af',
+                      fontFamily: fontBody,
+                      opacity: !canPick && alreadyPickedCount === 0 ? 0.5 : 1,
+                      cursor: canPick ? 'pointer' : 'default',
+                    }}>
+                    {slot.startTime}
+                    {alreadyPickedCount > 0 && <span className="ml-1 text-[10px]">×{alreadyPickedCount}</span>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {slotsNeeded > 0 && (
+            <p className="text-xs mt-2 opacity-60 text-center" style={{ fontFamily: fontBody }}>
+              {slotsNeeded} more slot{slotsNeeded > 1 ? 's' : ''} needed
+            </p>
+          )}
+        </>
+      )}
+
+      {selectedSlots.length === quantity && (
+        <p className="text-xs text-center mt-1 font-medium" style={{ color: '#15803d', fontFamily: fontBody }}>
+          ✅ All slots selected — you're good to checkout
+        </p>
       )}
     </div>
   );

@@ -467,6 +467,13 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
               discount: product.discount || 0,
               variationId: variationId,
               sizeId: sizeId,
+              // Service booking: duration in minutes (parsed from size field e.g. "60 min")
+              duration: (() => {
+                const raw = size?.size || '';
+                const n = parseInt(raw);
+                return isNaN(n) ? (product.defaultDuration || 60) : n;
+              })(),
+              selectedSlots: [], // [{ date, startTime, endTime }, ...]
             }
           ]
         }
@@ -498,6 +505,18 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
           item.id === itemId
             ? { ...item, quantity: newQuantity }
             : item
+        )
+      }
+    }));
+  };
+
+  const updateSlots = (itemId, slots) => {
+    setStoreData(prev => ({
+      ...prev,
+      cart: {
+        ...prev.cart,
+        items: prev.cart.items.map(item =>
+          item.id === itemId ? { ...item, selectedSlots: slots } : item
         )
       }
     }));
@@ -706,6 +725,8 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
       variationId: item.variationId,
       sizeId: item.sizeId,
       image: item.image || null,
+      selectedSlots: item.selectedSlots || [],
+      duration: item.duration || null,
     }));
 
     try {
@@ -836,6 +857,7 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
     addToCart,
     removeFromCart,
     updateQuantity,
+    updateSlots,
     getCartTotal,
     getCartItemCount,
     addAddress,

@@ -240,6 +240,7 @@ const StorefrontApp = ({
     addToCart,
     removeFromCart,
     updateQuantity,
+    updateSlots,
     getCartItemCount,
     addAddress,
     updateAddress,
@@ -351,6 +352,7 @@ const StorefrontApp = ({
           <PreviewCartTab
             data={{ ...storeData, storeId, apiBase: API }}
             updateQuantity={updateQuantity}
+            updateSlots={updateSlots}
             removeFromCart={removeFromCart}
             placeOrder={placeOrder}
             onGoToProfile={() => setActiveTab('profile')}
