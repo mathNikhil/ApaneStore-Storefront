@@ -14,6 +14,7 @@ const PreviewHomeTab = ({
   storeId,
   customerToken,
   isLoggedIn = false,
+  storeType = 'product',
 }) => {
   const { banner, categories, brand, products, enableProductSearch, settings = {}, cart = {} } = data;
   const dineInLabel = cart.dineInLabel || 'Dine In';
@@ -125,23 +126,26 @@ const PreviewHomeTab = ({
 
   return (
     <div className="p-4 max-w-7xl mx-auto">
-      <PreviewBanner
-        image={banner.image}
-        images={banner.images}
-        tagline={banner.tagline}
-        subtitle={banner.subtitle}
-        cta={banner.cta}
-        height={banner.height}
-        bgColor={banner.bgColor}
-        showText={false}
-        showCta={false}
-        textAlignment={banner.textAlignment}
-        textColor={banner.textColor}
-        textShadow={banner.textShadow !== undefined ? banner.textShadow : true}
-        primaryColor={brand.colors.primary}
-        device={device}
-        fonts={brand.fonts}
-      />
+      {/* For service stores, only show banner if an image was actually uploaded */}
+      {!(storeType === 'service' && !banner.image && (!banner.images || banner.images.length === 0)) && (
+        <PreviewBanner
+          image={banner.image}
+          images={banner.images}
+          tagline={banner.tagline}
+          subtitle={banner.subtitle}
+          cta={banner.cta}
+          height={banner.height}
+          bgColor={banner.bgColor}
+          showText={false}
+          showCta={false}
+          textAlignment={banner.textAlignment}
+          textColor={banner.textColor}
+          textShadow={banner.textShadow !== undefined ? banner.textShadow : true}
+          primaryColor={brand.colors.primary}
+          device={device}
+          fonts={brand.fonts}
+        />
+      )}
 
 
       {showQRScanner && (

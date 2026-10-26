@@ -232,6 +232,8 @@ const StorefrontApp = ({
     deliveryZones: builderData.cart?.deliveryZones || builderData.deliveryZones || [],
     dineInLocations: builderData.cart?.dineInLocations || builderData.dineInLocations || [],
     return: builderData.return,
+    storeType: builderData.storeType || 'product',
+    booking: builderData.booking || {},
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [builderData]);
 
@@ -338,6 +340,7 @@ const StorefrontApp = ({
             storeId={storeId}
             customerToken={customerToken}
             isLoggedIn={!!customerToken}
+            storeType={storeData.storeType || 'product'}
           />
         );
       case 'cart':
@@ -417,6 +420,7 @@ const StorefrontApp = ({
             device={device}
             stockMap={stockMap}
             initialProductId={initialProductId}
+            storeType={storeData.storeType || 'product'}
           />
         );
     }
