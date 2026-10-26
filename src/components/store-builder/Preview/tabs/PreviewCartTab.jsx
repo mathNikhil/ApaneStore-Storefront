@@ -1319,8 +1319,28 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
   const duration = item.duration || 60;
 
   // item.staffName is set from size.size in usePreviewData (service stores)
-  const staffName = item.staffName || 'All Staff';
-  const isAllStaff = !staffName || staffName === 'All Staff';
+  const baseStaffName = item.staffName || 'All Staff';
+  const isAllStaff = !baseStaffName || baseStaffName === 'All Staff';
+
+  // For "All Staff" mode: fetch staff list and let customer pick one via tabs
+  const [staffList, setStaffList] = React.useState([]);
+  const [selectedStaffTab, setSelectedStaffTab] = React.useState(null); // null = not yet chosen
+
+  React.useEffect(() => {
+    if (!isAllStaff || !storeId) return;
+    fetch(`${apiBase}/api/store/${storeId}/staff`)
+      .then(r => r.json())
+      .then(res => {
+        if (res.success && res.data?.length > 0) {
+          setStaffList(res.data);
+          setSelectedStaffTab(res.data[0].name); // default to first staff
+        }
+      })
+      .catch(() => {});
+  }, [isAllStaff, storeId, apiBase]);
+
+  // Effective staff name used for slot fetching
+  const staffName = isAllStaff ? (selectedStaffTab || 'All Staff') : baseStaffName;
 
   // Build date options: today + advanceDays
   const advanceDays = parseInt(booking.advanceDays) || 7;
@@ -1352,6 +1372,8 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
   // Fetch slots when date or staff changes
   React.useEffect(() => {
     if (!selectedDate || !storeId) return;
+    // In All Staff mode, wait until a staff tab is selected
+    if (isAllStaff && !selectedStaffTab) return;
     setLoading(true);
     const params = new URLSearchParams({
       date: selectedDate,
@@ -1365,7 +1387,7 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
       })
       .catch(() => setSlots([]))
       .finally(() => setLoading(false));
-  }, [selectedDate, storeId, duration, apiBase, staffName]);
+  }, [selectedDate, storeId, duration, apiBase, staffName, selectedStaffTab]);
 
   const addSlot = (slot) => {
     if (selectedSlots.length >= quantity) return;
@@ -1373,7 +1395,7 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
       date: selectedDate,
       startTime: slot.startTime,
       endTime: slot.endTime,
-      staffName: isAllStaff ? (slot.availableStaff?.[0] || null) : staffName,
+      staffName: staffName !== 'All Staff' ? staffName : (slot.availableStaff?.[0] || null),
     }];
     onSlotsChange(newSlots);
   };
@@ -1405,6 +1427,26 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
         </span>
       </div>
 
+      {/* Staff tabs — shown only in All Staff mode when staff list is loaded */}
+      {isAllStaff && staffList.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-2 mb-3 scrollbar-hide">
+          {staffList.map(s => (
+            <button
+              key={s.id || s.name}
+              onClick={() => { setSelectedStaffTab(s.name); setSlots([]); }}
+              className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border-2 transition-all whitespace-nowrap"
+              style={{
+                borderColor: selectedStaffTab === s.name ? primaryColor : '#e0e3e6',
+                backgroundColor: selectedStaffTab === s.name ? primaryColor : '#fff',
+                color: selectedStaffTab === s.name ? '#fff' : '#556067',
+                fontFamily: fontBody,
+              }}>
+              {s.name}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Selected slots chips */}
       {selectedSlots.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-3">
@@ -1412,7 +1454,7 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
             <span key={i} className="flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium"
               style={{ backgroundColor: primaryColor + '20', color: primaryColor, fontFamily: fontBody }}>
               {s.date === new Date().toISOString().split('T')[0] ? 'Today' : s.date} {s.startTime}
-              {s.staffName && isAllStaff && <span className="opacity-70">· {s.staffName}</span>}
+              {s.staffName && <span className="opacity-70">· {s.staffName}</span>}
               <button onClick={() => removeSlot(i)} className="ml-0.5 opacity-60 hover:opacity-100">✕</button>
             </span>
           ))}
