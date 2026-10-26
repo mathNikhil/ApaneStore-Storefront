@@ -88,6 +88,10 @@ const ORDER_STATUS_TEXT = {
   out_for_delivery: 'Out for Delivery',
   delivered: 'Delivered',
   cancelled: 'Cancelled',
+  // Service / appointment statuses
+  in_progress: 'In Progress',
+  completed: 'Completed',
+  no_show: 'Missed Appointment',
 };
 
 const formatAddressLine = (addr) => {

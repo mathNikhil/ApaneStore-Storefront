@@ -242,8 +242,9 @@ const PreviewOrdersTab = ({ data, cancelOrder, addToCart, onGoToCart, storeId, c
     { id: 'all', label: 'All Bookings' },
     { id: 'pending', label: 'Pending' },
     { id: 'confirmed', label: 'Confirmed' },
-    { id: 'processing', label: 'In Progress' },
-    { id: 'delivered', label: 'Completed' },
+    { id: 'in_progress', label: 'In Progress' },
+    { id: 'completed', label: 'Completed' },
+    { id: 'no_show', label: 'Missed' },
   ] : [
     { id: 'all', label: 'All Orders' },
     { id: 'pending', label: 'Pending' },
