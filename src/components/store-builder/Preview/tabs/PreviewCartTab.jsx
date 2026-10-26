@@ -7,7 +7,7 @@ import { QRCodeSVG } from 'qrcode.react';
 // used to double as muted text color; that job moved entirely to fontBody.
 // Secondary is now purely a UI-state color (e.g. the free-delivery
 // progress bar's track, quantity-stepper borders).
-const PreviewCartTab = ({ data, updateQuantity, updateSlots, removeFromCart, placeOrder, onGoToProfile, isAuthenticated, onRequireAuth, storeType = 'product', booking = {}, tabName = '' }) => {
+const PreviewCartTab = ({ data, updateQuantity, updateSlots, updateItemPrice, removeFromCart, placeOrder, onGoToProfile, isAuthenticated, onRequireAuth, storeType = 'product', booking = {}, tabName = '' }) => {
   const isService = storeType === 'service';
   const { cart, brand, payment, profile } = data;
   const [showCheckout, setShowCheckout] = useState(false);
@@ -878,6 +878,7 @@ const PreviewCartTab = ({ data, updateQuantity, updateSlots, removeFromCart, pla
                       primaryColor={brand.colors.primary}
                       fontBody={brand.fonts?.body || 'Inter'}
                       onSlotsChange={(slots) => updateSlots && updateSlots(item.id, slots)}
+                      onPriceChange={(price) => updateItemPrice && updateItemPrice(item.id, price)}
                     />
                   )}
                 </div>
@@ -1313,7 +1314,7 @@ const PreviewCartTab = ({ data, updateQuantity, updateSlots, removeFromCart, pla
 // slots. Passes staffName to the backend so each staff member's availability
 // is shown independently. "All Staff" = any available staff.
 // ─────────────────────────────────────────────────────────────────────────────
-const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, fontBody, onSlotsChange }) => {
+const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, fontBody, onSlotsChange, onPriceChange }) => {
   const quantity = item.quantity;
   const selectedSlots = item.selectedSlots || [];
   const duration = item.duration || 60;
@@ -1369,6 +1370,11 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
         // Auto-select first staff if none selected
         if (list.length > 0 && !selectedStaffTab) {
           setSelectedStaffTab(list[0].name);
+          // Set price to first staff member's rate
+          const firstStaffSize = (item.staffSizes || []).find(ss => ss.name === list[0].name);
+          if (firstStaffSize && firstStaffSize.price > 0 && onPriceChange) {
+            onPriceChange(firstStaffSize.price);
+          }
         }
       })
       .catch(() => setStaffList([]))
@@ -1462,7 +1468,17 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
               <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
                 {staffTabs.map(s => (
                   <button key={s.name}
-                    onClick={() => { if (isAllStaff) { setSelectedStaffTab(s.name); setSlots([]); } }}
+                    onClick={() => {
+                      if (isAllStaff) {
+                        setSelectedStaffTab(s.name);
+                        setSlots([]);
+                        // Update cart item price to this staff member's rate
+                        const staffSize = (item.staffSizes || []).find(ss => ss.name === s.name);
+                        if (staffSize && staffSize.price > 0 && onPriceChange) {
+                          onPriceChange(staffSize.price);
+                        }
+                      }
+                    }}
                     className="flex-shrink-0 px-3 py-1.5 rounded-full border text-xs font-medium transition-all whitespace-nowrap"
                     style={{
                       borderColor: activeStaff === s.name ? primaryColor : '#e0e3e6',

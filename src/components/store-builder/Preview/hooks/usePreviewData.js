@@ -502,6 +502,23 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
                 return product.defaultDuration || 60;
               })(),
               selectedSlots: [], // [{ date, startTime, endTime, staffName }, ...]
+              // For "All Staff" service items: all sizes in this variation so we can
+              // look up per-staff prices when the customer picks a staff member in the cart
+              staffSizes: (() => {
+                const staffName = (() => {
+                  const s = size?.size || '';
+                  return isNaN(parseInt(s)) ? s : 'All Staff';
+                })();
+                if (staffName !== 'All Staff') return null;
+                // Return all sizes in this variation as [{name, price, duration}]
+                return (variation?.sizes || [])
+                  .filter(s => s.size && isNaN(parseInt(s.size)))
+                  .map(s => ({
+                    name: s.size,
+                    price: parseFloat(s.price) || 0,
+                    duration: parseInt(s.unit) || 60,
+                  }));
+              })(),
             }
           ]
         }
@@ -545,6 +562,18 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
         ...prev.cart,
         items: prev.cart.items.map(item =>
           item.id === itemId ? { ...item, selectedSlots: slots } : item
+        )
+      }
+    }));
+  };
+
+  const updateItemPrice = (itemId, price) => {
+    setStoreData(prev => ({
+      ...prev,
+      cart: {
+        ...prev.cart,
+        items: prev.cart.items.map(item =>
+          item.id === itemId ? { ...item, price } : item
         )
       }
     }));
@@ -886,6 +915,7 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
     removeFromCart,
     updateQuantity,
     updateSlots,
+    updateItemPrice,
     getCartTotal,
     getCartItemCount,
     addAddress,

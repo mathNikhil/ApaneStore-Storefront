@@ -243,6 +243,7 @@ const StorefrontApp = ({
     removeFromCart,
     updateQuantity,
     updateSlots,
+    updateItemPrice,
     getCartItemCount,
     addAddress,
     updateAddress,
@@ -356,6 +357,7 @@ const StorefrontApp = ({
             data={{ ...storeData, storeId, apiBase: API }}
             updateQuantity={updateQuantity}
             updateSlots={updateSlots}
+            updateItemPrice={updateItemPrice}
             removeFromCart={removeFromCart}
             placeOrder={placeOrder}
             onGoToProfile={() => setActiveTab('profile')}
