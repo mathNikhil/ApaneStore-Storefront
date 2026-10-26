@@ -9,6 +9,8 @@ import { QRCodeSVG } from 'qrcode.react';
 // progress bar's track, quantity-stepper borders).
 const PreviewCartTab = ({ data, updateQuantity, updateSlots, updateItemPrice, updateItemStaff, removeFromCart, placeOrder, onGoToProfile, isAuthenticated, onRequireAuth, storeType = 'product', booking = {}, tabName = '' }) => {
   const isService = storeType === 'service';
+  const serviceType = booking.serviceType || 'inshop'; // 'inshop' | 'homevisit' | 'both'
+  const needsDeliveryAddress = !isService || serviceType === 'homevisit' || serviceType === 'both';
   const { cart, brand, payment, profile } = data;
   const [showCheckout, setShowCheckout] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState(payment?.defaultPayment || 'cod');
@@ -164,7 +166,7 @@ const PreviewCartTab = ({ data, updateQuantity, updateSlots, updateItemPrice, up
     if (hasPerProductGST) return Object.values(gstByRate).reduce((a, b) => a + b, 0);
     return subtotal * (gstRate / 100);
   })();
-  const delivery = orderType === 'dine_in' ? 0 : (freeDelivery
+  const delivery = (!needsDeliveryAddress || orderType === 'dine_in') ? 0 : (freeDelivery
     ? (subtotal >= freeDeliveryThreshold ? 0 : (deliveryZoneInfo?.deliveryCost ?? deliveryCharge))
     : (deliveryZoneInfo?.deliveryCost ?? deliveryCharge));
   const total = Math.max(0, subtotal + gst + delivery - couponDiscount);
@@ -296,7 +298,7 @@ const PreviewCartTab = ({ data, updateQuantity, updateSlots, updateItemPrice, up
       alert('Please select a location for dine-in');
       return;
     }
-    if (orderType !== 'dine_in' && !currentAddress) {
+    if (needsDeliveryAddress && orderType !== 'dine_in' && !currentAddress) {
       alert('Please add a delivery address from the Profile tab before checking out');
       return;
     }
@@ -356,7 +358,7 @@ const PreviewCartTab = ({ data, updateQuantity, updateSlots, updateItemPrice, up
   };
 
   const handlePlaceOrder = async () => {
-    if (orderType !== 'dine_in' && !currentAddress) {
+    if (needsDeliveryAddress && orderType !== 'dine_in' && !currentAddress) {
       alert('Please select a delivery address');
       return;
     }
@@ -511,7 +513,7 @@ const PreviewCartTab = ({ data, updateQuantity, updateSlots, updateItemPrice, up
                       <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>₹{gst.toFixed(2)}</span>
                     </div>
                   )}
-                  {orderType !== 'dine_in' && <div className="flex justify-between text-sm">
+                  {needsDeliveryAddress && orderType !== 'dine_in' && <div className="flex justify-between text-sm">
                     <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>Delivery</span>
                     <span style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>{delivery === 0 ? 'FREE' : `₹${delivery.toFixed(2)}`}</span>
                   </div>}
@@ -583,8 +585,8 @@ const PreviewCartTab = ({ data, updateQuantity, updateSlots, updateItemPrice, up
           </div>
         )}
 
-        {/* Delivery Address */}
-        {!isService && !isScanOrder && <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
+        {/* Delivery Address — shown for product stores, and service stores with homevisit/both */}
+        {needsDeliveryAddress && !isScanOrder && <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
           <h3 className="font-semibold text-sm mb-2" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>Deliver To</h3>
           {currentAddress ? (
             <p className="text-sm" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>
