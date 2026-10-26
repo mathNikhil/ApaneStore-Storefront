@@ -502,23 +502,24 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
                 return product.defaultDuration || 60;
               })(),
               selectedSlots: [], // [{ date, startTime, endTime, staffName }, ...]
-              // For "All Staff" service items: all sizes in this variation so we can
-              // look up per-staff prices when the customer picks a staff member in the cart
+              // For "All Staff" service items: per-staff price lookup map
+              // staffSizes = [{name, price, duration}] for named staff rows in this variation
+              // basePrice = the "All Staff" flat rate (fallback when no named row for a staff)
               staffSizes: (() => {
-                const staffName = (() => {
-                  const s = size?.size || '';
-                  return isNaN(parseInt(s)) ? s : 'All Staff';
-                })();
-                if (staffName !== 'All Staff') return null;
-                // Return all sizes in this variation as [{name, price, duration}]
+                const sName = size?.size || '';
+                const isAll = isNaN(parseInt(sName)) ? sName === 'All Staff' : true;
+                if (!isAll) return null;
+                // Named staff rows (not "All Staff") in this variation
                 return (variation?.sizes || [])
-                  .filter(s => s.size && isNaN(parseInt(s.size)))
+                  .filter(s => s.size && isNaN(parseInt(s.size)) && s.size !== 'All Staff')
                   .map(s => ({
                     name: s.size,
                     price: parseFloat(s.price) || 0,
                     duration: parseInt(s.unit) || 60,
                   }));
               })(),
+              // Base price = the "All Staff" row price, used as fallback for unlisted staff
+              basePrice: parseFloat(size?.price) || 0,
             }
           ]
         }
@@ -574,6 +575,18 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
         ...prev.cart,
         items: prev.cart.items.map(item =>
           item.id === itemId ? { ...item, price } : item
+        )
+      }
+    }));
+  };
+
+  const updateItemStaff = (itemId, selectedStaff) => {
+    setStoreData(prev => ({
+      ...prev,
+      cart: {
+        ...prev.cart,
+        items: prev.cart.items.map(item =>
+          item.id === itemId ? { ...item, selectedStaff } : item
         )
       }
     }));
@@ -916,6 +929,7 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
     updateQuantity,
     updateSlots,
     updateItemPrice,
+    updateItemStaff,
     getCartTotal,
     getCartItemCount,
     addAddress,

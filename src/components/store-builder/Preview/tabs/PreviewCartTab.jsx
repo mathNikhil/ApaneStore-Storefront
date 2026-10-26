@@ -7,7 +7,7 @@ import { QRCodeSVG } from 'qrcode.react';
 // used to double as muted text color; that job moved entirely to fontBody.
 // Secondary is now purely a UI-state color (e.g. the free-delivery
 // progress bar's track, quantity-stepper borders).
-const PreviewCartTab = ({ data, updateQuantity, updateSlots, updateItemPrice, removeFromCart, placeOrder, onGoToProfile, isAuthenticated, onRequireAuth, storeType = 'product', booking = {}, tabName = '' }) => {
+const PreviewCartTab = ({ data, updateQuantity, updateSlots, updateItemPrice, updateItemStaff, removeFromCart, placeOrder, onGoToProfile, isAuthenticated, onRequireAuth, storeType = 'product', booking = {}, tabName = '' }) => {
   const isService = storeType === 'service';
   const { cart, brand, payment, profile } = data;
   const [showCheckout, setShowCheckout] = useState(false);
@@ -817,7 +817,7 @@ const PreviewCartTab = ({ data, updateQuantity, updateSlots, updateItemPrice, re
                         {item.staffName && item.staffName !== 'All Staff'
                           ? `${item.staffName}${item.duration ? ` • ${item.duration} mins` : ''} • ${item.variationName}`
                           : item.staffName === 'All Staff'
-                            ? `${item.duration ? `${item.duration} mins` : ''} • ${item.variationName}`
+                            ? `${item.selectedStaff ? `${item.selectedStaff} • ` : ''}${item.duration ? `${item.duration} mins` : ''} • ${item.variationName}`
                             : `${item.sizeLabel} • ${item.variationName}`
                         }
                       </p>
@@ -879,6 +879,7 @@ const PreviewCartTab = ({ data, updateQuantity, updateSlots, updateItemPrice, re
                       fontBody={brand.fonts?.body || 'Inter'}
                       onSlotsChange={(slots) => updateSlots && updateSlots(item.id, slots)}
                       onPriceChange={(price) => updateItemPrice && updateItemPrice(item.id, price)}
+                      onStaffChange={(staff) => updateItemStaff && updateItemStaff(item.id, staff)}
                     />
                   )}
                 </div>
@@ -1314,7 +1315,7 @@ const PreviewCartTab = ({ data, updateQuantity, updateSlots, updateItemPrice, re
 // slots. Passes staffName to the backend so each staff member's availability
 // is shown independently. "All Staff" = any available staff.
 // ─────────────────────────────────────────────────────────────────────────────
-const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, fontBody, onSlotsChange, onPriceChange }) => {
+const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, fontBody, onSlotsChange, onPriceChange, onStaffChange }) => {
   const quantity = item.quantity;
   const selectedSlots = item.selectedSlots || [];
   const duration = item.duration || 60;
@@ -1369,12 +1370,13 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
         setStaffList(list);
         // Auto-select first staff if none selected
         if (list.length > 0 && !selectedStaffTab) {
-          setSelectedStaffTab(list[0].name);
-          // Set price to first staff member's rate
-          const firstStaffSize = (item.staffSizes || []).find(ss => ss.name === list[0].name);
-          if (firstStaffSize && firstStaffSize.price > 0 && onPriceChange) {
-            onPriceChange(firstStaffSize.price);
-          }
+          const firstName = list[0].name;
+          setSelectedStaffTab(firstName);
+          if (onStaffChange) onStaffChange(firstName);
+          // Set price: named staff rate if exists, else base price
+          const firstStaffSize = (item.staffSizes || []).find(ss => ss.name === firstName);
+          const price = (firstStaffSize && firstStaffSize.price > 0) ? firstStaffSize.price : (item.basePrice || 0);
+          if (price > 0 && onPriceChange) onPriceChange(price);
         }
       })
       .catch(() => setStaffList([]))
@@ -1472,14 +1474,14 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
                       if (isAllStaff) {
                         setSelectedStaffTab(s.name);
                         setSlots([]);
-                        // Update cart item price to this staff member's rate
+                        if (onStaffChange) onStaffChange(s.name);
+                        // Price: named staff rate if set, else base price
                         const staffSize = (item.staffSizes || []).find(ss => ss.name === s.name);
-                        if (staffSize && staffSize.price > 0 && onPriceChange) {
-                          onPriceChange(staffSize.price);
-                        }
+                        const price = (staffSize && staffSize.price > 0) ? staffSize.price : (item.basePrice || 0);
+                        if (price > 0 && onPriceChange) onPriceChange(price);
                       }
                     }}
-                    className="flex-shrink-0 px-3 py-1.5 rounded-full border text-xs font-medium transition-all whitespace-nowrap"
+                    className="flex-shrink-0 flex flex-col items-center px-3 py-1.5 rounded-xl border text-xs font-medium transition-all whitespace-nowrap"
                     style={{
                       borderColor: activeStaff === s.name ? primaryColor : '#e0e3e6',
                       backgroundColor: activeStaff === s.name ? primaryColor + '15' : '#fff',
@@ -1487,7 +1489,13 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
                       fontFamily: fontBody,
                       cursor: isAllStaff ? 'pointer' : 'default',
                     }}>
-                    👤 {s.name}
+                    <span>👤 {s.name}</span>
+                    <span className="text-[10px] mt-0.5 opacity-80">
+                      ₹{(() => {
+                        const staffSize = (item.staffSizes || []).find(ss => ss.name === s.name);
+                        return (staffSize && staffSize.price > 0) ? staffSize.price : (item.basePrice || 0);
+                      })()}
+                    </span>
                   </button>
                 ))}
               </div>
