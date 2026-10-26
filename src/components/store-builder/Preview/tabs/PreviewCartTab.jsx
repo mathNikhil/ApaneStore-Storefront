@@ -1457,7 +1457,7 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
           {selectedSlots.map((s, i) => (
             <span key={i} className="flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium"
               style={{ backgroundColor: primaryColor + '20', color: primaryColor, fontFamily: fontBody }}>
-              {s.date === new Date().toISOString().split('T')[0] ? 'Today' : s.date} {s.startTime}
+              {s.date === new Date().toISOString().split('T')[0] ? 'Today' : s.date} {s.startTime}{s.endTime ? ` – ${s.endTime}` : ''}
               {s.staffName && <span className="opacity-70">· {s.staffName}</span>}
               <button onClick={() => removeSlot(i)} className="ml-0.5 opacity-60 hover:opacity-100">✕</button>
             </span>
@@ -1553,8 +1553,9 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
                           opacity: !canPick && alreadyPickedCount === 0 ? 0.5 : 1,
                           cursor: canPick ? 'pointer' : 'default',
                         }}>
-                        {slot.startTime}
-                        {alreadyPickedCount > 0 && <span className="ml-1 text-[10px]">×{alreadyPickedCount}</span>}
+                        <span className="block font-semibold">{slot.startTime}</span>
+                        {slot.endTime && <span className="block text-[10px] opacity-70 mt-0.5">{slot.endTime}</span>}
+                        {alreadyPickedCount > 0 && <span className="block text-[10px] mt-0.5">×{alreadyPickedCount}</span>}
                       </button>
                     );
                   })}
