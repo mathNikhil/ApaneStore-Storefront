@@ -1322,10 +1322,6 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
   const baseStaffName = item.staffName || 'All Staff';
   const isAllStaff = !baseStaffName || baseStaffName === 'All Staff';
 
-  // Effective staff name used for slot fetching
-  // All Staff = backend returns slots where ≥1 staff is free; no staff tab needed
-  const staffName = baseStaffName;
-
   // Build date options: today + advanceDays
   const advanceDays = parseInt(booking.advanceDays) || 7;
   const workingDays = booking.workingDays || ['Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -1353,14 +1349,40 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
   const [slots, setSlots] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
 
-  // Fetch slots when date or staff changes
+  // For "All Staff" mode: fetch staff list and let customer pick
+  const [staffList, setStaffList] = React.useState([]);
+  const [staffLoading, setStaffLoading] = React.useState(false);
+  const [selectedStaffTab, setSelectedStaffTab] = React.useState(null);
+
+  // Determine effective staff name for slot fetching
+  const effectiveStaffName = isAllStaff ? selectedStaffTab : baseStaffName;
+
+  // Fetch staff list when isAllStaff
   React.useEffect(() => {
-    if (!selectedDate || !storeId) return;
+    if (!isAllStaff || !storeId) return;
+    setStaffLoading(true);
+    fetch(`${apiBase}/api/store/${storeId}/staff`)
+      .then(r => r.json())
+      .then(res => {
+        const list = res.success ? res.data : [];
+        setStaffList(list);
+        // Auto-select first staff if none selected
+        if (list.length > 0 && !selectedStaffTab) {
+          setSelectedStaffTab(list[0].name);
+        }
+      })
+      .catch(() => setStaffList([]))
+      .finally(() => setStaffLoading(false));
+  }, [isAllStaff, storeId, apiBase]);
+
+  // Fetch slots when date or effective staff changes
+  React.useEffect(() => {
+    if (!selectedDate || !storeId || !effectiveStaffName) return;
     setLoading(true);
     const params = new URLSearchParams({
       date: selectedDate,
       serviceDuration: duration,
-      staffName: staffName,
+      staffName: effectiveStaffName,
     });
     fetch(`${apiBase}/api/store/${storeId}/slots?${params}`)
       .then(r => r.json())
@@ -1369,7 +1391,7 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
       })
       .catch(() => setSlots([]))
       .finally(() => setLoading(false));
-  }, [selectedDate, storeId, duration, apiBase, staffName]);
+  }, [selectedDate, storeId, duration, apiBase, effectiveStaffName]);
 
   const addSlot = (slot) => {
     if (selectedSlots.length >= quantity) return;
@@ -1377,7 +1399,7 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
       date: selectedDate,
       startTime: slot.startTime,
       endTime: slot.endTime,
-      staffName: isAllStaff ? null : staffName,
+      staffName: effectiveStaffName,
     }];
     onSlotsChange(newSlots);
   };
@@ -1389,6 +1411,10 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
 
   const slotsNeeded = quantity - selectedSlots.length;
 
+  // Staff tabs to show (for specific staff: just that one; for All Staff: fetched list)
+  const staffTabs = isAllStaff ? staffList : [{ name: baseStaffName }];
+  const activeStaff = isAllStaff ? selectedStaffTab : baseStaffName;
+
   return (
     <div className="border-t px-4 pb-4 pt-3" style={{ backgroundColor: '#f8fdf9' }}>
       {/* Header */}
@@ -1399,7 +1425,7 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
           </p>
           {!isAllStaff && (
             <p className="text-[11px] opacity-60 mt-0.5" style={{ fontFamily: fontBody }}>
-              with {staffName}
+              with {baseStaffName}
             </p>
           )}
         </div>
@@ -1416,7 +1442,7 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
             <span key={i} className="flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium"
               style={{ backgroundColor: primaryColor + '20', color: primaryColor, fontFamily: fontBody }}>
               {s.date === new Date().toISOString().split('T')[0] ? 'Today' : s.date} {s.startTime}
-              {s.staffName && !isAllStaff && <span className="opacity-70">· {s.staffName}</span>}
+              {s.staffName && <span className="opacity-70">· {s.staffName}</span>}
               <button onClick={() => removeSlot(i)} className="ml-0.5 opacity-60 hover:opacity-100">✕</button>
             </span>
           ))}
@@ -1425,59 +1451,98 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
 
       {slotsNeeded > 0 && (
         <>
-          {/* Date strip */}
-          <div className="flex gap-2 overflow-x-auto pb-1 mb-3 scrollbar-hide">
-            {dateOptions.map(d => (
-              <button key={d.iso}
-                onClick={() => setSelectedDate(d.iso)}
-                className="flex-shrink-0 flex flex-col items-center px-3 py-2 rounded-xl border-2 transition-all text-xs"
-                style={{
-                  borderColor: selectedDate === d.iso ? primaryColor : '#e0e3e6',
-                  backgroundColor: selectedDate === d.iso ? primaryColor + '15' : '#fff',
-                  color: selectedDate === d.iso ? primaryColor : '#556067',
-                  fontFamily: fontBody,
-                }}>
-                <span className="font-semibold">{d.label}</span>
-                <span className="opacity-70">{d.sub}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Time slots grid */}
-          {loading ? (
-            <p className="text-xs text-center py-3 opacity-50" style={{ fontFamily: fontBody }}>Loading slots…</p>
-          ) : slots.length === 0 ? (
-            <p className="text-xs text-center py-3 opacity-50" style={{ fontFamily: fontBody }}>No slots available for this date</p>
-          ) : (
-            <div className="grid grid-cols-3 gap-2">
-              {slots.map((slot, i) => {
-                const isAvailable = slot.available;
-                const alreadyPickedCount = selectedSlots.filter(s => s.date === selectedDate && s.startTime === slot.startTime).length;
-                const canPick = isAvailable && selectedSlots.length < quantity;
-                return (
-                  <button key={i}
-                    disabled={!canPick}
-                    onClick={() => addSlot(slot)}
-                    className="py-2 px-1 rounded-lg border text-xs font-medium transition-all"
+          {/* Staff tabs — always shown so customer picks staff first */}
+          {isAllStaff && staffLoading ? (
+            <p className="text-xs text-center py-2 opacity-50" style={{ fontFamily: fontBody }}>Loading staff…</p>
+          ) : staffTabs.length > 0 && (
+            <div className="mb-3">
+              {isAllStaff && (
+                <p className="text-[11px] opacity-60 mb-1.5" style={{ fontFamily: fontBody }}>Select a staff member:</p>
+              )}
+              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                {staffTabs.map(s => (
+                  <button key={s.name}
+                    onClick={() => { if (isAllStaff) { setSelectedStaffTab(s.name); setSlots([]); } }}
+                    className="flex-shrink-0 px-3 py-1.5 rounded-full border text-xs font-medium transition-all whitespace-nowrap"
                     style={{
-                      borderColor: alreadyPickedCount > 0 ? primaryColor : isAvailable ? '#d1fae5' : '#e0e3e6',
-                      backgroundColor: alreadyPickedCount > 0 ? primaryColor + '20' : isAvailable ? '#f0fdf4' : '#f5f5f5',
-                      color: alreadyPickedCount > 0 ? primaryColor : isAvailable ? '#15803d' : '#9ca3af',
+                      borderColor: activeStaff === s.name ? primaryColor : '#e0e3e6',
+                      backgroundColor: activeStaff === s.name ? primaryColor + '15' : '#fff',
+                      color: activeStaff === s.name ? primaryColor : '#556067',
                       fontFamily: fontBody,
-                      opacity: !canPick && alreadyPickedCount === 0 ? 0.5 : 1,
-                      cursor: canPick ? 'pointer' : 'default',
+                      cursor: isAllStaff ? 'pointer' : 'default',
                     }}>
-                    {slot.startTime}
-                    {alreadyPickedCount > 0 && <span className="ml-1 text-[10px]">×{alreadyPickedCount}</span>}
+                    👤 {s.name}
                   </button>
-                );
-              })}
+                ))}
+              </div>
             </div>
           )}
 
-          {slotsNeeded > 0 && (
-            <p className="text-xs mt-2 opacity-60 text-center" style={{ fontFamily: fontBody }}>
-              {slotsNeeded} more slot{slotsNeeded > 1 ? 's' : ''} needed
+          {/* Only show date + slots after staff is selected */}
+          {effectiveStaffName && (
+            <>
+              {/* Date strip */}
+              <div className="flex gap-2 overflow-x-auto pb-1 mb-3 scrollbar-hide">
+                {dateOptions.map(d => (
+                  <button key={d.iso}
+                    onClick={() => setSelectedDate(d.iso)}
+                    className="flex-shrink-0 flex flex-col items-center px-3 py-2 rounded-xl border-2 transition-all text-xs"
+                    style={{
+                      borderColor: selectedDate === d.iso ? primaryColor : '#e0e3e6',
+                      backgroundColor: selectedDate === d.iso ? primaryColor + '15' : '#fff',
+                      color: selectedDate === d.iso ? primaryColor : '#556067',
+                      fontFamily: fontBody,
+                    }}>
+                    <span className="font-semibold">{d.label}</span>
+                    <span className="opacity-70">{d.sub}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Time slots grid */}
+              {loading ? (
+                <p className="text-xs text-center py-3 opacity-50" style={{ fontFamily: fontBody }}>Loading slots…</p>
+              ) : slots.length === 0 ? (
+                <p className="text-xs text-center py-3 opacity-50" style={{ fontFamily: fontBody }}>No slots available for this date</p>
+              ) : (
+                <div className="grid grid-cols-3 gap-2">
+                  {slots.map((slot, i) => {
+                    const isAvailable = slot.available;
+                    const alreadyPickedCount = selectedSlots.filter(s => s.date === selectedDate && s.startTime === slot.startTime && s.staffName === effectiveStaffName).length;
+                    const canPick = isAvailable && selectedSlots.length < quantity;
+                    return (
+                      <button key={i}
+                        disabled={!canPick}
+                        onClick={() => addSlot(slot)}
+                        className="py-2 px-1 rounded-lg border text-xs font-medium transition-all"
+                        style={{
+                          borderColor: alreadyPickedCount > 0 ? primaryColor : isAvailable ? '#d1fae5' : '#e0e3e6',
+                          backgroundColor: alreadyPickedCount > 0 ? primaryColor + '20' : isAvailable ? '#f0fdf4' : '#f5f5f5',
+                          color: alreadyPickedCount > 0 ? primaryColor : isAvailable ? '#15803d' : '#9ca3af',
+                          fontFamily: fontBody,
+                          opacity: !canPick && alreadyPickedCount === 0 ? 0.5 : 1,
+                          cursor: canPick ? 'pointer' : 'default',
+                        }}>
+                        {slot.startTime}
+                        {alreadyPickedCount > 0 && <span className="ml-1 text-[10px]">×{alreadyPickedCount}</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {slotsNeeded > 0 && (
+                <p className="text-xs mt-2 opacity-60 text-center" style={{ fontFamily: fontBody }}>
+                  {slotsNeeded} more slot{slotsNeeded > 1 ? 's' : ''} needed
+                </p>
+              )}
+            </>
+          )}
+
+          {/* Prompt to pick staff if none selected yet */}
+          {isAllStaff && !effectiveStaffName && !staffLoading && (
+            <p className="text-xs text-center py-3 opacity-50" style={{ fontFamily: fontBody }}>
+              Select a staff member above to see available slots
             </p>
           )}
         </>
