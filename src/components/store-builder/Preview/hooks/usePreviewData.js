@@ -36,13 +36,30 @@ const adaptProductForPreview = (builderProduct) => {
       name: v.name,
       image: v.image || null,
       imageIndex: v.imageIndex !== undefined ? v.imageIndex : null,
-      sizes: (v.sizes || []).map(s => ({
-        id: s.id,
-        label: `${s.size}${s.unit}`,
-        size: s.size,
-        unit: s.unit,
-        price: s.price
-      }))
+      sizes: (v.sizes || []).map(s => {
+        // For service stores: s.size = staff name (or "All Staff"), s.unit = duration in mins
+        // For product stores: s.size = size value (e.g. "M"), s.unit = unit (e.g. "kg")
+        const isServiceSize = s.unit && isNaN(Number(s.unit)) === false && Number(s.unit) > 0 && isNaN(parseInt(s.size)) === false
+          ? false  // legacy: size is numeric duration
+          : s.unit && !isNaN(Number(s.unit)) && Number(s.unit) > 0 && isNaN(parseInt(s.size));
+        // Detect service row: unit is a positive number (duration mins) and size is text (staff name or "All Staff")
+        const durationMins = parseInt(s.unit);
+        const isServiceRow = !isNaN(durationMins) && durationMins > 0 && isNaN(parseInt(s.size));
+        let label;
+        if (isServiceRow) {
+          const staffPart = (!s.size || s.size === 'All Staff') ? 'All Staff' : s.size;
+          label = `${staffPart} • ${durationMins} mins`;
+        } else {
+          label = `${s.size}${s.unit ? ' ' + s.unit : ''}`;
+        }
+        return {
+          id: s.id,
+          label,
+          size: s.size,
+          unit: s.unit,
+          price: s.price
+        };
+      })
     })),
     discount: builderProduct.discount || 0,
     gstRate: builderProduct.gstRate ?? null,
