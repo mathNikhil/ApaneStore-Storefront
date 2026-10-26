@@ -9,10 +9,9 @@ import { QRCodeSVG } from 'qrcode.react';
 // progress bar's track, quantity-stepper borders).
 const PreviewCartTab = ({ data, updateQuantity, updateSlots, updateItemPrice, updateItemStaff, removeFromCart, placeOrder, onGoToProfile, isAuthenticated, onRequireAuth, storeType = 'product', booking = {}, tabName = '' }) => {
   const isService = storeType === 'service';
-  // For service stores: inshop → treat as dine_in (no delivery address needed)
-  //                     homevisit/both → treat as delivery (address required)
-  const serviceType = booking.serviceType || 'inshop';
-  const serviceDefaultOrderType = (isService && serviceType === 'inshop') ? 'dine_in' : 'delivery';
+  // Service stores always default to 'delivery' — the toggle lets the customer
+  // switch to in-store (dine_in). Product stores use enableDineIn from cart config.
+  const serviceDefaultOrderType = isService ? 'delivery' : undefined;
   const { cart, brand, payment, profile } = data;
   const [showCheckout, setShowCheckout] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState(payment?.defaultPayment || 'cod');
@@ -36,7 +35,7 @@ const PreviewCartTab = ({ data, updateQuantity, updateSlots, updateItemPrice, up
   const [dineInMobile, setDineInMobile] = useState('');
 
   const { items, freeDelivery, freeDeliveryThreshold, deliveryCharge, showProgressBar, enableGST, gstRate, taxLabel, showGSTBreakdownCart, showGSTBreakdownCheckout, gstNumber, enableDineIn, dineInLabel } = cart;
-  const [orderType, setOrderType] = useState(serviceDefaultOrderType); // 'dine_in' or 'delivery'
+  const [orderType, setOrderType] = useState(serviceDefaultOrderType || (cart?.enableDineIn ? 'dine_in' : 'delivery')); // 'dine_in' or 'delivery'
   const [selectedLocation, setSelectedLocation] = useState(null); // for dine-in location selection
   const [deliveryZoneInfo, setDeliveryZoneInfo] = useState(null); // { allowed, storeAddressId, storeAddressName, deliveryZone, deliveryCost }
   const [pincodeChecked, setPincodeChecked] = useState(false);
@@ -891,8 +890,8 @@ const PreviewCartTab = ({ data, updateQuantity, updateSlots, updateItemPrice, up
             })}
           </div>
 
-          {/* Dine-In / Delivery selector */}
-          {!isService && enableDineIn && (
+          {/* Dine-In / Delivery selector — shown for service stores always, for product stores when enableDineIn is on */}
+          {(isService || enableDineIn) && (
             <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brand.colors.background || '#FFFFFF' }}>
               <p className="text-sm font-semibold mb-3" style={{ color: brand.colors.fontHeader, fontFamily: brand.fonts?.body || 'Inter' }}>
                 How would you like your order?
@@ -908,7 +907,7 @@ const PreviewCartTab = ({ data, updateQuantity, updateSlots, updateItemPrice, up
                     fontFamily: brand.fonts?.body || 'Inter'
                   }}
                 >
-                  🍽️ {dineInLabel || 'Dine In'}
+                  🏪 {isService ? 'In-Store' : (dineInLabel || 'Dine In')}
                 </button>
                 <button
                   onClick={() => { setOrderType('delivery'); setSelectedLocation(null); }}
@@ -920,7 +919,7 @@ const PreviewCartTab = ({ data, updateQuantity, updateSlots, updateItemPrice, up
                     fontFamily: brand.fonts?.body || 'Inter'
                   }}
                 >
-                  🚚 Delivery
+                  🚗 {isService ? 'Home Visit' : 'Delivery'}
                 </button>
               </div>
 
