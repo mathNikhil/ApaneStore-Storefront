@@ -1324,6 +1324,15 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
   const baseStaffName = item.staffName || 'All Staff';
   const isAllStaff = !baseStaffName || baseStaffName === 'All Staff';
 
+  // Compute price for a staff member, applying premiumPercent from booking config
+  const getStaffPrice = (staffName) => {
+    const staffMember = (booking.staffMembers || []).find(sm => sm.name === staffName);
+    const premiumPercent = staffMember?.premiumPercent || 0;
+    const namedSize = (item.staffSizes || []).find(ss => ss.name === staffName);
+    const base = (namedSize && namedSize.price > 0) ? namedSize.price : (item.basePrice || 0);
+    return Math.round(base * (1 + premiumPercent / 100));
+  };
+
   // Build date options: today + advanceDays
   const advanceDays = parseInt(booking.advanceDays) || 7;
   const workingDays = booking.workingDays || ['Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -1374,8 +1383,7 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
           setSelectedStaffTab(firstName);
           if (onStaffChange) onStaffChange(firstName);
           // Set price: named staff rate if exists, else base price
-          const firstStaffSize = (item.staffSizes || []).find(ss => ss.name === firstName);
-          const price = (firstStaffSize && firstStaffSize.price > 0) ? firstStaffSize.price : (item.basePrice || 0);
+          const price = getStaffPrice(firstName);
           if (price > 0 && onPriceChange) onPriceChange(price);
         }
       })
@@ -1476,8 +1484,7 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
                         setSlots([]);
                         if (onStaffChange) onStaffChange(s.name);
                         // Price: named staff rate if set, else base price
-                        const staffSize = (item.staffSizes || []).find(ss => ss.name === s.name);
-                        const price = (staffSize && staffSize.price > 0) ? staffSize.price : (item.basePrice || 0);
+                        const price = getStaffPrice(s.name);
                         if (price > 0 && onPriceChange) onPriceChange(price);
                       }
                     }}
@@ -1492,8 +1499,7 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
                     <span>👤 {s.name}</span>
                     <span className="text-[10px] mt-0.5 opacity-80">
                       ₹{(() => {
-                        const staffSize = (item.staffSizes || []).find(ss => ss.name === s.name);
-                        return (staffSize && staffSize.price > 0) ? staffSize.price : (item.basePrice || 0);
+                        return getStaffPrice(s.name);
                       })()}
                     </span>
                   </button>
