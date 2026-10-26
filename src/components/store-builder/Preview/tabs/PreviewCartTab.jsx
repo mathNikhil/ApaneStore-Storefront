@@ -923,8 +923,8 @@ const PreviewCartTab = ({ data, updateQuantity, updateSlots, updateItemPrice, up
                 </button>
               </div>
 
-              {/* Location selector for dine-in with multiple locations */}
-              {orderType === 'dine_in' && hasMultipleLocations && dineInEnabledLocations.length > 0 && (
+              {/* Location selector for dine-in with multiple locations — hidden for service stores (staff-based, not location-based) */}
+              {!isService && orderType === 'dine_in' && hasMultipleLocations && dineInEnabledLocations.length > 0 && (
                 <div>
                   <p className="text-xs font-semibold mb-2" style={{ color: brand.colors.fontBody }}>Select Location</p>
                   <div className="space-y-2">
