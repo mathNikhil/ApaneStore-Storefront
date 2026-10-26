@@ -1478,7 +1478,7 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
               {isAllStaff && (
                 <p className="text-[11px] opacity-60 mb-1.5" style={{ fontFamily: fontBody }}>Select a staff member:</p>
               )}
-              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+              <div className="flex gap-2 overflow-x-auto pt-1 pb-1 scrollbar-hide">
                 {staffTabs.map(s => (
                   <button key={s.name}
                     onClick={() => {
@@ -1514,8 +1514,8 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
           {/* Only show date + slots after staff is selected */}
           {effectiveStaffName && (
             <>
-              {/* Date strip */}
-              <div className="flex gap-2 overflow-x-auto pb-1 mb-3 scrollbar-hide">
+              {/* Date strip — pt-1 prevents top border clip in overflow scroll */}
+              <div className="flex gap-2 overflow-x-auto pt-1 pb-1 mb-3 scrollbar-hide">
                 {dateOptions.map(d => (
                   <button key={d.iso}
                     onClick={() => setSelectedDate(d.iso)}
@@ -1538,7 +1538,7 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
               ) : slots.length === 0 ? (
                 <p className="text-xs text-center py-3 opacity-50" style={{ fontFamily: fontBody }}>No slots available for this date</p>
               ) : (
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-2 pt-1">
                   {slots.map((slot, i) => {
                     const isAvailable = slot.available;
                     const alreadyPickedCount = selectedSlots.filter(s => s.date === selectedDate && s.startTime === slot.startTime && s.staffName === effectiveStaffName).length;
@@ -1549,9 +1549,9 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
                         onClick={() => addSlot(slot)}
                         className="py-2 px-1 rounded-lg border text-xs font-medium transition-all"
                         style={{
-                          borderColor: alreadyPickedCount > 0 ? primaryColor : isAvailable ? '#d1fae5' : '#e0e3e6',
-                          backgroundColor: alreadyPickedCount > 0 ? primaryColor + '20' : isAvailable ? '#f0fdf4' : '#f5f5f5',
-                          color: alreadyPickedCount > 0 ? primaryColor : isAvailable ? '#15803d' : '#9ca3af',
+                          borderColor: alreadyPickedCount > 0 ? primaryColor : isAvailable ? primaryColor + '60' : '#e0e3e6',
+                          backgroundColor: alreadyPickedCount > 0 ? primaryColor + '20' : isAvailable ? primaryColor + '12' : '#f5f5f5',
+                          color: alreadyPickedCount > 0 ? primaryColor : isAvailable ? primaryColor : '#9ca3af',
                           fontFamily: fontBody,
                           opacity: !canPick && alreadyPickedCount === 0 ? 0.5 : 1,
                           cursor: canPick ? 'pointer' : 'default',
