@@ -94,6 +94,18 @@ const ORDER_STATUS_TEXT = {
   no_show: 'Missed Appointment',
 };
 
+// Service stores use appointment-appropriate labels for all statuses
+const SERVICE_STATUS_TEXT = {
+  pending: 'Booking Placed',
+  confirmed: 'Appointment Confirmed',
+  processing: 'In Progress',
+  in_progress: 'In Progress',
+  delivered: 'Session Complete',
+  completed: 'Session Complete',
+  cancelled: 'Booking Cancelled',
+  no_show: 'Missed Appointment',
+};
+
 const formatAddressLine = (addr) => {
   if (!addr) return '';
   return [addr.addressLine1, addr.addressLine2, addr.city, addr.state, addr.pincode]
@@ -840,7 +852,7 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
         id: saved.order_id,
         date: new Date(saved.created_at).toISOString().split('T')[0],
         status: saved.status,
-        statusText: 'Order Placed',
+        statusText: storeData.storeType === 'service' ? 'Booking Placed' : 'Order Placed',
         items: orderItems,
         subtotal: parseFloat(totals.subtotal),
         gst: parseFloat(totals.gst),
@@ -886,7 +898,7 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
         date: new Date(o.created_at).toISOString().split('T')[0],
         deliveredAt: o.delivered_at ? new Date(o.delivered_at).toISOString().split('T')[0] : null,
         status: o.status,
-        statusText: ORDER_STATUS_TEXT[o.status] || o.status,
+        statusText: (storeData.storeType === 'service' ? SERVICE_STATUS_TEXT : ORDER_STATUS_TEXT)[o.status] || o.status,
         items: o.items || [],
         subtotal: parseFloat(o.subtotal || 0),
         gst: parseFloat(o.tax_amount || 0),
