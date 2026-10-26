@@ -127,10 +127,15 @@ function App() {
     );
   }
 
+  const bookingConfig = store.config?.booking || {};
+  // Infer service store if store_type is set, OR if booking config has staff/serviceType data
+  const inferredStoreType = store.store_type ||
+    (bookingConfig.staffMembers?.length > 0 || bookingConfig.serviceType ? 'service' : 'product');
+
   const builderData = {
     ...mapConfigToBuilderData(store.config),
-    storeType: store.store_type || 'product',
-    booking: store.config?.booking || {},
+    storeType: inferredStoreType,
+    booking: bookingConfig,
   };
 
   return (
