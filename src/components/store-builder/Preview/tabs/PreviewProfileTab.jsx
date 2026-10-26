@@ -811,7 +811,7 @@ const PreviewProfileTab = ({
       {profile?.storeAddress && (
         <div className="rounded-lg border p-4 mb-4" style={{ backgroundColor: brandColors.background || '#FFFFFF' }}>
           <h3 className="font-semibold text-sm mb-3" style={{ color: brandColors.fontHeader, fontFamily: brandFonts?.body || 'Inter' }}>
-            Our Location
+            {isService ? 'Our Branches' : 'Our Location'}
           </h3>
           <div className="flex items-start gap-2">
             <span className="material-symbols-outlined text-base mt-0.5" style={{ color: brandColors.primary }}>location_on</span>
@@ -825,8 +825,8 @@ const PreviewProfileTab = ({
             </div>
           </div>
 
-          {/* Additional Locations — hidden for service stores (no branch pickup, uses staff booking) */}
-          {!isService && (profile?.storeLocations || []).filter(loc => loc.name && loc.address).map(function(loc) {
+          {/* Additional Locations / Branches */}
+          {(profile?.storeLocations || []).filter(loc => loc.name && loc.address).map(function(loc) {
             return (
               <div key={loc.id} className="flex items-start gap-2 mt-3 pt-3 border-t border-[#e0e3e6]">
                 <span className="material-symbols-outlined text-base mt-0.5" style={{ color: brandColors.primary }}>store</span>

@@ -296,7 +296,7 @@ const PreviewCartTab = ({ data, updateQuantity, updateSlots, updateItemPrice, up
       return;
     }
     if (orderType === 'dine_in' && hasMultipleLocations && !selectedLocation) {
-      alert('Please select a location for dine-in');
+      alert(isService ? 'Please select a branch for your in-store visit' : 'Please select a location for dine-in');
       return;
     }
     if (orderType !== 'dine_in' && !currentAddress) {
@@ -898,7 +898,7 @@ const PreviewCartTab = ({ data, updateQuantity, updateSlots, updateItemPrice, up
               </p>
               <div className="flex gap-3 mb-3">
                 <button
-                  onClick={() => { setOrderType('dine_in'); setSelectedLocation(hasMultipleLocations ? null : mainStore); }}
+                  onClick={() => { setOrderType('dine_in'); setSelectedLocation((hasMultipleLocations || isService) ? null : mainStore); }}
                   className="flex-1 py-2 px-4 rounded-lg border-2 text-sm font-semibold transition-colors"
                   style={{
                     borderColor: orderType === 'dine_in' ? brand.colors.primary : brand.colors.secondary,
@@ -923,10 +923,12 @@ const PreviewCartTab = ({ data, updateQuantity, updateSlots, updateItemPrice, up
                 </button>
               </div>
 
-              {/* Location selector for dine-in with multiple locations — hidden for service stores (staff-based, not location-based) */}
-              {!isService && orderType === 'dine_in' && hasMultipleLocations && dineInEnabledLocations.length > 0 && (
+              {/* Location/Branch selector for dine-in (product stores) or in-store visit (service stores) */}
+              {orderType === 'dine_in' && hasMultipleLocations && dineInEnabledLocations.length > 0 && (
                 <div>
-                  <p className="text-xs font-semibold mb-2" style={{ color: brand.colors.fontBody }}>Select Location</p>
+                  <p className="text-xs font-semibold mb-2" style={{ color: brand.colors.fontBody }}>
+                    {isService ? 'Select Branch' : 'Select Location'}
+                  </p>
                   <div className="space-y-2">
                     {dineInEnabledLocations.map(loc => (
                       <button key={loc.id} onClick={() => setSelectedLocation(loc)}
