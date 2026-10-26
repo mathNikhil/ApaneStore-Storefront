@@ -311,6 +311,7 @@ const PreviewHomeTab = ({
               autoOpen={initialProductId !== null && String(product.id) === String(initialProductId)}
               applicableCoupons={getCouponsForProduct(product)}
               dineInLabel={dineInLabel}
+              booking={data.booking || {}}
             />
           ))}
         </div>

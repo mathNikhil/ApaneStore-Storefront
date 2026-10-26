@@ -13,6 +13,7 @@ const PreviewProductCard = ({
   stockMap = {},
   applicableCoupons = [],
   dineInLabel = 'Dine In',
+  booking = {},
 }) => {
   const [selectedVariation, setSelectedVariation] = useState(product.variations?.[0] || null);
   const [selectedSize, setSelectedSize] = useState(product.variations?.[0]?.sizes?.[0] || null);
@@ -117,10 +118,19 @@ const PreviewProductCard = ({
     }
   };
 
-  const cardPrice = parseFloat(selectedSize?.price || product.variations?.[0]?.sizes?.[0]?.price) || 0;
+  // Apply premiumPercent for named staff sizes (service stores)
+  const applyPremium = (basePrice, sizeName) => {
+    const staffMember = (booking.staffMembers || []).find(sm => sm.name === sizeName);
+    const pct = staffMember?.premiumPercent || 0;
+    return pct > 0 ? Math.round(basePrice * (1 + pct / 100)) : basePrice;
+  };
+
+  const cardBasePrice = parseFloat(selectedSize?.price || product.variations?.[0]?.sizes?.[0]?.price) || 0;
+  const cardPrice = applyPremium(cardBasePrice, selectedSize?.size || product.variations?.[0]?.sizes?.[0]?.size);
   const discount = product.discount || 0;
   const cardOriginalPrice = discount > 0 ? cardPrice / (1 - discount / 100) : cardPrice;
-  const selectedPrice = parseFloat(selectedSize?.price) || 0;
+  const selectedBasePrice = parseFloat(selectedSize?.price) || 0;
+  const selectedPrice = applyPremium(selectedBasePrice, selectedSize?.size);
   const selectedOriginalPrice = discount > 0 ? selectedPrice / (1 - discount / 100) : selectedPrice;
 
   const primaryColor = brandColors.primary || '#25D366';
