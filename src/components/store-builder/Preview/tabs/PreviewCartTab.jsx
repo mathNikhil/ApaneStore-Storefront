@@ -1406,7 +1406,19 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
     fetch(`${apiBase}/api/store/${storeId}/slots?${params}`)
       .then(r => r.json())
       .then(res => {
-        setSlots(res.success ? res.data : []);
+        let fetchedSlots = res.success ? res.data : [];
+        // Disable past time slots when the selected date is today
+        const todayIso = new Date().toISOString().split('T')[0];
+        if (selectedDate === todayIso) {
+          const now = new Date();
+          const nowMinutes = now.getHours() * 60 + now.getMinutes();
+          fetchedSlots = fetchedSlots.map(slot => {
+            const [h, m] = (slot.startTime || '').split(':').map(Number);
+            const slotMinutes = h * 60 + (m || 0);
+            return slotMinutes <= nowMinutes ? { ...slot, available: false } : slot;
+          });
+        }
+        setSlots(fetchedSlots);
       })
       .catch(() => setSlots([]))
       .finally(() => setLoading(false));
