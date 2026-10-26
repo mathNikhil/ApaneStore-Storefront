@@ -1304,12 +1304,17 @@ const PreviewCartTab = ({ data, updateQuantity, updateSlots, removeFromCart, pla
 // ─────────────────────────────────────────────────────────────────────────────
 // ServiceSlotPicker
 // Shows a date strip + time slots. Customer must pick exactly `item.quantity`
-// slots. Same slot can be picked multiple times (staff capacity handled server-side).
+// slots. Passes staffName to the backend so each staff member's availability
+// is shown independently. "All Staff" = any available staff.
 // ─────────────────────────────────────────────────────────────────────────────
 const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, fontBody, onSlotsChange }) => {
   const quantity = item.quantity;
   const selectedSlots = item.selectedSlots || [];
   const duration = item.duration || 60;
+
+  // variationName holds the chosen staff name (or "All Staff")
+  const staffName = item.variationName || 'All Staff';
+  const isAllStaff = !staffName || staffName === 'All Staff';
 
   // Build date options: today + advanceDays
   const advanceDays = parseInt(booking.advanceDays) || 7;
@@ -1338,22 +1343,32 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
   const [slots, setSlots] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
 
-  // Fetch slots when date changes
+  // Fetch slots when date or staff changes
   React.useEffect(() => {
     if (!selectedDate || !storeId) return;
     setLoading(true);
-    fetch(`${apiBase}/api/store/${storeId}/slots?date=${selectedDate}&serviceDuration=${duration}`)
+    const params = new URLSearchParams({
+      date: selectedDate,
+      serviceDuration: duration,
+      staffName: staffName,
+    });
+    fetch(`${apiBase}/api/store/${storeId}/slots?${params}`)
       .then(r => r.json())
       .then(res => {
         setSlots(res.success ? res.data : []);
       })
       .catch(() => setSlots([]))
       .finally(() => setLoading(false));
-  }, [selectedDate, storeId, duration, apiBase]);
+  }, [selectedDate, storeId, duration, apiBase, staffName]);
 
   const addSlot = (slot) => {
     if (selectedSlots.length >= quantity) return;
-    const newSlots = [...selectedSlots, { date: selectedDate, startTime: slot.startTime, endTime: slot.endTime }];
+    const newSlots = [...selectedSlots, {
+      date: selectedDate,
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+      staffName: isAllStaff ? (slot.availableStaff?.[0] || null) : staffName,
+    }];
     onSlotsChange(newSlots);
   };
 
@@ -1368,9 +1383,16 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
     <div className="border-t px-4 pb-4 pt-3" style={{ backgroundColor: '#f8fdf9' }}>
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
-        <p className="text-xs font-semibold" style={{ color: primaryColor, fontFamily: fontBody }}>
-          📅 Pick {quantity} appointment slot{quantity > 1 ? 's' : ''}
-        </p>
+        <div>
+          <p className="text-xs font-semibold" style={{ color: primaryColor, fontFamily: fontBody }}>
+            📅 Pick {quantity} appointment slot{quantity > 1 ? 's' : ''}
+          </p>
+          {!isAllStaff && (
+            <p className="text-[11px] opacity-60 mt-0.5" style={{ fontFamily: fontBody }}>
+              with {staffName}
+            </p>
+          )}
+        </div>
         <span className="text-xs font-medium px-2 py-0.5 rounded-full"
           style={{ backgroundColor: selectedSlots.length === quantity ? '#dcfce7' : '#fef9c3', color: selectedSlots.length === quantity ? '#15803d' : '#854d0e' }}>
           {selectedSlots.length}/{quantity} selected
@@ -1384,6 +1406,7 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
             <span key={i} className="flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium"
               style={{ backgroundColor: primaryColor + '20', color: primaryColor, fontFamily: fontBody }}>
               {s.date === new Date().toISOString().split('T')[0] ? 'Today' : s.date} {s.startTime}
+              {s.staffName && isAllStaff && <span className="opacity-70">· {s.staffName}</span>}
               <button onClick={() => removeSlot(i)} className="ml-0.5 opacity-60 hover:opacity-100">✕</button>
             </span>
           ))}
