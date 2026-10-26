@@ -201,7 +201,7 @@ const PreviewCartTab = ({ data, updateQuantity, updateSlots, updateItemPrice, up
   const dineInLocations = data?.cart?.dineInLocations || data?.dineInLocations || [];
   const storeLocations = data?.profile?.storeLocations || [];
   const mainStore = { id: 'main', name: 'Main Store', address: data?.profile?.storeAddress || '' };
-  const allLocations = [mainStore, ...storeLocations.filter(l => l.name && l.address)];
+  const allLocations = [mainStore, ...storeLocations.filter(l => isService ? l.name : (l.name && l.address))];
   const hasMultipleLocations = allLocations.length > 1;
 
   // Get dine-in enabled locations

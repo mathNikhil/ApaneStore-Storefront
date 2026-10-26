@@ -826,7 +826,7 @@ const PreviewProfileTab = ({
           </div>
 
           {/* Additional Locations / Branches */}
-          {(profile?.storeLocations || []).filter(loc => loc.name && loc.address).map(function(loc) {
+          {(profile?.storeLocations || []).filter(loc => isService ? loc.name : (loc.name && loc.address)).map(function(loc) {
             return (
               <div key={loc.id} className="flex items-start gap-2 mt-3 pt-3 border-t border-[#e0e3e6]">
                 <span className="material-symbols-outlined text-base mt-0.5" style={{ color: brandColors.primary }}>store</span>
