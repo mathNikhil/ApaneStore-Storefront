@@ -467,13 +467,24 @@ export const usePreviewData = (builderData, storeId, customerToken) => {
               discount: product.discount || 0,
               variationId: variationId,
               sizeId: sizeId,
-              // Service booking: duration in minutes (parsed from size field e.g. "60 min")
-              duration: (() => {
-                const raw = size?.size || '';
-                const n = parseInt(raw);
-                return isNaN(n) ? (product.defaultDuration || 60) : n;
+              // For service stores: size.size = staff name, size.unit = duration (mins)
+              // staffName is "All Staff" when the tenant set no specific staff on this row
+              staffName: (() => {
+                const s = size?.size || '';
+                // If it's a number string it's the old format (duration in size field) — no staff name
+                return isNaN(parseInt(s)) ? s : 'All Staff';
               })(),
-              selectedSlots: [], // [{ date, startTime, endTime }, ...]
+              // Service booking: duration in minutes
+              // New format: size.unit holds the numeric duration; size.size holds staff name
+              // Legacy format: size.size held the duration as a number string
+              duration: (() => {
+                const fromUnit = parseInt(size?.unit);
+                if (!isNaN(fromUnit) && fromUnit > 0) return fromUnit;
+                const fromSize = parseInt(size?.size);
+                if (!isNaN(fromSize) && fromSize > 0) return fromSize;
+                return product.defaultDuration || 60;
+              })(),
+              selectedSlots: [], // [{ date, startTime, endTime, staffName }, ...]
             }
           ]
         }

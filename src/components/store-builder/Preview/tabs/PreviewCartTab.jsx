@@ -813,7 +813,13 @@ const PreviewCartTab = ({ data, updateQuantity, updateSlots, removeFromCart, pla
                         {item.productName}
                       </h4>
                       <p className="text-xs" style={{ color: brand.colors.fontBody, fontFamily: brand.fonts?.body || 'Inter' }}>
-                        {item.sizeLabel} • {item.variationName}
+                        {/* Service stores: staffName • duration mins • category */}
+                        {item.staffName && item.staffName !== 'All Staff'
+                          ? `${item.staffName}${item.duration ? ` • ${item.duration} mins` : ''} • ${item.variationName}`
+                          : item.staffName === 'All Staff'
+                            ? `${item.duration ? `${item.duration} mins` : ''} • ${item.variationName}`
+                            : `${item.sizeLabel} • ${item.variationName}`
+                        }
                       </p>
                       {itemGstAmt != null ? (
                         <div>
@@ -1312,8 +1318,8 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
   const selectedSlots = item.selectedSlots || [];
   const duration = item.duration || 60;
 
-  // variationName holds the chosen staff name (or "All Staff")
-  const staffName = item.variationName || 'All Staff';
+  // item.staffName is set from size.size in usePreviewData (service stores)
+  const staffName = item.staffName || 'All Staff';
   const isAllStaff = !staffName || staffName === 'All Staff';
 
   // Build date options: today + advanceDays
