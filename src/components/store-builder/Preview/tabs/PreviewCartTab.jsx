@@ -1503,8 +1503,9 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
       }
     }
 
-    // Place a 30-min hold so no other customer can grab this slot
+    // Place a 10-min hold so no other customer can grab this slot
     let holdId = null;
+    let expiresAt = null;
     try {
       const holdRes = await fetch(`${apiBase}/api/store/${storeId}/slots/hold`, {
         method: 'POST',
@@ -1518,11 +1519,12 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
       });
       const holdData = await holdRes.json();
       if (!holdData.success) {
-        // Slot was grabbed by someone else — refresh slots and bail
+        // Slot was grabbed by someone else — bail
         alert(holdData.error || 'This slot is no longer available. Please pick another.');
         return;
       }
       holdId = holdData.holdId;
+      expiresAt = holdData.expiresAt;
     } catch (_) {
       // Network issue — proceed optimistically (hold is best-effort)
     }
@@ -1532,7 +1534,8 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
       startTime: slot.startTime,
       endTime: slot.endTime,
       staffName: effectiveStaff,
-      holdId,  // stored so we can release on deselect
+      holdId,    // stored so we can release on deselect
+      expiresAt, // ISO string — used for countdown display + auto-expiry
     }];
     onSlotsChange(newSlots);
     // Update price and staff to whichever staff was last picked
@@ -1554,6 +1557,34 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
   };
 
   const slotsNeeded = quantity - selectedSlots.length;
+
+  // ── Countdown ticker: update every second, auto-remove expired holds ──────
+  const [, forceRender] = React.useState(0);
+  React.useEffect(() => {
+    if (selectedSlots.length === 0) return;
+    const tick = setInterval(() => {
+      const now = Date.now();
+      const expired = selectedSlots.filter(s => s.expiresAt && new Date(s.expiresAt).getTime() <= now);
+      if (expired.length > 0) {
+        // Auto-remove expired slots and notify customer
+        const surviving = selectedSlots.filter(s => !s.expiresAt || new Date(s.expiresAt).getTime() > now);
+        onSlotsChange(surviving);
+        alert(`Your hold on ${expired.map(s => s.startTime).join(', ')} has expired. Please select the slot again.`);
+      } else {
+        forceRender(n => n + 1); // re-render to update countdown display
+      }
+    }, 1000);
+    return () => clearInterval(tick);
+  }, [selectedSlots]);
+
+  // Format ms remaining as M:SS
+  const formatCountdown = (expiresAt) => {
+    if (!expiresAt) return null;
+    const secsLeft = Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000));
+    const m = Math.floor(secsLeft / 60);
+    const s = String(secsLeft % 60).padStart(2, '0');
+    return `${m}:${s}`;
+  };
 
   return (
     <div className="border-t px-4 pb-4 pt-3" style={{ backgroundColor: '#f8fdf9' }}>
@@ -1581,16 +1612,35 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
 
       {/* Selected slots chips */}
       {selectedSlots.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          {selectedSlots.map((s, i) => (
-            <span key={i} className="flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium"
-              style={{ backgroundColor: primaryColor + '20', color: primaryColor, fontFamily: fontBody }}>
-              {s.date === new Date().toISOString().split('T')[0] ? 'Today' : s.date} {s.startTime}{s.endTime ? ` – ${s.endTime}` : ''}
-              {s.staffName && <span className="opacity-70">· {s.staffName}</span>}
-              <button onClick={() => removeSlot(i)} className="ml-0.5 opacity-60 hover:opacity-100">✕</button>
-            </span>
-          ))}
-        </div>
+        <>
+          {/* Hold notice banner */}
+          <div className="flex items-center gap-1.5 text-[10px] px-2 py-1.5 rounded-lg mb-2"
+            style={{ backgroundColor: '#fffbeb', color: '#92400e', border: '1px solid #fde68a', fontFamily: fontBody }}>
+            <span>⏱</span>
+            <span>Slots are held for <strong>10 minutes</strong>. Complete your booking before the timer runs out.</span>
+          </div>
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {selectedSlots.map((s, i) => {
+              const countdown = formatCountdown(s.expiresAt);
+              const secsLeft = s.expiresAt ? Math.max(0, Math.floor((new Date(s.expiresAt).getTime() - Date.now()) / 1000)) : null;
+              const isUrgent = secsLeft !== null && secsLeft < 120; // red under 2 mins
+              return (
+                <span key={i} className="flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium"
+                  style={{
+                    backgroundColor: isUrgent ? '#fee2e2' : primaryColor + '20',
+                    color: isUrgent ? '#dc2626' : primaryColor,
+                    border: isUrgent ? '1px solid #fca5a5' : 'none',
+                    fontFamily: fontBody
+                  }}>
+                  {s.date === new Date().toISOString().split('T')[0] ? 'Today' : s.date} {s.startTime}{s.endTime ? ` – ${s.endTime}` : ''}
+                  {s.staffName && <span className="opacity-70">· {s.staffName}</span>}
+                  {countdown && <span className="font-mono text-[10px] opacity-80">⏱{countdown}</span>}
+                  <button onClick={() => removeSlot(i)} className="ml-0.5 opacity-60 hover:opacity-100">✕</button>
+                </span>
+              );
+            })}
+          </div>
+        </>
       )}
 
       {slotsNeeded > 0 && (
