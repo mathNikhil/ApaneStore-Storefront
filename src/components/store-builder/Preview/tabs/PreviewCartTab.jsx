@@ -883,6 +883,7 @@ const PreviewCartTab = ({ data, updateQuantity, updateSlots, updateItemPrice, up
                       onSlotsChange={(slots) => updateSlots && updateSlots(item.id, slots)}
                       onPriceChange={(price) => updateItemPrice && updateItemPrice(item.id, price)}
                       onStaffChange={(staff) => updateItemStaff && updateItemStaff(item.id, staff)}
+                      allCartSlots={items.flatMap(i => i.id !== item.id ? (i.selectedSlots || []) : [])}
                     />
                   )}
                 </div>
@@ -1323,7 +1324,7 @@ const PreviewCartTab = ({ data, updateQuantity, updateSlots, updateItemPrice, up
 // ─────────────────────────────────────────────────────────────────────────────
 // StaffSlotPanel — slot grid for the active tab (no date strip, date is shared above)
 // ─────────────────────────────────────────────────────────────────────────────
-const StaffSlotPanel = ({ staffName, selectedDate, storeId, apiBase, duration, primaryColor, fontBody, selectedSlots, quantity, onAddSlot, onSlotCount }) => {
+const StaffSlotPanel = ({ staffName, selectedDate, storeId, apiBase, duration, primaryColor, fontBody, selectedSlots, quantity, onAddSlot, onSlotCount, allCartSlots = [] }) => {
   const [slots, setSlots] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
 
@@ -1359,22 +1360,27 @@ const StaffSlotPanel = ({ staffName, selectedDate, storeId, apiBase, duration, p
       {slots.map((slot, i) => {
         const isAvailable = slot.available;
         const alreadyPicked = selectedSlots.filter(s => s.date === selectedDate && s.startTime === slot.startTime && s.staffName === staffName).length;
-        const canPick = isAvailable && selectedSlots.length < quantity;
+        // Block slot if same staff is already used at this time in another cart item
+        const cartConflict = staffName && staffName !== 'All Staff' &&
+          allCartSlots.some(s => s.date === selectedDate && s.startTime === slot.startTime && s.staffName === staffName);
+        const canPick = isAvailable && !cartConflict && selectedSlots.length < quantity;
         return (
           <button key={i}
             disabled={!canPick}
             onClick={() => canPick && onAddSlot({ ...slot, staffName, selectedDate })}
             className="py-1.5 px-1 rounded-lg border text-[10px] font-medium transition-all"
+            title={cartConflict ? `${staffName} is already booked at this time in your cart` : undefined}
             style={{
-              borderColor: alreadyPicked > 0 ? primaryColor : isAvailable ? primaryColor + '50' : '#e0e3e6',
-              backgroundColor: alreadyPicked > 0 ? primaryColor + '20' : isAvailable ? primaryColor + '08' : '#f5f5f5',
-              color: alreadyPicked > 0 ? primaryColor : isAvailable ? primaryColor : '#bbb',
+              borderColor: alreadyPicked > 0 ? primaryColor : isAvailable && !cartConflict ? primaryColor + '50' : '#e0e3e6',
+              backgroundColor: alreadyPicked > 0 ? primaryColor + '20' : isAvailable && !cartConflict ? primaryColor + '08' : '#f5f5f5',
+              color: alreadyPicked > 0 ? primaryColor : isAvailable && !cartConflict ? primaryColor : '#bbb',
               opacity: !canPick && alreadyPicked === 0 ? 0.5 : 1,
               cursor: canPick ? 'pointer' : 'default',
             }}>
             <span className="block font-semibold">{slot.startTime}</span>
             {slot.endTime && <span className="block opacity-60 text-[9px]">{slot.endTime}</span>}
             {alreadyPicked > 0 && <span className="block text-[9px]">✓</span>}
+            {cartConflict && <span className="block text-[9px]">🚫</span>}
           </button>
         );
       })}
@@ -1385,7 +1391,7 @@ const StaffSlotPanel = ({ staffName, selectedDate, storeId, apiBase, duration, p
 // StaffSlotCard kept as thin wrapper — now unused directly but kept for safety
 const StaffSlotCard = StaffSlotPanel;
 
-const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, fontBody, onSlotsChange, onPriceChange, onStaffChange }) => {
+const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, fontBody, onSlotsChange, onPriceChange, onStaffChange, allCartSlots = [] }) => {
   const quantity = item.quantity;
   const selectedSlots = item.selectedSlots || [];
   const duration = item.duration || 60;
@@ -1483,6 +1489,19 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
     if (selectedSlots.length >= quantity) return;
     const effectiveDate = date || selectedDate;
     const effectiveStaff = staffName || baseStaffName;
+
+    // Cross-cart check: block if same staff already has this time in another cart item
+    if (effectiveStaff && effectiveStaff !== 'All Staff') {
+      const conflict = allCartSlots.some(s =>
+        s.date === effectiveDate &&
+        s.startTime === slot.startTime &&
+        s.staffName === effectiveStaff
+      );
+      if (conflict) {
+        alert(`${effectiveStaff} is already booked at ${slot.startTime} for another service in your cart. Please choose a different time or staff member.`);
+        return;
+      }
+    }
 
     // Place a 30-min hold so no other customer can grab this slot
     let holdId = null;
@@ -1663,6 +1682,7 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
                       quantity={quantity}
                       onAddSlot={(slot) => addSlot(slot, slot.staffName, slot.selectedDate)}
                       onSlotCount={handleSlotCount}
+                      allCartSlots={allCartSlots}
                     />
                   </div>
                 )}
