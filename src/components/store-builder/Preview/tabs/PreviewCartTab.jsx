@@ -1632,7 +1632,7 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
                     border: isUrgent ? '1px solid #fca5a5' : 'none',
                     fontFamily: fontBody
                   }}>
-                  {s.date === new Date().toISOString().split('T')[0] ? 'Today' : s.date} {s.startTime}{s.endTime ? ` – ${s.endTime}` : ''}
+                  {s.date === new Date().toISOString().split('T')[0] ? 'Today' : new Date(s.date + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} {s.startTime}{s.endTime ? ` – ${s.endTime}` : ''}
                   {s.staffName && <span className="opacity-70">· {s.staffName}</span>}
                   {countdown && <span className="font-mono text-[10px] opacity-80">⏱{countdown}</span>}
                   <button onClick={() => removeSlot(i)} className="ml-0.5 opacity-60 hover:opacity-100">✕</button>
