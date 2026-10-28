@@ -1568,13 +1568,18 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
                           minWidth: 110,
                           fontFamily: fontBody,
                         }}>
-                        {/* Avatar circle */}
-                        <div className="w-10 h-10 rounded-full flex items-center justify-center"
+                        {/* Avatar circle — photo if available, else initials/icon */}
+                        <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0"
                           style={{ backgroundColor: isActive ? primaryColor + '18' : '#f0f2f4' }}>
-                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                            <circle cx="12" cy="8" r="4" fill={isActive ? primaryColor : '#8fa3ad'} />
-                            <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke={isActive ? primaryColor : '#8fa3ad'} strokeWidth="2" strokeLinecap="round" fill="none"/>
-                          </svg>
+                          {s.avatar_url ? (
+                            <img src={s.avatar_url} alt={s.name}
+                              className="w-full h-full object-cover" />
+                          ) : (
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                              <circle cx="12" cy="8" r="4" fill={isActive ? primaryColor : '#8fa3ad'} />
+                              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke={isActive ? primaryColor : '#8fa3ad'} strokeWidth="2" strokeLinecap="round" fill="none"/>
+                            </svg>
+                          )}
                         </div>
                         <span className="text-[13px] font-semibold leading-tight"
                           style={{ color: isActive ? primaryColor : '#191c1e' }}>
