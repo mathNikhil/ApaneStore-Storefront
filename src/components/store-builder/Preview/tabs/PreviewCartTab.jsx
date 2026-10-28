@@ -1479,15 +1479,41 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
       .finally(() => setLoading(false));
   }, [selectedDate, storeId, duration, apiBase, baseStaffName, isAllStaff]);
 
-  const addSlot = (slot, staffName, date) => {
+  const addSlot = async (slot, staffName, date) => {
     if (selectedSlots.length >= quantity) return;
     const effectiveDate = date || selectedDate;
     const effectiveStaff = staffName || baseStaffName;
+
+    // Place a 30-min hold so no other customer can grab this slot
+    let holdId = null;
+    try {
+      const holdRes = await fetch(`${apiBase}/api/store/${storeId}/slots/hold`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: effectiveDate,
+          slotTime: slot.startTime,
+          staffName: effectiveStaff,
+          durationMins: item?.serviceDuration || duration,
+        }),
+      });
+      const holdData = await holdRes.json();
+      if (!holdData.success) {
+        // Slot was grabbed by someone else — refresh slots and bail
+        alert(holdData.error || 'This slot is no longer available. Please pick another.');
+        return;
+      }
+      holdId = holdData.holdId;
+    } catch (_) {
+      // Network issue — proceed optimistically (hold is best-effort)
+    }
+
     const newSlots = [...selectedSlots, {
       date: effectiveDate,
       startTime: slot.startTime,
       endTime: slot.endTime,
       staffName: effectiveStaff,
+      holdId,  // stored so we can release on deselect
     }];
     onSlotsChange(newSlots);
     // Update price and staff to whichever staff was last picked
@@ -1497,6 +1523,13 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
   };
 
   const removeSlot = (idx) => {
+    const slot = selectedSlots[idx];
+    // Release the hold when customer deselects a slot
+    if (slot?.holdId) {
+      fetch(`${apiBase}/api/store/${storeId}/slots/hold/${slot.holdId}`, {
+        method: 'DELETE',
+      }).catch(() => {});
+    }
     const newSlots = selectedSlots.filter((_, i) => i !== idx);
     onSlotsChange(newSlots);
   };
