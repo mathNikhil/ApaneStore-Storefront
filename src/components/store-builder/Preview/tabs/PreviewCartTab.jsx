@@ -1551,8 +1551,8 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
               <p className="text-xs text-center py-4 opacity-50" style={{ fontFamily: fontBody }}>No staff members available</p>
             ) : (
               <div>
-                {/* Staff tab bar */}
-                <div className="flex gap-0 overflow-x-auto scrollbar-hide mb-3 rounded-xl border" style={{ borderColor: '#e0e3e6', backgroundColor: '#f8f8f8' }}>
+                {/* Staff pill tabs */}
+                <div className="flex gap-2 overflow-x-auto scrollbar-hide mb-3 pb-0.5">
                   {staffList.map(s => {
                     const isActive = activeStaffTab === s.name;
                     const count = staffSlotCounts[s.name];
@@ -1561,63 +1561,81 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
                       <button
                         key={s.name}
                         onClick={() => setActiveStaffTab(s.name)}
-                        className="flex-shrink-0 flex flex-col items-center px-3 py-2 text-[11px] font-medium transition-all relative"
+                        className="flex-shrink-0 flex flex-col items-center px-3 py-2 rounded-xl border-2 transition-all"
                         style={{
+                          borderColor: isActive ? primaryColor : '#e0e3e6',
+                          backgroundColor: isActive ? primaryColor + '12' : '#fff',
                           color: isActive ? primaryColor : '#556067',
-                          backgroundColor: isActive ? '#fff' : 'transparent',
-                          borderBottom: isActive ? `2px solid ${primaryColor}` : '2px solid transparent',
                           fontFamily: fontBody,
-                          minWidth: 72,
+                          minWidth: 80,
                         }}>
-                        <span className="font-semibold truncate max-w-[80px]">{s.name}</span>
-                        {price > 0 && <span className="text-[9px] opacity-60">₹{price}</span>}
-                        {count !== undefined && (
-                          <span className="text-[9px] mt-0.5 px-1.5 py-0.5 rounded-full" style={{
-                            backgroundColor: count > 0 ? '#dcfce7' : '#f5f5f5',
-                            color: count > 0 ? '#15803d' : '#9ca3af',
-                          }}>
-                            {count > 0 ? `${count} slots` : 'No slots'}
-                          </span>
+                        <span className="text-[11px] font-semibold truncate max-w-[90px]">{s.name}</span>
+                        {price > 0 && (
+                          <span className="text-[9px] opacity-70 mt-0.5">₹{price}/session</span>
                         )}
+                        <span className="text-[9px] mt-1 px-1.5 py-0.5 rounded-full font-medium" style={{
+                          backgroundColor: count > 0 ? '#dcfce7' : count === 0 ? '#fef2f2' : '#f3f4f6',
+                          color: count > 0 ? '#15803d' : count === 0 ? '#b91c1c' : '#6b7280',
+                        }}>
+                          {count === undefined ? '…' : count > 0 ? `${count} free` : 'Busy'}
+                        </span>
                       </button>
                     );
                   })}
                 </div>
 
-                {/* Shared date strip */}
-                <div className="flex gap-1.5 overflow-x-auto pb-1 mb-3 scrollbar-hide">
-                  {dateOptions.map(d => (
-                    <button key={d.iso}
-                      onClick={() => setSelectedDate(d.iso)}
-                      className="flex-shrink-0 flex flex-col items-center px-2.5 py-1.5 rounded-lg border transition-all"
-                      style={{
-                        borderColor: selectedDate === d.iso ? primaryColor : '#e0e3e6',
-                        backgroundColor: selectedDate === d.iso ? primaryColor + '15' : '#fff',
-                        color: selectedDate === d.iso ? primaryColor : '#556067',
-                        fontFamily: fontBody,
-                      }}>
-                      <span className="font-semibold text-[10px]">{d.label}</span>
-                      <span className="opacity-70 text-[9px]">{d.sub}</span>
-                    </button>
-                  ))}
-                </div>
-
-                {/* Active staff's slots */}
+                {/* Calendar + slots card for active staff */}
                 {activeStaffTab && (
-                  <StaffSlotPanel
-                    key={activeStaffTab + selectedDate}
-                    staffName={activeStaffTab}
-                    selectedDate={selectedDate}
-                    storeId={storeId}
-                    apiBase={apiBase}
-                    duration={duration}
-                    primaryColor={primaryColor}
-                    fontBody={fontBody}
-                    selectedSlots={selectedSlots}
-                    quantity={quantity}
-                    onAddSlot={(slot) => addSlot(slot, slot.staffName, slot.selectedDate)}
-                    onSlotCount={handleSlotCount}
-                  />
+                  <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#e0e3e6' }}>
+                    {/* Active staff header */}
+                    <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: primaryColor + '10', borderBottom: `1px solid ${primaryColor}20` }}>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">👤</span>
+                        <div>
+                          <p className="text-xs font-semibold" style={{ color: primaryColor, fontFamily: fontBody }}>{activeStaffTab}</p>
+                          {getStaffPrice(activeStaffTab) > 0 && (
+                            <p className="text-[10px] opacity-60" style={{ fontFamily: fontBody }}>₹{getStaffPrice(activeStaffTab)} per session</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="px-3 pt-2 pb-3">
+                      {/* Date strip */}
+                      <div className="flex gap-1.5 overflow-x-auto pb-1 mb-3 scrollbar-hide">
+                        {dateOptions.map(d => (
+                          <button key={d.iso}
+                            onClick={() => setSelectedDate(d.iso)}
+                            className="flex-shrink-0 flex flex-col items-center px-2.5 py-1.5 rounded-lg border transition-all"
+                            style={{
+                              borderColor: selectedDate === d.iso ? primaryColor : '#e0e3e6',
+                              backgroundColor: selectedDate === d.iso ? primaryColor + '15' : '#f8f8f8',
+                              color: selectedDate === d.iso ? primaryColor : '#556067',
+                              fontFamily: fontBody,
+                            }}>
+                            <span className="font-semibold text-[10px]">{d.label}</span>
+                            <span className="opacity-70 text-[9px]">{d.sub}</span>
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Slot grid */}
+                      <StaffSlotPanel
+                        key={activeStaffTab + selectedDate}
+                        staffName={activeStaffTab}
+                        selectedDate={selectedDate}
+                        storeId={storeId}
+                        apiBase={apiBase}
+                        duration={duration}
+                        primaryColor={primaryColor}
+                        fontBody={fontBody}
+                        selectedSlots={selectedSlots}
+                        quantity={quantity}
+                        onAddSlot={(slot) => addSlot(slot, slot.staffName, slot.selectedDate)}
+                        onSlotCount={handleSlotCount}
+                      />
+                    </div>
+                  </div>
                 )}
               </div>
             )
