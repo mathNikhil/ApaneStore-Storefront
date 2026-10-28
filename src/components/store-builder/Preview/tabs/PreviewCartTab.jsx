@@ -1321,9 +1321,9 @@ const PreviewCartTab = ({ data, updateQuantity, updateSlots, updateItemPrice, up
 // is shown independently. "All Staff" = any available staff.
 // ─────────────────────────────────────────────────────────────────────────────
 // ─────────────────────────────────────────────────────────────────────────────
-// StaffSlotCard — one staff member's availability card (used inside All Staff mode)
+// StaffSlotPanel — slot grid for the active tab (no date strip, date is shared above)
 // ─────────────────────────────────────────────────────────────────────────────
-const StaffSlotCard = ({ staffName, staffPrice, dateOptions, selectedDate, onDateChange, storeId, apiBase, duration, primaryColor, fontBody, selectedSlots, quantity, onAddSlot }) => {
+const StaffSlotPanel = ({ staffName, selectedDate, storeId, apiBase, duration, primaryColor, fontBody, selectedSlots, quantity, onAddSlot, onSlotCount }) => {
   const [slots, setSlots] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
 
@@ -1345,89 +1345,45 @@ const StaffSlotCard = ({ staffName, staffPrice, dateOptions, selectedDate, onDat
           });
         }
         setSlots(fetchedSlots);
+        if (onSlotCount) onSlotCount(staffName, fetchedSlots.filter(s => s.available).length);
       })
-      .catch(() => setSlots([]))
+      .catch(() => { setSlots([]); if (onSlotCount) onSlotCount(staffName, 0); })
       .finally(() => setLoading(false));
   }, [selectedDate, storeId, duration, apiBase, staffName]);
 
-  const availableCount = slots.filter(s => s.available).length;
+  if (loading) return <p className="text-[10px] text-center py-4 opacity-40" style={{ fontFamily: fontBody }}>Loading slots…</p>;
+  if (slots.length === 0) return <p className="text-[10px] text-center py-4 opacity-40" style={{ fontFamily: fontBody }}>No slots for this date</p>;
 
   return (
-    <div className="rounded-xl border overflow-hidden mb-3" style={{ borderColor: '#e0e3e6', backgroundColor: '#fff' }}>
-      {/* Staff header */}
-      <div className="flex items-center justify-between px-3 py-2.5" style={{ backgroundColor: primaryColor + '10', borderBottom: `1px solid ${primaryColor}30` }}>
-        <div className="flex items-center gap-2">
-          <span className="text-base">👤</span>
-          <div>
-            <p className="text-xs font-semibold" style={{ color: primaryColor, fontFamily: fontBody }}>{staffName}</p>
-            {staffPrice > 0 && (
-              <p className="text-[10px] opacity-70" style={{ fontFamily: fontBody }}>₹{staffPrice} per session</p>
-            )}
-          </div>
-        </div>
-        <span className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{
-          backgroundColor: availableCount > 0 ? '#dcfce7' : '#f5f5f5',
-          color: availableCount > 0 ? '#15803d' : '#9ca3af',
-          fontFamily: fontBody,
-        }}>
-          {loading ? '…' : availableCount > 0 ? `${availableCount} slots` : 'No slots'}
-        </span>
-      </div>
-
-      <div className="px-3 pb-3 pt-2">
-        {/* Date strip */}
-        <div className="flex gap-1.5 overflow-x-auto pb-1 mb-2 scrollbar-hide">
-          {dateOptions.map(d => (
-            <button key={d.iso}
-              onClick={() => onDateChange(d.iso)}
-              className="flex-shrink-0 flex flex-col items-center px-2.5 py-1.5 rounded-lg border transition-all text-xs"
-              style={{
-                borderColor: selectedDate === d.iso ? primaryColor : '#e0e3e6',
-                backgroundColor: selectedDate === d.iso ? primaryColor + '15' : '#f8f8f8',
-                color: selectedDate === d.iso ? primaryColor : '#556067',
-                fontFamily: fontBody,
-              }}>
-              <span className="font-semibold text-[10px]">{d.label}</span>
-              <span className="opacity-70 text-[9px]">{d.sub}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* Time slots */}
-        {loading ? (
-          <p className="text-[10px] text-center py-2 opacity-40" style={{ fontFamily: fontBody }}>Loading…</p>
-        ) : slots.length === 0 ? (
-          <p className="text-[10px] text-center py-2 opacity-40" style={{ fontFamily: fontBody }}>No slots for this date</p>
-        ) : (
-          <div className="grid grid-cols-3 gap-1.5">
-            {slots.map((slot, i) => {
-              const isAvailable = slot.available;
-              const alreadyPicked = selectedSlots.filter(s => s.date === selectedDate && s.startTime === slot.startTime && s.staffName === staffName).length;
-              const canPick = isAvailable && selectedSlots.length < quantity;
-              return (
-                <button key={i}
-                  disabled={!canPick}
-                  onClick={() => canPick && onAddSlot({ ...slot, staffName, selectedDate })}
-                  className="py-1.5 px-1 rounded-lg border text-[10px] font-medium transition-all"
-                  style={{
-                    borderColor: alreadyPicked > 0 ? primaryColor : isAvailable ? primaryColor + '50' : '#e0e3e6',
-                    backgroundColor: alreadyPicked > 0 ? primaryColor + '20' : isAvailable ? primaryColor + '08' : '#f5f5f5',
-                    color: alreadyPicked > 0 ? primaryColor : isAvailable ? primaryColor : '#bbb',
-                    opacity: !canPick && alreadyPicked === 0 ? 0.5 : 1,
-                    cursor: canPick ? 'pointer' : 'default',
-                  }}>
-                  <span className="block font-semibold">{slot.startTime}</span>
-                  {slot.endTime && <span className="block opacity-60 text-[9px]">{slot.endTime}</span>}
-                  {alreadyPicked > 0 && <span className="block text-[9px]">✓</span>}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
+    <div className="grid grid-cols-3 gap-1.5">
+      {slots.map((slot, i) => {
+        const isAvailable = slot.available;
+        const alreadyPicked = selectedSlots.filter(s => s.date === selectedDate && s.startTime === slot.startTime && s.staffName === staffName).length;
+        const canPick = isAvailable && selectedSlots.length < quantity;
+        return (
+          <button key={i}
+            disabled={!canPick}
+            onClick={() => canPick && onAddSlot({ ...slot, staffName, selectedDate })}
+            className="py-1.5 px-1 rounded-lg border text-[10px] font-medium transition-all"
+            style={{
+              borderColor: alreadyPicked > 0 ? primaryColor : isAvailable ? primaryColor + '50' : '#e0e3e6',
+              backgroundColor: alreadyPicked > 0 ? primaryColor + '20' : isAvailable ? primaryColor + '08' : '#f5f5f5',
+              color: alreadyPicked > 0 ? primaryColor : isAvailable ? primaryColor : '#bbb',
+              opacity: !canPick && alreadyPicked === 0 ? 0.5 : 1,
+              cursor: canPick ? 'pointer' : 'default',
+            }}>
+            <span className="block font-semibold">{slot.startTime}</span>
+            {slot.endTime && <span className="block opacity-60 text-[9px]">{slot.endTime}</span>}
+            {alreadyPicked > 0 && <span className="block text-[9px]">✓</span>}
+          </button>
+        );
+      })}
     </div>
   );
 };
+
+// StaffSlotCard kept as thin wrapper — now unused directly but kept for safety
+const StaffSlotCard = StaffSlotPanel;
 
 const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, fontBody, onSlotsChange, onPriceChange, onStaffChange }) => {
   const quantity = item.quantity;
@@ -1474,9 +1430,11 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
   const [slots, setSlots] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
 
-  // For single-staff mode (non-All Staff)
+  // For All Staff mode: tab state
   const [staffList, setStaffList] = React.useState([]);
   const [staffLoading, setStaffLoading] = React.useState(false);
+  const [activeStaffTab, setActiveStaffTab] = React.useState(null);
+  const [staffSlotCounts, setStaffSlotCounts] = React.useState({});
 
   // Fetch staff list for All Staff mode
   React.useEffect(() => {
@@ -1484,10 +1442,18 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
     setStaffLoading(true);
     fetch(`${apiBase}/api/store/${storeId}/staff`)
       .then(r => r.json())
-      .then(res => { setStaffList(res.success ? res.data : []); })
+      .then(res => {
+        const list = res.success ? res.data : [];
+        setStaffList(list);
+        if (list.length > 0) setActiveStaffTab(list[0].name);
+      })
       .catch(() => setStaffList([]))
       .finally(() => setStaffLoading(false));
   }, [isAllStaff, storeId, apiBase]);
+
+  const handleSlotCount = React.useCallback((staffName, count) => {
+    setStaffSlotCounts(prev => ({ ...prev, [staffName]: count }));
+  }, []);
 
   // Fetch slots for single-staff mode
   React.useEffect(() => {
@@ -1577,7 +1543,7 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
 
       {slotsNeeded > 0 && (
         <>
-          {/* ── ALL STAFF MODE: show each staff member as their own card ── */}
+          {/* ── ALL STAFF MODE: tab per staff, shared date strip ── */}
           {isAllStaff ? (
             staffLoading ? (
               <p className="text-xs text-center py-4 opacity-50" style={{ fontFamily: fontBody }}>Loading available staff…</p>
@@ -1585,17 +1551,63 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
               <p className="text-xs text-center py-4 opacity-50" style={{ fontFamily: fontBody }}>No staff members available</p>
             ) : (
               <div>
-                <p className="text-[11px] opacity-60 mb-2" style={{ fontFamily: fontBody }}>
-                  Pick a slot from any available staff member:
-                </p>
-                {staffList.map(s => (
-                  <StaffSlotCard
-                    key={s.name}
-                    staffName={s.name}
-                    staffPrice={getStaffPrice(s.name)}
-                    dateOptions={dateOptions}
+                {/* Staff tab bar */}
+                <div className="flex gap-0 overflow-x-auto scrollbar-hide mb-3 rounded-xl border" style={{ borderColor: '#e0e3e6', backgroundColor: '#f8f8f8' }}>
+                  {staffList.map(s => {
+                    const isActive = activeStaffTab === s.name;
+                    const count = staffSlotCounts[s.name];
+                    const price = getStaffPrice(s.name);
+                    return (
+                      <button
+                        key={s.name}
+                        onClick={() => setActiveStaffTab(s.name)}
+                        className="flex-shrink-0 flex flex-col items-center px-3 py-2 text-[11px] font-medium transition-all relative"
+                        style={{
+                          color: isActive ? primaryColor : '#556067',
+                          backgroundColor: isActive ? '#fff' : 'transparent',
+                          borderBottom: isActive ? `2px solid ${primaryColor}` : '2px solid transparent',
+                          fontFamily: fontBody,
+                          minWidth: 72,
+                        }}>
+                        <span className="font-semibold truncate max-w-[80px]">{s.name}</span>
+                        {price > 0 && <span className="text-[9px] opacity-60">₹{price}</span>}
+                        {count !== undefined && (
+                          <span className="text-[9px] mt-0.5 px-1.5 py-0.5 rounded-full" style={{
+                            backgroundColor: count > 0 ? '#dcfce7' : '#f5f5f5',
+                            color: count > 0 ? '#15803d' : '#9ca3af',
+                          }}>
+                            {count > 0 ? `${count} slots` : 'No slots'}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Shared date strip */}
+                <div className="flex gap-1.5 overflow-x-auto pb-1 mb-3 scrollbar-hide">
+                  {dateOptions.map(d => (
+                    <button key={d.iso}
+                      onClick={() => setSelectedDate(d.iso)}
+                      className="flex-shrink-0 flex flex-col items-center px-2.5 py-1.5 rounded-lg border transition-all"
+                      style={{
+                        borderColor: selectedDate === d.iso ? primaryColor : '#e0e3e6',
+                        backgroundColor: selectedDate === d.iso ? primaryColor + '15' : '#fff',
+                        color: selectedDate === d.iso ? primaryColor : '#556067',
+                        fontFamily: fontBody,
+                      }}>
+                      <span className="font-semibold text-[10px]">{d.label}</span>
+                      <span className="opacity-70 text-[9px]">{d.sub}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Active staff's slots */}
+                {activeStaffTab && (
+                  <StaffSlotPanel
+                    key={activeStaffTab + selectedDate}
+                    staffName={activeStaffTab}
                     selectedDate={selectedDate}
-                    onDateChange={setSelectedDate}
                     storeId={storeId}
                     apiBase={apiBase}
                     duration={duration}
@@ -1604,8 +1616,9 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
                     selectedSlots={selectedSlots}
                     quantity={quantity}
                     onAddSlot={(slot) => addSlot(slot, slot.staffName, slot.selectedDate)}
+                    onSlotCount={handleSlotCount}
                   />
-                ))}
+                )}
               </div>
             )
           ) : (
