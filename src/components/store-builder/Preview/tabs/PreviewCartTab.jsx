@@ -1320,6 +1320,115 @@ const PreviewCartTab = ({ data, updateQuantity, updateSlots, updateItemPrice, up
 // slots. Passes staffName to the backend so each staff member's availability
 // is shown independently. "All Staff" = any available staff.
 // ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// StaffSlotCard — one staff member's availability card (used inside All Staff mode)
+// ─────────────────────────────────────────────────────────────────────────────
+const StaffSlotCard = ({ staffName, staffPrice, dateOptions, selectedDate, onDateChange, storeId, apiBase, duration, primaryColor, fontBody, selectedSlots, quantity, onAddSlot }) => {
+  const [slots, setSlots] = React.useState([]);
+  const [loading, setLoading] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!selectedDate || !storeId || !staffName) return;
+    setLoading(true);
+    const params = new URLSearchParams({ date: selectedDate, serviceDuration: duration, staffName });
+    fetch(`${apiBase}/api/store/${storeId}/slots?${params}`)
+      .then(r => r.json())
+      .then(res => {
+        let fetchedSlots = res.success ? res.data : [];
+        const todayIso = new Date().toISOString().split('T')[0];
+        if (selectedDate === todayIso) {
+          const now = new Date();
+          const nowMinutes = now.getHours() * 60 + now.getMinutes();
+          fetchedSlots = fetchedSlots.map(slot => {
+            const [h, m] = (slot.startTime || '').split(':').map(Number);
+            return h * 60 + (m || 0) <= nowMinutes ? { ...slot, available: false } : slot;
+          });
+        }
+        setSlots(fetchedSlots);
+      })
+      .catch(() => setSlots([]))
+      .finally(() => setLoading(false));
+  }, [selectedDate, storeId, duration, apiBase, staffName]);
+
+  const availableCount = slots.filter(s => s.available).length;
+
+  return (
+    <div className="rounded-xl border overflow-hidden mb-3" style={{ borderColor: '#e0e3e6', backgroundColor: '#fff' }}>
+      {/* Staff header */}
+      <div className="flex items-center justify-between px-3 py-2.5" style={{ backgroundColor: primaryColor + '10', borderBottom: `1px solid ${primaryColor}30` }}>
+        <div className="flex items-center gap-2">
+          <span className="text-base">👤</span>
+          <div>
+            <p className="text-xs font-semibold" style={{ color: primaryColor, fontFamily: fontBody }}>{staffName}</p>
+            {staffPrice > 0 && (
+              <p className="text-[10px] opacity-70" style={{ fontFamily: fontBody }}>₹{staffPrice} per session</p>
+            )}
+          </div>
+        </div>
+        <span className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{
+          backgroundColor: availableCount > 0 ? '#dcfce7' : '#f5f5f5',
+          color: availableCount > 0 ? '#15803d' : '#9ca3af',
+          fontFamily: fontBody,
+        }}>
+          {loading ? '…' : availableCount > 0 ? `${availableCount} slots` : 'No slots'}
+        </span>
+      </div>
+
+      <div className="px-3 pb-3 pt-2">
+        {/* Date strip */}
+        <div className="flex gap-1.5 overflow-x-auto pb-1 mb-2 scrollbar-hide">
+          {dateOptions.map(d => (
+            <button key={d.iso}
+              onClick={() => onDateChange(d.iso)}
+              className="flex-shrink-0 flex flex-col items-center px-2.5 py-1.5 rounded-lg border transition-all text-xs"
+              style={{
+                borderColor: selectedDate === d.iso ? primaryColor : '#e0e3e6',
+                backgroundColor: selectedDate === d.iso ? primaryColor + '15' : '#f8f8f8',
+                color: selectedDate === d.iso ? primaryColor : '#556067',
+                fontFamily: fontBody,
+              }}>
+              <span className="font-semibold text-[10px]">{d.label}</span>
+              <span className="opacity-70 text-[9px]">{d.sub}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Time slots */}
+        {loading ? (
+          <p className="text-[10px] text-center py-2 opacity-40" style={{ fontFamily: fontBody }}>Loading…</p>
+        ) : slots.length === 0 ? (
+          <p className="text-[10px] text-center py-2 opacity-40" style={{ fontFamily: fontBody }}>No slots for this date</p>
+        ) : (
+          <div className="grid grid-cols-3 gap-1.5">
+            {slots.map((slot, i) => {
+              const isAvailable = slot.available;
+              const alreadyPicked = selectedSlots.filter(s => s.date === selectedDate && s.startTime === slot.startTime && s.staffName === staffName).length;
+              const canPick = isAvailable && selectedSlots.length < quantity;
+              return (
+                <button key={i}
+                  disabled={!canPick}
+                  onClick={() => canPick && onAddSlot({ ...slot, staffName, selectedDate })}
+                  className="py-1.5 px-1 rounded-lg border text-[10px] font-medium transition-all"
+                  style={{
+                    borderColor: alreadyPicked > 0 ? primaryColor : isAvailable ? primaryColor + '50' : '#e0e3e6',
+                    backgroundColor: alreadyPicked > 0 ? primaryColor + '20' : isAvailable ? primaryColor + '08' : '#f5f5f5',
+                    color: alreadyPicked > 0 ? primaryColor : isAvailable ? primaryColor : '#bbb',
+                    opacity: !canPick && alreadyPicked === 0 ? 0.5 : 1,
+                    cursor: canPick ? 'pointer' : 'default',
+                  }}>
+                  <span className="block font-semibold">{slot.startTime}</span>
+                  {slot.endTime && <span className="block opacity-60 text-[9px]">{slot.endTime}</span>}
+                  {alreadyPicked > 0 && <span className="block text-[9px]">✓</span>}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, fontBody, onSlotsChange, onPriceChange, onStaffChange }) => {
   const quantity = item.quantity;
   const selectedSlots = item.selectedSlots || [];
@@ -1365,76 +1474,60 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
   const [slots, setSlots] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
 
-  // For "All Staff" mode: fetch staff list and let customer pick
+  // For single-staff mode (non-All Staff)
   const [staffList, setStaffList] = React.useState([]);
   const [staffLoading, setStaffLoading] = React.useState(false);
-  const [selectedStaffTab, setSelectedStaffTab] = React.useState(null);
 
-  // Determine effective staff name for slot fetching
-  const effectiveStaffName = isAllStaff ? selectedStaffTab : baseStaffName;
-
-  // Fetch staff list when isAllStaff
+  // Fetch staff list for All Staff mode
   React.useEffect(() => {
     if (!isAllStaff || !storeId) return;
     setStaffLoading(true);
     fetch(`${apiBase}/api/store/${storeId}/staff`)
       .then(r => r.json())
-      .then(res => {
-        const list = res.success ? res.data : [];
-        setStaffList(list);
-        // Auto-select first staff if none selected
-        if (list.length > 0 && !selectedStaffTab) {
-          const firstName = list[0].name;
-          setSelectedStaffTab(firstName);
-          if (onStaffChange) onStaffChange(firstName);
-          // Set price: named staff rate if exists, else base price
-          const price = getStaffPrice(firstName);
-          if (price > 0 && onPriceChange) onPriceChange(price);
-        }
-      })
+      .then(res => { setStaffList(res.success ? res.data : []); })
       .catch(() => setStaffList([]))
       .finally(() => setStaffLoading(false));
   }, [isAllStaff, storeId, apiBase]);
 
-  // Fetch slots when date or effective staff changes
+  // Fetch slots for single-staff mode
   React.useEffect(() => {
-    if (!selectedDate || !storeId || !effectiveStaffName) return;
+    if (isAllStaff || !selectedDate || !storeId || !baseStaffName) return;
     setLoading(true);
-    const params = new URLSearchParams({
-      date: selectedDate,
-      serviceDuration: duration,
-      staffName: effectiveStaffName,
-    });
+    const params = new URLSearchParams({ date: selectedDate, serviceDuration: duration, staffName: baseStaffName });
     fetch(`${apiBase}/api/store/${storeId}/slots?${params}`)
       .then(r => r.json())
       .then(res => {
         let fetchedSlots = res.success ? res.data : [];
-        // Disable past time slots when the selected date is today
         const todayIso = new Date().toISOString().split('T')[0];
         if (selectedDate === todayIso) {
           const now = new Date();
           const nowMinutes = now.getHours() * 60 + now.getMinutes();
           fetchedSlots = fetchedSlots.map(slot => {
             const [h, m] = (slot.startTime || '').split(':').map(Number);
-            const slotMinutes = h * 60 + (m || 0);
-            return slotMinutes <= nowMinutes ? { ...slot, available: false } : slot;
+            return h * 60 + (m || 0) <= nowMinutes ? { ...slot, available: false } : slot;
           });
         }
         setSlots(fetchedSlots);
       })
       .catch(() => setSlots([]))
       .finally(() => setLoading(false));
-  }, [selectedDate, storeId, duration, apiBase, effectiveStaffName]);
+  }, [selectedDate, storeId, duration, apiBase, baseStaffName, isAllStaff]);
 
-  const addSlot = (slot) => {
+  const addSlot = (slot, staffName, date) => {
     if (selectedSlots.length >= quantity) return;
+    const effectiveDate = date || selectedDate;
+    const effectiveStaff = staffName || baseStaffName;
     const newSlots = [...selectedSlots, {
-      date: selectedDate,
+      date: effectiveDate,
       startTime: slot.startTime,
       endTime: slot.endTime,
-      staffName: effectiveStaffName,
+      staffName: effectiveStaff,
     }];
     onSlotsChange(newSlots);
+    // Update price and staff to whichever staff was last picked
+    if (onStaffChange) onStaffChange(effectiveStaff);
+    const price = getStaffPrice(effectiveStaff);
+    if (price > 0 && onPriceChange) onPriceChange(price);
   };
 
   const removeSlot = (idx) => {
@@ -1444,10 +1537,6 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
 
   const slotsNeeded = quantity - selectedSlots.length;
 
-  // Staff tabs to show (for specific staff: just that one; for All Staff: fetched list)
-  const staffTabs = isAllStaff ? staffList : [{ name: baseStaffName }];
-  const activeStaff = isAllStaff ? selectedStaffTab : baseStaffName;
-
   return (
     <div className="border-t px-4 pb-4 pt-3" style={{ backgroundColor: '#f8fdf9' }}>
       {/* Header */}
@@ -1456,7 +1545,11 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
           <p className="text-xs font-semibold" style={{ color: primaryColor, fontFamily: fontBody }}>
             📅 Pick {quantity} appointment slot{quantity > 1 ? 's' : ''}
           </p>
-          {!isAllStaff && (
+          {isAllStaff ? (
+            <p className="text-[11px] opacity-60 mt-0.5" style={{ fontFamily: fontBody }}>
+              Choose any available staff member
+            </p>
+          ) : (
             <p className="text-[11px] opacity-60 mt-0.5" style={{ fontFamily: fontBody }}>
               with {baseStaffName}
             </p>
@@ -1484,51 +1577,41 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
 
       {slotsNeeded > 0 && (
         <>
-          {/* Staff tabs — always shown so customer picks staff first */}
-          {isAllStaff && staffLoading ? (
-            <p className="text-xs text-center py-2 opacity-50" style={{ fontFamily: fontBody }}>Loading staff…</p>
-          ) : staffTabs.length > 0 && (
-            <div className="mb-3">
-              {isAllStaff && (
-                <p className="text-[11px] opacity-60 mb-1.5" style={{ fontFamily: fontBody }}>Select a staff member:</p>
-              )}
-              <div className="flex gap-2 overflow-x-auto pt-1 pb-1 scrollbar-hide">
-                {staffTabs.map(s => (
-                  <button key={s.name}
-                    onClick={() => {
-                      if (isAllStaff) {
-                        setSelectedStaffTab(s.name);
-                        setSlots([]);
-                        if (onStaffChange) onStaffChange(s.name);
-                        // Price: named staff rate if set, else base price
-                        const price = getStaffPrice(s.name);
-                        if (price > 0 && onPriceChange) onPriceChange(price);
-                      }
-                    }}
-                    className="flex-shrink-0 flex flex-col items-center px-3 py-1.5 rounded-xl border text-xs font-medium transition-all whitespace-nowrap"
-                    style={{
-                      borderColor: activeStaff === s.name ? primaryColor : '#e0e3e6',
-                      backgroundColor: activeStaff === s.name ? primaryColor + '15' : '#fff',
-                      color: activeStaff === s.name ? primaryColor : '#556067',
-                      fontFamily: fontBody,
-                      cursor: isAllStaff ? 'pointer' : 'default',
-                    }}>
-                    <span>👤 {s.name}</span>
-                    <span className="text-[10px] mt-0.5 opacity-80">
-                      ₹{(() => {
-                        return getStaffPrice(s.name);
-                      })()}
-                    </span>
-                  </button>
+          {/* ── ALL STAFF MODE: show each staff member as their own card ── */}
+          {isAllStaff ? (
+            staffLoading ? (
+              <p className="text-xs text-center py-4 opacity-50" style={{ fontFamily: fontBody }}>Loading available staff…</p>
+            ) : staffList.length === 0 ? (
+              <p className="text-xs text-center py-4 opacity-50" style={{ fontFamily: fontBody }}>No staff members available</p>
+            ) : (
+              <div>
+                <p className="text-[11px] opacity-60 mb-2" style={{ fontFamily: fontBody }}>
+                  Pick a slot from any available staff member:
+                </p>
+                {staffList.map(s => (
+                  <StaffSlotCard
+                    key={s.name}
+                    staffName={s.name}
+                    staffPrice={getStaffPrice(s.name)}
+                    dateOptions={dateOptions}
+                    selectedDate={selectedDate}
+                    onDateChange={setSelectedDate}
+                    storeId={storeId}
+                    apiBase={apiBase}
+                    duration={duration}
+                    primaryColor={primaryColor}
+                    fontBody={fontBody}
+                    selectedSlots={selectedSlots}
+                    quantity={quantity}
+                    onAddSlot={(slot) => addSlot(slot, slot.staffName, slot.selectedDate)}
+                  />
                 ))}
               </div>
-            </div>
-          )}
-
-          {/* Only show date + slots after staff is selected */}
-          {effectiveStaffName && (
+            )
+          ) : (
+            /* ── SINGLE STAFF MODE ── */
             <>
-              {/* Date strip — pt-1 prevents top border clip in overflow scroll */}
+              {/* Date strip */}
               <div className="flex gap-2 overflow-x-auto pt-1 pb-1 mb-3 scrollbar-hide">
                 {dateOptions.map(d => (
                   <button key={d.iso}
@@ -1555,7 +1638,7 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
                 <div className="grid grid-cols-3 gap-2 pt-1">
                   {slots.map((slot, i) => {
                     const isAvailable = slot.available;
-                    const alreadyPickedCount = selectedSlots.filter(s => s.date === selectedDate && s.startTime === slot.startTime && s.staffName === effectiveStaffName).length;
+                    const alreadyPickedCount = selectedSlots.filter(s => s.date === selectedDate && s.startTime === slot.startTime && s.staffName === baseStaffName).length;
                     const canPick = isAvailable && selectedSlots.length < quantity;
                     return (
                       <button key={i}
@@ -1585,13 +1668,6 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
                 </p>
               )}
             </>
-          )}
-
-          {/* Prompt to pick staff if none selected yet */}
-          {isAllStaff && !effectiveStaffName && !staffLoading && (
-            <p className="text-xs text-center py-3 opacity-50" style={{ fontFamily: fontBody }}>
-              Select a staff member above to see available slots
-            </p>
           )}
         </>
       )}
