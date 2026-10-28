@@ -1560,7 +1560,7 @@ const ServiceSlotPicker = ({ item, booking, storeId, apiBase, primaryColor, font
                       <button
                         key={s.name}
                         onClick={() => setActiveStaffTab(s.name)}
-                        className="flex-shrink-0 flex flex-col items-center gap-1.5 px-4 py-3 rounded-2xl border-2 transition-all"
+                        className="flex-shrink-0 flex flex-col items-center gap-1.5 px-4 pt-4 pb-3 rounded-2xl border-2 transition-all"
                         style={{
                           borderColor: isActive ? primaryColor : '#e0e3e6',
                           backgroundColor: isActive ? '#fff' : '#fff',
