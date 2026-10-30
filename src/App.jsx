@@ -91,15 +91,14 @@ function App() {
         document.documentElement.style.setProperty('--store-primary', primary);
         document.documentElement.style.setProperty('--store-secondary', secondary);
         setStore(result.data);
-        setStatus('ready'); // ← page renders NOW with shell data
+        // Don't render yet — wait for catalog so components don't crash
+        // on missing products.banner etc. Catalog is fast (~same server).
 
-        // ── Step 2: Lazy catalog — products, categories, stockMap ──
-        // Fires in background after shell paints. Does NOT block render.
+        // ── Step 2: Catalog — products, categories, stockMap ──
         publicStoreAPI.getCatalog(lookup)
           .then(catalogResult => {
             if (catalogResult.success && catalogResult.data) {
               const { products, categories, stockMap: map } = catalogResult.data;
-              // Merge products + categories into store config
               setStore(prev => ({
                 ...prev,
                 config: {
@@ -109,10 +108,15 @@ function App() {
                 },
               }));
               setStockMap(map || {});
-              setCatalogLoaded(true);
             }
+            setCatalogLoaded(true);
+            setStatus('ready'); // ← render only after both responses
           })
-          .catch(e => console.warn('Catalog lazy load failed:', e));
+          .catch(e => {
+            console.warn('Catalog load failed:', e);
+            setCatalogLoaded(true);
+            setStatus('ready'); // still render shell if catalog fails
+          });
 
       } catch (e) {
         console.error('Failed to load store:', e);
