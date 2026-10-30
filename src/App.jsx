@@ -40,6 +40,8 @@ function getProductIdFromPath() {
 function App() {
   const [status, setStatus] = useState('loading');
   const [store, setStore] = useState(null);
+  const [stockMap, setStockMap] = useState({});
+  const [catalogLoaded, setCatalogLoaded] = useState(false);
 
   const initialProductId = getProductIdFromPath();
 
@@ -76,18 +78,42 @@ function App() {
 
     (async () => {
       try {
+        // ── Step 1: Fast shell — brand/theme/config only, no products ──
         const result = await publicStoreAPI.getBySubdomain(lookup);
-        if (result.success && result.data) {
-          const colors = result.data.config?.brand?.brandColors || {};
-          const primary = colors.primary || '#25D366';
-          const secondary = colors.secondary || '#E0E3E6';
-          document.documentElement.style.setProperty('--store-primary', primary);
-          document.documentElement.style.setProperty('--store-secondary', secondary);
-          setStore(result.data);
-          setStatus('ready');
-        } else {
+        if (!result.success || !result.data) {
           setStatus('not-found');
+          return;
         }
+
+        const colors = result.data.config?.brand?.brandColors || {};
+        const primary = colors.primary || '#25D366';
+        const secondary = colors.secondary || '#E0E3E6';
+        document.documentElement.style.setProperty('--store-primary', primary);
+        document.documentElement.style.setProperty('--store-secondary', secondary);
+        setStore(result.data);
+        setStatus('ready'); // ← page renders NOW with shell data
+
+        // ── Step 2: Lazy catalog — products, categories, stockMap ──
+        // Fires in background after shell paints. Does NOT block render.
+        publicStoreAPI.getCatalog(lookup)
+          .then(catalogResult => {
+            if (catalogResult.success && catalogResult.data) {
+              const { products, categories, stockMap: map } = catalogResult.data;
+              // Merge products + categories into store config
+              setStore(prev => ({
+                ...prev,
+                config: {
+                  ...prev.config,
+                  products: { ...prev.config?.products, ...products },
+                  categories: categories || prev.config?.categories,
+                },
+              }));
+              setStockMap(map || {});
+              setCatalogLoaded(true);
+            }
+          })
+          .catch(e => console.warn('Catalog lazy load failed:', e));
+
       } catch (e) {
         console.error('Failed to load store:', e);
         setStatus('error');
@@ -146,7 +172,7 @@ function App() {
       className="min-h-screen"
       style={{ minHeight: '100vh', backgroundColor: builderData.brand.colors.background }}
       initialProductId={initialProductId}
-      stockMap={store.stockMap || {}}
+      stockMap={stockMap}
     />
   );
 }

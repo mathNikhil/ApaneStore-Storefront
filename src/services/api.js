@@ -3,8 +3,16 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5002';
 // Fetches a published store's config by subdomain. Public — no auth token,
 // since this is what real shoppers hit.
 export const publicStoreAPI = {
+    // Fast shell: brand, theme, payment, cart config — no products/stockMap.
+    // Use this on initial page load for instant paint.
     getBySubdomain: async (subdomain) => {
         const response = await fetch(`${API_BASE_URL}/api/public/store/${subdomain}`);
+        return response.json();
+    },
+
+    // Lazy catalog: products, categories, stockMap — call AFTER shell renders.
+    getCatalog: async (subdomain) => {
+        const response = await fetch(`${API_BASE_URL}/api/public/store/${subdomain}/catalog`);
         return response.json();
     },
 };
