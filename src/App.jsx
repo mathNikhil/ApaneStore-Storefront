@@ -103,8 +103,11 @@ function App() {
                 ...prev,
                 config: {
                   ...prev.config,
-                  products: { ...prev.config?.products, ...products },
-                  categories: categories || prev.config?.categories,
+                  // Merge catalog products (has items) over shell products (no items)
+                  products: products
+                    ? { ...prev.config?.products, ...products }
+                    : prev.config?.products,
+                  categories: categories || prev.config?.categories || [],
                 },
               }));
               setStockMap(map || {});
