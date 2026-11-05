@@ -20,19 +20,29 @@ const PreviewFooter = ({
 }) => {
   const isService = storeType === 'service';
 
-  // Build tabs: use navTabs config if provided, else fall back to defaults
-  // with legacy cartTabName / ordersTabName / isService label overrides.
-  const tabs = navTabs && navTabs.length > 0
-    ? navTabs
-    : DEFAULT_TABS.map(t => {
-        if (t.id === 'cart') {
-          return { ...t, label: isService ? 'Service' : (cartTabName || 'Cart'), icon: isService ? 'spa' : 'shopping_cart' };
-        }
-        if (t.id === 'orders') {
-          return { ...t, label: isService ? 'Booking' : (ordersTabName || 'Orders'), icon: isService ? 'event_note' : 'receipt_long' };
-        }
-        return t;
-      });
+  // Service stores swap the cart and orders tabs' label + default icon.
+  // This applies whether navTabs came from DB or fell back to defaults.
+  // If the admin set a customIcon we keep it; label and default icon still
+  // reflect the store type so "Cart" never shows on a service store.
+  const applyServiceOverrides = (tab) => {
+    if (tab.id === 'cart') {
+      return {
+        ...tab,
+        label: isService ? 'Service' : (cartTabName || tab.label || 'Cart'),
+        icon: tab.customIcon ? tab.icon : (isService ? 'spa' : 'shopping_cart'),
+      };
+    }
+    if (tab.id === 'orders') {
+      return {
+        ...tab,
+        label: isService ? 'Booking' : (ordersTabName || tab.label || 'Orders'),
+        icon: tab.customIcon ? tab.icon : (isService ? 'event_note' : 'receipt_long'),
+      };
+    }
+    return tab;
+  };
+
+  const tabs = (navTabs && navTabs.length > 0 ? navTabs : DEFAULT_TABS).map(applyServiceOverrides);
 
   return (
     <nav
