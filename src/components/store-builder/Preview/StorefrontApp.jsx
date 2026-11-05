@@ -460,6 +460,7 @@ const StorefrontApp = ({
             cartTabName={storeData.cart?.tabName || 'Cart'}
             ordersTabName={storeData.cart?.ordersTabName || 'Orders'}
             storeType={storeData.storeType || 'product'}
+            navTabs={storeData.brand?.navTabs || null}
           />
         </div>
       </DeviceFrameContext.Provider>

@@ -19,6 +19,7 @@ const mapConfigToBuilderData = (config) => ({
     },
     fonts: config?.brand?.fonts || { heading: 'Inter', body: 'Inter' },
     baseFontSize: config?.brand?.baseFontSize || '16px',
+    navTabs: config?.brand?.navTabs || null,
   },
   products: {
     ...config?.products,
