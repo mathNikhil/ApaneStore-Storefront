@@ -141,6 +141,7 @@ const StorefrontApp = ({
     headingFont: builderData.brand.fonts.heading,
     bodyFont: builderData.brand.fonts.body,
     baseFontSize: builderData.brand.baseFontSize,
+    navTabs: builderData.brand.navTabs || null,
     categories: builderData.products.categories,
     enableImageZoom: builderData.products.enableImageZoom,
     enableProductSearch: builderData.products.enableProductSearch,
