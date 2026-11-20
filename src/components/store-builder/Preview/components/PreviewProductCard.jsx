@@ -86,9 +86,11 @@ const PreviewProductCard = ({
       cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       setHighlight(true);
     });
-    const openT = setTimeout(() => setQuickViewOpen(true), 450);
+    // Scroll + highlight always happen. The modal is a tenant setting
+    // (zoomEnabled), so only open it when the tenant has it turned on.
+    const openT = zoomEnabled ? setTimeout(() => setQuickViewOpen(true), 450) : null;
     const hlT = setTimeout(() => setHighlight(false), 3500);
-    return () => { cancelAnimationFrame(raf); clearTimeout(openT); clearTimeout(hlT); };
+    return () => { cancelAnimationFrame(raf); if (openT) clearTimeout(openT); clearTimeout(hlT); };
   }, [autoOpen]);
 
   // Keep the address bar pointing at the product while its modal is open,
@@ -408,7 +410,7 @@ const PreviewProductCard = ({
   // ── INLINE CARD (zoom OFF) ────────────────────────────────────────────────
   if (!zoomEnabled) {
     return (
-      <div className="rounded-lg border overflow-hidden flex flex-col" style={{ backgroundColor: brandColors.background || '#FFFFFF' }}>
+      <div ref={cardRef} className="rounded-lg border overflow-hidden flex flex-col" style={{ backgroundColor: brandColors.background || '#FFFFFF', scrollMarginTop: 80, transition: 'box-shadow .3s', boxShadow: highlight ? `0 0 0 3px ${brandColors.primary || '#25D366'}` : undefined }}>
         {couponModal}
         {/* Image */}
         <div className="aspect-square relative overflow-hidden" style={{ backgroundColor: brandColors.background || '#FFFFFF' }}>
