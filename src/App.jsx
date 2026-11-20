@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import StorefrontApp from './components/store-builder/Preview/StorefrontApp';
 import { publicStoreAPI } from './services/api';
+import { parseProductIdFromPath } from './utils/productSlug';
 
 const mapConfigToBuilderData = (config) => ({
   ...config,
@@ -33,18 +34,13 @@ const mapConfigToBuilderData = (config) => ({
   },
 });
 
-function getProductIdFromPath() {
-  const match = window.location.pathname.match(/^\/product\/([^/]+)/);
-  return match ? match[1] : null;
-}
-
 function App() {
   const [status, setStatus] = useState('loading');
   const [store, setStore] = useState(null);
   const [stockMap, setStockMap] = useState({});
   const [catalogLoaded, setCatalogLoaded] = useState(false);
 
-  const initialProductId = getProductIdFromPath();
+  const initialProductId = parseProductIdFromPath();
 
   // Detect device type based on screen width
   const getDevice = () => {
