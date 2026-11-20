@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
+import { setProductUrl, clearProductUrl } from '../../../../utils/productSlug';
 
 const PreviewProductCard = ({
   product,
@@ -38,6 +39,8 @@ const PreviewProductCard = ({
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [quickViewOpen, setQuickViewOpen] = useState(false);
+  const cardRef = useRef(null);
+  const [highlight, setHighlight] = useState(false);
   const [couponModalOpen, setCouponModalOpen] = useState(false);
 
   // Filter coupons down to those valid for the currently selected variant/size.
@@ -73,9 +76,34 @@ const PreviewProductCard = ({
   const hasMultipleOptions = (product.variations?.length || 0) > 1 ||
     (product.variations?.[0]?.sizes?.length || 0) > 1;
 
+  // Deep link (/product/<slug>-<id>): bring the card into view, flash a ring
+  // around it, then open the quick-view. Scroll waits a frame so the grid has
+  // laid out; the modal opens after the scroll so closing it leaves the
+  // customer sitting on the right product instead of at the top of the page.
   useEffect(() => {
-    if (autoOpen) setQuickViewOpen(true);
+    if (!autoOpen) return;
+    const raf = requestAnimationFrame(() => {
+      cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setHighlight(true);
+    });
+    const openT = setTimeout(() => setQuickViewOpen(true), 450);
+    const hlT = setTimeout(() => setHighlight(false), 3500);
+    return () => { cancelAnimationFrame(raf); clearTimeout(openT); clearTimeout(hlT); };
   }, [autoOpen]);
+
+  // Keep the address bar pointing at the product while its modal is open,
+  // and return to the store root when it closes (replaceState, so the back
+  // button isn't trapped). Only clears on an actual open -> close transition.
+  const wasOpenRef = useRef(false);
+  useEffect(() => {
+    if (quickViewOpen) {
+      wasOpenRef.current = true;
+      setProductUrl(product);
+    } else if (wasOpenRef.current) {
+      wasOpenRef.current = false;
+      clearProductUrl();
+    }
+  }, [quickViewOpen]);
 
   useEffect(() => {
     if (images.length <= 1 || !autoSlide) return;
@@ -528,7 +556,7 @@ const PreviewProductCard = ({
 
   // ── ZOOM CARD (zoom ON) ───────────────────────────────────────────────────
   return (
-    <div className="rounded-lg border overflow-hidden hover:shadow-md transition-shadow flex flex-col relative" style={{ backgroundColor: brandColors.background || '#FFFFFF' }}>
+    <div ref={cardRef} className="rounded-lg border overflow-hidden hover:shadow-md transition-shadow flex flex-col relative" style={{ backgroundColor: brandColors.background || '#FFFFFF', scrollMarginTop: 80, transition: 'box-shadow .3s', boxShadow: highlight ? `0 0 0 3px ${brandColors.primary || '#25D366'}` : undefined }}>
 
       <div
         className={`aspect-square relative overflow-hidden ${images.length > 0 ? 'cursor-zoom-in' : ''}`}
